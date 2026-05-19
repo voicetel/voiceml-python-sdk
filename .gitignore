@@ -1,0 +1,25 @@
+# Build / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Bytecode + caches
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
