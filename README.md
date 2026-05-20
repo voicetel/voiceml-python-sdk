@@ -1,6 +1,6 @@
 # voiceml
 
-Official Python SDK for the [VoiceML](https://voiceml.voicetel.com) REST API — VoiceTel's outbound voice + AMD service with a Twilio-shaped REST surface.
+Official Python SDK for the [VoiceML](https://voicetel.com/docs/api/v0.6/voiceml/) REST API — VoiceTel's outbound voice + AMD service with a Twilio-shaped REST surface.
 
 The wire format, auth model (HTTP Basic with `AccountSid` as username, per-tenant API key as password), error codes, and pagination envelope all match Twilio's documented Programmable Voice surface. If you've used the Twilio Python SDK, the patterns here will look familiar.
 
