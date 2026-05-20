@@ -11,6 +11,7 @@ from ._http import (
     AsyncTransport,
     Transport,
 )
+from .exceptions import ConfigurationError
 from .resources import (
     ApplicationsAsyncResource,
     ApplicationsResource,
@@ -20,6 +21,8 @@ from .resources import (
     ConferencesResource,
     DiagnosticsAsyncResource,
     DiagnosticsResource,
+    IncomingPhoneNumbersAsyncResource,
+    IncomingPhoneNumbersResource,
     QueuesAsyncResource,
     QueuesResource,
     RecordingsAsyncResource,
@@ -27,12 +30,32 @@ from .resources import (
 )
 
 
+def _resolve_credentials(
+    api_key: str | None, auth_token: str | None
+) -> str:
+    """Accept either ``api_key=`` (native) or ``auth_token=`` (Twilio-compat alias).
+
+    Both arguments map to the same HTTP Basic password — VoiceML calls it an "API key"
+    in docs, but the wire shape and the parameter role match Twilio's ``auth_token``.
+    Supplying both is an error so callers don't accidentally pass two different values.
+    """
+    if api_key is not None and auth_token is not None:
+        raise ConfigurationError(
+            "Pass either api_key=... or auth_token=..., not both — they map to the same "
+            "HTTP Basic password."
+        )
+    resolved = api_key if api_key is not None else auth_token
+    if not resolved:
+        raise ConfigurationError("api_key (or auth_token) is required")
+    return resolved
+
+
 class Client:
     """Synchronous client for the VoiceML REST API.
 
     VoiceML uses HTTP Basic auth: the ``account_sid`` (Twilio-format ``AC`` + 32 hex)
-    is the username and ``api_key`` is the password. Drop-in compatible with the
-    Twilio Python SDK constructor signature.
+    is the username and ``api_key`` is the password. ``auth_token=`` is accepted as an
+    alias for ``api_key=`` so code copied from twilio-python keeps working.
 
     Usage::
 
@@ -48,15 +71,17 @@ class Client:
         self,
         *,
         account_sid: str,
-        api_key: str,
+        api_key: str | None = None,
+        auth_token: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.Client | None = None,
     ) -> None:
+        resolved_key = _resolve_credentials(api_key, auth_token)
         self._transport = Transport(
             account_sid=account_sid,
-            api_key=api_key,
+            api_key=resolved_key,
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
@@ -67,6 +92,7 @@ class Client:
         self.queues = QueuesResource(self._transport)
         self.applications = ApplicationsResource(self._transport)
         self.recordings = RecordingsResource(self._transport)
+        self.incoming_phone_numbers = IncomingPhoneNumbersResource(self._transport)
         self.diagnostics = DiagnosticsResource(self._transport)
 
     @property
@@ -100,15 +126,17 @@ class AsyncClient:
         self,
         *,
         account_sid: str,
-        api_key: str,
+        api_key: str | None = None,
+        auth_token: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
+        resolved_key = _resolve_credentials(api_key, auth_token)
         self._transport = AsyncTransport(
             account_sid=account_sid,
-            api_key=api_key,
+            api_key=resolved_key,
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
@@ -119,6 +147,7 @@ class AsyncClient:
         self.queues = QueuesAsyncResource(self._transport)
         self.applications = ApplicationsAsyncResource(self._transport)
         self.recordings = RecordingsAsyncResource(self._transport)
+        self.incoming_phone_numbers = IncomingPhoneNumbersAsyncResource(self._transport)
         self.diagnostics = DiagnosticsAsyncResource(self._transport)
 
     @property

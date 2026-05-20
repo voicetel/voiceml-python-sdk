@@ -6,6 +6,10 @@ from .applications import ApplicationsAsyncResource, ApplicationsResource
 from .calls import CallsAsyncResource, CallsResource
 from .conferences import ConferencesAsyncResource, ConferencesResource
 from .diagnostics import DiagnosticsAsyncResource, DiagnosticsResource
+from .incoming_phone_numbers import (
+    IncomingPhoneNumbersAsyncResource,
+    IncomingPhoneNumbersResource,
+)
 from .queues import QueuesAsyncResource, QueuesResource
 from .recordings import RecordingsAsyncResource, RecordingsResource
 
@@ -18,6 +22,8 @@ __all__ = [
     "ConferencesResource",
     "DiagnosticsAsyncResource",
     "DiagnosticsResource",
+    "IncomingPhoneNumbersAsyncResource",
+    "IncomingPhoneNumbersResource",
     "QueuesAsyncResource",
     "QueuesResource",
     "RecordingsAsyncResource",

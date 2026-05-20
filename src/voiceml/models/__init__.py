@@ -42,6 +42,13 @@ from .conferences import (
     UpdateParticipantRequest,
 )
 from .diagnostics import EventsList, HealthStatus, NotificationsList
+from .incoming_phone_numbers import (
+    CreateIncomingPhoneNumberRequest,
+    IncomingPhoneNumber,
+    IncomingPhoneNumberCapabilities,
+    IncomingPhoneNumberList,
+    UpdateIncomingPhoneNumberRequest,
+)
 from .queues import (
     CreateQueueRequest,
     DequeueRequest,
@@ -93,6 +100,7 @@ __all__ = [
     "ConferenceStatus",
     "CreateApplicationRequest",
     "CreateCallRequest",
+    "CreateIncomingPhoneNumberRequest",
     "CreateQueueRequest",
     "DequeueRequest",
     "EndConferenceRequest",
@@ -101,6 +109,9 @@ __all__ = [
     "HealthFailure",
     "HealthStatus",
     "HttpMethod",
+    "IncomingPhoneNumber",
+    "IncomingPhoneNumberCapabilities",
+    "IncomingPhoneNumberList",
     "MachineDetectionMode",
     "NotificationsList",
     "Page",
@@ -139,6 +150,7 @@ __all__ = [
     "UpdateApplicationRequest",
     "UpdateCallRequest",
     "UpdateCallStatus",
+    "UpdateIncomingPhoneNumberRequest",
     "UpdateParticipantRequest",
     "UpdateQueueRequest",
     "UpdateRecordingRequest",

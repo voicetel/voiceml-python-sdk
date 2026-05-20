@@ -280,13 +280,17 @@ def _parse(response: httpx.Response) -> Any:
     except ValueError:
         body = response.text
     code: int | str | None = None
+    more_info: str | None = None
     message = f"HTTP {response.status_code}"
     if isinstance(body, dict):
         raw_code = body.get("code")
         if isinstance(raw_code, (int, str)):
             code = raw_code
         message = body.get("message") or message
-    raise from_response(response.status_code, code, body, message)
+        raw_more_info = body.get("more_info")
+        if isinstance(raw_more_info, str) and raw_more_info:
+            more_info = raw_more_info
+    raise from_response(response.status_code, code, body, message, more_info=more_info)
 
 
 def _backoff_delay(attempt: int, response: httpx.Response | None = None) -> float:

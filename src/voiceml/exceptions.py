@@ -16,11 +16,14 @@ class ApiError(VoiceMLError):
 
     Subclasses cover specific status families; catch :class:`ApiError` to handle them all.
     The Twilio-shape error body (``{code, message, more_info, status}``) is parsed into
-    :attr:`code` / :attr:`message` when present, with the raw payload exposed on :attr:`body`.
+    :attr:`code` / :attr:`message` / :attr:`more_info` when present, with the raw payload
+    exposed on :attr:`body`. ``more_info`` is the docs URL Twilio includes for each error
+    code; matches ``TwilioRestException.more_info`` for drop-in compat.
     """
 
     status_code: int
     code: int | str | None
+    more_info: str | None
     body: Any
 
     def __init__(
@@ -29,11 +32,13 @@ class ApiError(VoiceMLError):
         *,
         status_code: int,
         code: int | str | None = None,
+        more_info: str | None = None,
         body: Any = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
+        self.more_info = more_info
         self.body = body
 
     def __repr__(self) -> str:
@@ -83,7 +88,14 @@ class ServerError(ApiError):
     """HTTP 5xx — the server hit an error processing the request."""
 
 
-def from_response(status_code: int, code: int | str | None, body: Any, message: str) -> ApiError:
+def from_response(
+    status_code: int,
+    code: int | str | None,
+    body: Any,
+    message: str,
+    *,
+    more_info: str | None = None,
+) -> ApiError:
     """Map an HTTP status to the most specific :class:`ApiError` subclass."""
     cls: type[ApiError]
     if status_code == 400:
@@ -106,4 +118,4 @@ def from_response(status_code: int, code: int | str | None, body: Any, message: 
         cls = ServerError
     else:
         cls = ApiError
-    return cls(message, status_code=status_code, code=code, body=body)
+    return cls(message, status_code=status_code, code=code, more_info=more_info, body=body)

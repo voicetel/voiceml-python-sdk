@@ -37,7 +37,7 @@ class RecordingsResource(Resource):
           * ``410 Gone`` — local file gone AND no S3 key. Raises :class:`voiceml.GoneError`.
         """
         status, content, headers = self._t.fetch_bytes(
-            self._path("Recordings", recording_sid) + ".wav"
+            self._path("Recordings", recording_sid + ".wav")
         )
         return RecordingAudio(
             sid=recording_sid,
@@ -69,7 +69,7 @@ class RecordingsAsyncResource(AsyncResource):
 
     async def get_audio(self, recording_sid: str) -> RecordingAudio:
         status, content, headers = await self._t.fetch_bytes(
-            self._path("Recordings", recording_sid) + ".wav"
+            self._path("Recordings", recording_sid + ".wav")
         )
         return RecordingAudio(
             sid=recording_sid,
