@@ -31,6 +31,7 @@ from voiceml.models import (
     IncomingPhoneNumber,
     IncomingPhoneNumberList,
     Queue,
+    Recording,
     StartStreamRequest,
     UpdateCallRequest,
     UpdateParticipantRequest,
@@ -42,7 +43,7 @@ BASE = "https://voiceml.voicetel.com"
 
 
 def test_version_is_set():
-    assert __version__ == "0.6.1"
+    assert __version__ == "0.6.2"
 
 
 def test_client_requires_credentials():
@@ -560,3 +561,45 @@ def test_recording_audio_path_ends_with_wav_not_json(httpx_mock: HTTPXMock):
     assert sent.url.path.endswith(f"/Recordings/{re_sid}.wav")
     # Defensive: should not contain `.json` anywhere on the path.
     assert ".json" not in sent.url.path
+
+
+# --- spec v0.6.2 deltas ---
+
+
+def test_recording_deserializes_media_url_when_present():
+    """D5 (spec v0.6.2): Recording.media_url carries the audio URL when the server sets it."""
+    re_sid = "RE" + "f" * 32
+    payload = {
+        "sid": re_sid,
+        "account_sid": ACCOUNT_SID,
+        "call_sid": "CA" + "0" * 32,
+        "status": "completed",
+        "media_url": f"https://api.voicetel.com/2010-04-01/Accounts/{ACCOUNT_SID}/Recordings/{re_sid}.wav",
+    }
+    rec = Recording.model_validate(payload)
+    assert rec.media_url == payload["media_url"]
+
+
+def test_recording_deserializes_without_media_url_for_backward_compat():
+    """Older (<v0.6.2) servers don't emit media_url — the field must be optional/None."""
+    re_sid = "RE" + "a" * 32
+    payload = {
+        "sid": re_sid,
+        "account_sid": ACCOUNT_SID,
+        "call_sid": "CA" + "1" * 32,
+        "status": "completed",
+    }
+    rec = Recording.model_validate(payload)
+    assert rec.media_url is None
+
+
+def test_incoming_phone_number_deserializes_type_field():
+    """D6 (spec v0.6.2): IncomingPhoneNumber.type round-trips the Twilio number-class enum."""
+    payload = {**_ipn_payload(), "type": "local"}
+    ipn = IncomingPhoneNumber.model_validate(payload)
+    assert ipn.type == "local"
+    # VoiceML emits empty by default — also accept "" / None.
+    ipn_empty = IncomingPhoneNumber.model_validate({**_ipn_payload(), "type": ""})
+    assert ipn_empty.type == ""
+    ipn_absent = IncomingPhoneNumber.model_validate(_ipn_payload())
+    assert ipn_absent.type is None

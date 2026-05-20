@@ -81,6 +81,9 @@ class IncomingPhoneNumber(_Base):
     emergency_address_sid: str | None = None
     emergency_address_status: str | None = None
     status: str | None = None
+    # Twilio number-class enum (local / mobile / toll-free). VoiceML doesn't categorize
+    # numbers so the server emits it empty; kept for Twilio-compat deserialization.
+    type: str | None = None
 
 
 class IncomingPhoneNumberList(Page[IncomingPhoneNumber]):
