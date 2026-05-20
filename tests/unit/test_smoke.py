@@ -42,7 +42,7 @@ BASE = "https://voiceml.voicetel.com"
 
 
 def test_version_is_set():
-    assert __version__ == "0.5.0"
+    assert __version__ == "0.6.0"
 
 
 def test_client_requires_credentials():

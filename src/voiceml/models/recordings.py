@@ -9,7 +9,7 @@ from pydantic import Field
 from ._base import _Base
 
 RecordingStatus = Literal[
-    "in-progress", "completed", "failed", "absent", "paused", "stopped", "processing"
+    "in-progress", "paused", "stopped", "processing", "completed", "absent", "deleted"
 ]
 RecordingSource = Literal[
     "OutboundAPI",

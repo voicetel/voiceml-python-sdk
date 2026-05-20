@@ -9,7 +9,7 @@ from pydantic import Field
 from ._base import _Base
 from .common import Page
 
-ConferenceStatus = Literal["in-progress", "completed"]
+ConferenceStatus = Literal["init", "in-progress", "completed"]
 ParticipantStatus = Literal[
     "queued", "connecting", "ringing", "connected", "on-hold", "completed"
 ]
