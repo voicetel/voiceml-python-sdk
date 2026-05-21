@@ -30,6 +30,7 @@ from voiceml.models import (
     CreateQueueRequest,
     IncomingPhoneNumber,
     IncomingPhoneNumberList,
+    Participant,
     Queue,
     Recording,
     StartStreamRequest,
@@ -43,7 +44,7 @@ BASE = "https://voiceml.voicetel.com"
 
 
 def test_version_is_set():
-    assert __version__ == "0.6.2"
+    assert __version__ == "0.6.3"
 
 
 def test_client_requires_credentials():
@@ -247,6 +248,8 @@ def test_stream_start_sends_boolean_as_string(httpx_mock: HTTPXMock):
             "account_sid": ACCOUNT_SID,
             "muted": True,
             "hold": False,
+            "coaching": False,
+            "queue_time": "0",
             "start_conference_on_enter": True,
             "end_conference_on_exit": False,
             "status": "connected",
@@ -603,3 +606,82 @@ def test_incoming_phone_number_deserializes_type_field():
     assert ipn_empty.type == ""
     ipn_absent = IncomingPhoneNumber.model_validate(_ipn_payload())
     assert ipn_absent.type is None
+
+
+# --- spec v0.6.3 deltas ---
+
+
+def test_participant_coaching_fields_round_trip():
+    payload = {
+        "call_sid": "CA" + "d" * 32,
+        "conference_sid": "CF" + "c" * 32,
+        "account_sid": ACCOUNT_SID,
+        "muted": False,
+        "hold": False,
+        "coaching": True,
+        "call_sid_to_coach": "CA" + "e" * 32,
+        "queue_time": "12",
+        "start_conference_on_enter": True,
+        "end_conference_on_exit": False,
+        "status": "connected",
+        "api_version": "2010-04-01",
+        "uri": "/x",
+    }
+    p = Participant.model_validate(payload)
+    assert p.coaching is True
+    assert p.call_sid_to_coach == payload["call_sid_to_coach"]
+    assert p.queue_time == "12"
+
+
+def test_recording_error_code_and_conference_source():
+    payload = {
+        "sid": "RE" + "b" * 32,
+        "account_sid": ACCOUNT_SID,
+        "call_sid": "CA" + "0" * 32,
+        "status": "completed",
+        "source": "StartConferenceRecordingAPI",
+        "error_code": None,
+    }
+    rec = Recording.model_validate(payload)
+    assert rec.source == "StartConferenceRecordingAPI"
+    assert rec.error_code is None
+
+
+def test_calls_list_emits_v063_start_time_filters(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="GET",
+        url=re.compile(r".*/Calls\.json(\?.*)?$"),
+        json={"calls": [], "page": 0, "page_size": 50, "total": 0, "uri": "/x"},
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.calls.list(start_time="2026-05-21", start_time_gt="2026-05-20", end_time_lt="2026-05-22")
+    sent = httpx_mock.get_request()
+    assert sent is not None
+    q = str(sent.url.query)
+    assert "StartTime=2026-05-21" in q
+    assert "StartTime%3E=2026-05-20" in q
+    assert "EndTime%3C=2026-05-22" in q
+
+
+def test_create_queue_allows_max_size_zero(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="POST",
+        url=re.compile(r".*/Queues\.json$"),
+        json={
+            "sid": "QU" + "0" * 32,
+            "account_sid": ACCOUNT_SID,
+            "friendly_name": "support",
+            "current_size": 0,
+            "max_size": 0,
+            "average_wait_time": 0,
+            "date_created": "Mon, 21 May 2026 00:00:00 +0000",
+            "date_updated": "Mon, 21 May 2026 00:00:00 +0000",
+            "uri": "/x",
+        },
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        q = c.queues.create(CreateQueueRequest(FriendlyName="support", MaxSize=0))
+    assert q.max_size == 0
+    sent = httpx_mock.get_request()
+    assert sent is not None
+    assert b"MaxSize=0" in sent.content

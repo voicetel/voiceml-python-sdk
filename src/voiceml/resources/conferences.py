@@ -14,12 +14,60 @@ from ..models import (
 from ._base import AsyncResource, Resource
 
 
+def _conference_list_params(
+    *,
+    friendly_name: str | None,
+    status: str | None,
+    page: int | None,
+    page_size: int | None,
+) -> dict[str, object]:
+    return {
+        "FriendlyName": friendly_name,
+        "Status": status,
+        "Page": page,
+        "PageSize": page_size,
+    }
+
+
+def _participant_list_params(
+    *,
+    muted: bool | None,
+    hold: bool | None,
+    coaching: bool | None,
+    page: int | None,
+    page_size: int | None,
+) -> dict[str, object]:
+    return {
+        "Muted": muted,
+        "Hold": hold,
+        "Coaching": coaching,
+        "Page": page,
+        "PageSize": page_size,
+    }
+
+
 class ConferencesResource(Resource):
     """Operations on live conferences and their participants/recordings."""
 
-    def list(self) -> ConferenceList:
+    def list(
+        self,
+        *,
+        friendly_name: str | None = None,
+        status: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> ConferenceList:
         return ConferenceList.model_validate(
-            self._t.request("GET", self._path("Conferences"))
+            self._t.request(
+                "GET",
+                self._path("Conferences"),
+                params=_conference_list_params(
+                    friendly_name=friendly_name,
+                    status=status,
+                    page=page,
+                    page_size=page_size,
+                ),
+            )
         )
 
     def get(self, conference_sid: str) -> Conference:
@@ -39,10 +87,27 @@ class ConferencesResource(Resource):
 
     # --- Participants ---
 
-    def list_participants(self, conference_sid: str) -> ParticipantList:
+    def list_participants(
+        self,
+        conference_sid: str,
+        *,
+        muted: bool | None = None,
+        hold: bool | None = None,
+        coaching: bool | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> ParticipantList:
         return ParticipantList.model_validate(
             self._t.request(
-                "GET", self._path("Conferences", conference_sid, "Participants")
+                "GET",
+                self._path("Conferences", conference_sid, "Participants"),
+                params=_participant_list_params(
+                    muted=muted,
+                    hold=hold,
+                    coaching=coaching,
+                    page=page,
+                    page_size=page_size,
+                ),
             )
         )
 
@@ -80,9 +145,25 @@ class ConferencesResource(Resource):
 
 
 class ConferencesAsyncResource(AsyncResource):
-    async def list(self) -> ConferenceList:
+    async def list(
+        self,
+        *,
+        friendly_name: str | None = None,
+        status: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> ConferenceList:
         return ConferenceList.model_validate(
-            await self._t.request("GET", self._path("Conferences"))
+            await self._t.request(
+                "GET",
+                self._path("Conferences"),
+                params=_conference_list_params(
+                    friendly_name=friendly_name,
+                    status=status,
+                    page=page,
+                    page_size=page_size,
+                ),
+            )
         )
 
     async def get(self, conference_sid: str) -> Conference:
@@ -100,10 +181,27 @@ class ConferencesAsyncResource(AsyncResource):
             )
         )
 
-    async def list_participants(self, conference_sid: str) -> ParticipantList:
+    async def list_participants(
+        self,
+        conference_sid: str,
+        *,
+        muted: bool | None = None,
+        hold: bool | None = None,
+        coaching: bool | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> ParticipantList:
         return ParticipantList.model_validate(
             await self._t.request(
-                "GET", self._path("Conferences", conference_sid, "Participants")
+                "GET",
+                self._path("Conferences", conference_sid, "Participants"),
+                params=_participant_list_params(
+                    muted=muted,
+                    hold=hold,
+                    coaching=coaching,
+                    page=page,
+                    page_size=page_size,
+                ),
             )
         )
 

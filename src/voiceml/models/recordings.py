@@ -18,6 +18,7 @@ RecordingSource = Literal[
     "Conference",
     "Trunking",
     "StartCallRecordingAPI",
+    "StartConferenceRecordingAPI",
 ]
 RecordingUpdateStatus = Literal["stopped", "paused", "in-progress"]
 
@@ -34,6 +35,7 @@ class Recording(_Base):
     api_version: str | None = None
     uri: str | None = None
     media_url: str | None = None
+    error_code: int | None = None
     date_created: str | None = None
     date_updated: str | None = None
     start_time: str | None = None

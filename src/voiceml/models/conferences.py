@@ -11,7 +11,14 @@ from .common import Page
 
 ConferenceStatus = Literal["init", "in-progress", "completed"]
 ParticipantStatus = Literal[
-    "queued", "connecting", "ringing", "connected", "on-hold", "completed"
+    "queued",
+    "connecting",
+    "ringing",
+    "connected",
+    "on-hold",
+    "complete",
+    "failed",
+    "completed",
 ]
 
 
@@ -41,6 +48,9 @@ class Participant(_Base):
     account_sid: str
     muted: bool
     hold: bool
+    coaching: bool
+    call_sid_to_coach: str | None = None
+    queue_time: str
     start_conference_on_enter: bool
     end_conference_on_exit: bool
     status: ParticipantStatus

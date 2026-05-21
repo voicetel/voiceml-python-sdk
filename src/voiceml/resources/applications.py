@@ -17,9 +17,23 @@ class ApplicationsResource(Resource):
             self._t.request("POST", self._path("Applications"), data=body.to_form())
         )
 
-    def list(self) -> ApplicationList:
+    def list(
+        self,
+        *,
+        friendly_name: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> ApplicationList:
         return ApplicationList.model_validate(
-            self._t.request("GET", self._path("Applications"))
+            self._t.request(
+                "GET",
+                self._path("Applications"),
+                params={
+                    "FriendlyName": friendly_name,
+                    "Page": page,
+                    "PageSize": page_size,
+                },
+            )
         )
 
     def get(self, application_sid: str) -> Application:
@@ -48,9 +62,23 @@ class ApplicationsAsyncResource(AsyncResource):
             )
         )
 
-    async def list(self) -> ApplicationList:
+    async def list(
+        self,
+        *,
+        friendly_name: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> ApplicationList:
         return ApplicationList.model_validate(
-            await self._t.request("GET", self._path("Applications"))
+            await self._t.request(
+                "GET",
+                self._path("Applications"),
+                params={
+                    "FriendlyName": friendly_name,
+                    "Page": page,
+                    "PageSize": page_size,
+                },
+            )
         )
 
     async def get(self, application_sid: str) -> Application:

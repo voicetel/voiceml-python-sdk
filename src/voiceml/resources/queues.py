@@ -40,9 +40,19 @@ class QueuesResource(Resource):
 
     # --- Members ---
 
-    def list_members(self, queue_sid: str) -> QueueMemberList:
+    def list_members(
+        self,
+        queue_sid: str,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> QueueMemberList:
         return QueueMemberList.model_validate(
-            self._t.request("GET", self._path("Queues", queue_sid, "Members"))
+            self._t.request(
+                "GET",
+                self._path("Queues", queue_sid, "Members"),
+                params={"Page": page, "PageSize": page_size},
+            )
         )
 
     def peek_front(self, queue_sid: str) -> QueueMember:
@@ -102,9 +112,19 @@ class QueuesAsyncResource(AsyncResource):
     async def delete(self, queue_sid: str) -> None:
         await self._t.request("DELETE", self._path("Queues", queue_sid))
 
-    async def list_members(self, queue_sid: str) -> QueueMemberList:
+    async def list_members(
+        self,
+        queue_sid: str,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> QueueMemberList:
         return QueueMemberList.model_validate(
-            await self._t.request("GET", self._path("Queues", queue_sid, "Members"))
+            await self._t.request(
+                "GET",
+                self._path("Queues", queue_sid, "Members"),
+                params={"Page": page, "PageSize": page_size},
+            )
         )
 
     async def peek_front(self, queue_sid: str) -> QueueMember:

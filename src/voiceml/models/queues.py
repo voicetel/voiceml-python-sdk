@@ -44,14 +44,14 @@ class CreateQueueRequest(_Base):
     """Body for ``POST /Queues``. Idempotent on ``FriendlyName``."""
 
     friendly_name: str = Field(alias="FriendlyName", max_length=64)
-    max_size: int | None = Field(default=None, alias="MaxSize", ge=1)
+    max_size: int | None = Field(default=None, alias="MaxSize", ge=0)
 
 
 class UpdateQueueRequest(_Base):
     """Body for ``POST /Queues/{sid}``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName", max_length=64)
-    max_size: int | None = Field(default=None, alias="MaxSize", ge=1)
+    max_size: int | None = Field(default=None, alias="MaxSize", ge=0)
 
 
 class DequeueRequest(_Base):

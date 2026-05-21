@@ -11,13 +11,52 @@ from ..models import Recording, RecordingAudio, RecordingList
 from ._base import AsyncResource, Resource
 
 
+def _list_params(
+    *,
+    date_created: str | None,
+    date_created_lt: str | None,
+    date_created_gt: str | None,
+    call_sid: str | None,
+    conference_sid: str | None,
+    page: int | None,
+    page_size: int | None,
+) -> dict[str, object]:
+    return {
+        "DateCreated": date_created,
+        "DateCreated<": date_created_lt,
+        "DateCreated>": date_created_gt,
+        "CallSid": call_sid,
+        "ConferenceSid": conference_sid,
+        "Page": page,
+        "PageSize": page_size,
+    }
+
+
 class RecordingsResource(Resource):
-    def list(self, *, page: int | None = None, page_size: int | None = None) -> RecordingList:
+    def list(
+        self,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        call_sid: str | None = None,
+        conference_sid: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> RecordingList:
         return RecordingList.model_validate(
             self._t.request(
                 "GET",
                 self._path("Recordings"),
-                params={"Page": page, "PageSize": page_size},
+                params=_list_params(
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    call_sid=call_sid,
+                    conference_sid=conference_sid,
+                    page=page,
+                    page_size=page_size,
+                ),
             )
         )
 
@@ -52,13 +91,29 @@ class RecordingsResource(Resource):
 
 class RecordingsAsyncResource(AsyncResource):
     async def list(
-        self, *, page: int | None = None, page_size: int | None = None
+        self,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        call_sid: str | None = None,
+        conference_sid: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
     ) -> RecordingList:
         return RecordingList.model_validate(
             await self._t.request(
                 "GET",
                 self._path("Recordings"),
-                params={"Page": page, "PageSize": page_size},
+                params=_list_params(
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    call_sid=call_sid,
+                    conference_sid=conference_sid,
+                    page=page,
+                    page_size=page_size,
+                ),
             )
         )
 

@@ -38,22 +38,54 @@ def _list_params(
     from_: str | None,
     status: str | None,
     parent_call_sid: str | None,
+    start_time: str | None,
+    start_time_lt: str | None,
+    start_time_gt: str | None,
+    end_time: str | None,
+    end_time_lt: str | None,
+    end_time_gt: str | None,
     start_time_gte: str | None,
     start_time_lte: str | None,
     page: int | None,
     page_size: int | None,
 ) -> dict[str, object]:
-    # Note: spec defines `StartTime>=` and `StartTime<=` as the literal query names.
     return {
         "To": to,
         "From": from_,
         "Status": status,
         "ParentCallSid": parent_call_sid,
+        "StartTime": start_time,
+        "StartTime<": start_time_lt,
+        "StartTime>": start_time_gt,
+        "EndTime": end_time,
+        "EndTime<": end_time_lt,
+        "EndTime>": end_time_gt,
         "StartTime>=": start_time_gte,
         "StartTime<=": start_time_lte,
         "Page": page,
         "PageSize": page_size,
     }
+
+
+def _recording_list_params(
+    *,
+    date_created: str | None,
+    date_created_lt: str | None,
+    date_created_gt: str | None,
+    page: int | None,
+    page_size: int | None,
+) -> dict[str, object]:
+    return {
+        "DateCreated": date_created,
+        "DateCreated<": date_created_lt,
+        "DateCreated>": date_created_gt,
+        "Page": page,
+        "PageSize": page_size,
+    }
+
+
+def _page_params(*, page: int | None, page_size: int | None) -> dict[str, object]:
+    return {"Page": page, "PageSize": page_size}
 
 
 class CallsResource(Resource):
@@ -66,6 +98,12 @@ class CallsResource(Resource):
         from_: str | None = None,
         status: str | None = None,
         parent_call_sid: str | None = None,
+        start_time: str | None = None,
+        start_time_lt: str | None = None,
+        start_time_gt: str | None = None,
+        end_time: str | None = None,
+        end_time_lt: str | None = None,
+        end_time_gt: str | None = None,
         start_time_gte: str | None = None,
         start_time_lte: str | None = None,
         page: int | None = None,
@@ -80,6 +118,12 @@ class CallsResource(Resource):
                     from_=from_,
                     status=status,
                     parent_call_sid=parent_call_sid,
+                    start_time=start_time,
+                    start_time_lt=start_time_lt,
+                    start_time_gt=start_time_gt,
+                    end_time=end_time,
+                    end_time_lt=end_time_lt,
+                    end_time_gt=end_time_gt,
                     start_time_gte=start_time_gte,
                     start_time_lte=start_time_lte,
                     page=page,
@@ -106,9 +150,28 @@ class CallsResource(Resource):
 
     # --- Recordings (call-scoped) ---
 
-    def list_recordings(self, call_sid: str) -> RecordingList:
+    def list_recordings(
+        self,
+        call_sid: str,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> RecordingList:
         return RecordingList.model_validate(
-            self._t.request("GET", self._path("Calls", call_sid, "Recordings"))
+            self._t.request(
+                "GET",
+                self._path("Calls", call_sid, "Recordings"),
+                params=_recording_list_params(
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    page=page,
+                    page_size=page_size,
+                ),
+            )
         )
 
     def start_recording(
@@ -247,14 +310,34 @@ class CallsResource(Resource):
 
     # --- Notifications / Events (compat stubs) ---
 
-    def list_notifications(self, call_sid: str) -> NotificationsList:
+    def list_notifications(
+        self,
+        call_sid: str,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> NotificationsList:
         return NotificationsList.model_validate(
-            self._t.request("GET", self._path("Calls", call_sid, "Notifications"))
+            self._t.request(
+                "GET",
+                self._path("Calls", call_sid, "Notifications"),
+                params=_page_params(page=page, page_size=page_size),
+            )
         )
 
-    def list_events(self, call_sid: str) -> EventsList:
+    def list_events(
+        self,
+        call_sid: str,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> EventsList:
         return EventsList.model_validate(
-            self._t.request("GET", self._path("Calls", call_sid, "Events"))
+            self._t.request(
+                "GET",
+                self._path("Calls", call_sid, "Events"),
+                params=_page_params(page=page, page_size=page_size),
+            )
         )
 
     # --- UserDefinedMessages — server returns 501. Kept for API completeness. ---
@@ -282,6 +365,12 @@ class CallsResource(Resource):
         from_: str | None = None,
         status: str | None = None,
         parent_call_sid: str | None = None,
+        start_time: str | None = None,
+        start_time_lt: str | None = None,
+        start_time_gt: str | None = None,
+        end_time: str | None = None,
+        end_time_lt: str | None = None,
+        end_time_gt: str | None = None,
         start_time_gte: str | None = None,
         start_time_lte: str | None = None,
         page_size: int | None = None,
@@ -297,6 +386,12 @@ class CallsResource(Resource):
                 from_=from_,
                 status=status,
                 parent_call_sid=parent_call_sid,
+                start_time=start_time,
+                start_time_lt=start_time_lt,
+                start_time_gt=start_time_gt,
+                end_time=end_time,
+                end_time_lt=end_time_lt,
+                end_time_gt=end_time_gt,
                 start_time_gte=start_time_gte,
                 start_time_lte=start_time_lte,
                 page=page,
@@ -318,6 +413,12 @@ class CallsAsyncResource(AsyncResource):
         from_: str | None = None,
         status: str | None = None,
         parent_call_sid: str | None = None,
+        start_time: str | None = None,
+        start_time_lt: str | None = None,
+        start_time_gt: str | None = None,
+        end_time: str | None = None,
+        end_time_lt: str | None = None,
+        end_time_gt: str | None = None,
         start_time_gte: str | None = None,
         start_time_lte: str | None = None,
         page: int | None = None,
@@ -332,6 +433,12 @@ class CallsAsyncResource(AsyncResource):
                     from_=from_,
                     status=status,
                     parent_call_sid=parent_call_sid,
+                    start_time=start_time,
+                    start_time_lt=start_time_lt,
+                    start_time_gt=start_time_gt,
+                    end_time=end_time,
+                    end_time_lt=end_time_lt,
+                    end_time_gt=end_time_gt,
                     start_time_gte=start_time_gte,
                     start_time_lte=start_time_lte,
                     page=page,
@@ -356,9 +463,28 @@ class CallsAsyncResource(AsyncResource):
     async def delete(self, call_sid: str) -> None:
         await self._t.request("DELETE", self._path("Calls", call_sid))
 
-    async def list_recordings(self, call_sid: str) -> RecordingList:
+    async def list_recordings(
+        self,
+        call_sid: str,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> RecordingList:
         return RecordingList.model_validate(
-            await self._t.request("GET", self._path("Calls", call_sid, "Recordings"))
+            await self._t.request(
+                "GET",
+                self._path("Calls", call_sid, "Recordings"),
+                params=_recording_list_params(
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    page=page,
+                    page_size=page_size,
+                ),
+            )
         )
 
     async def start_recording(
@@ -495,14 +621,34 @@ class CallsAsyncResource(AsyncResource):
             )
         )
 
-    async def list_notifications(self, call_sid: str) -> NotificationsList:
+    async def list_notifications(
+        self,
+        call_sid: str,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> NotificationsList:
         return NotificationsList.model_validate(
-            await self._t.request("GET", self._path("Calls", call_sid, "Notifications"))
+            await self._t.request(
+                "GET",
+                self._path("Calls", call_sid, "Notifications"),
+                params=_page_params(page=page, page_size=page_size),
+            )
         )
 
-    async def list_events(self, call_sid: str) -> EventsList:
+    async def list_events(
+        self,
+        call_sid: str,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+    ) -> EventsList:
         return EventsList.model_validate(
-            await self._t.request("GET", self._path("Calls", call_sid, "Events"))
+            await self._t.request(
+                "GET",
+                self._path("Calls", call_sid, "Events"),
+                params=_page_params(page=page, page_size=page_size),
+            )
         )
 
     async def send_user_defined_message(
