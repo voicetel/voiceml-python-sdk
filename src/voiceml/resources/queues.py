@@ -14,14 +14,32 @@ from ..models import (
 from ._base import AsyncResource, Resource
 
 
+def _page_params(
+    *, page: int | None, page_size: int | None, page_token: str | None
+) -> dict[str, object]:
+    return {"Page": page, "PageSize": page_size, "PageToken": page_token}
+
+
 class QueuesResource(Resource):
     def create(self, body: CreateQueueRequest) -> Queue:
         return Queue.model_validate(
             self._t.request("POST", self._path("Queues"), data=body.to_form())
         )
 
-    def list(self) -> QueueList:
-        return QueueList.model_validate(self._t.request("GET", self._path("Queues")))
+    def list(
+        self,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> QueueList:
+        return QueueList.model_validate(
+            self._t.request(
+                "GET",
+                self._path("Queues"),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+            )
+        )
 
     def get(self, queue_sid: str) -> Queue:
         return Queue.model_validate(
@@ -46,12 +64,13 @@ class QueuesResource(Resource):
         *,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> QueueMemberList:
         return QueueMemberList.model_validate(
             self._t.request(
                 "GET",
                 self._path("Queues", queue_sid, "Members"),
-                params={"Page": page, "PageSize": page_size},
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )
 
@@ -92,9 +111,19 @@ class QueuesAsyncResource(AsyncResource):
             await self._t.request("POST", self._path("Queues"), data=body.to_form())
         )
 
-    async def list(self) -> QueueList:
+    async def list(
+        self,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> QueueList:
         return QueueList.model_validate(
-            await self._t.request("GET", self._path("Queues"))
+            await self._t.request(
+                "GET",
+                self._path("Queues"),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+            )
         )
 
     async def get(self, queue_sid: str) -> Queue:
@@ -118,12 +147,13 @@ class QueuesAsyncResource(AsyncResource):
         *,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> QueueMemberList:
         return QueueMemberList.model_validate(
             await self._t.request(
                 "GET",
                 self._path("Queues", queue_sid, "Members"),
-                params={"Page": page, "PageSize": page_size},
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )
 

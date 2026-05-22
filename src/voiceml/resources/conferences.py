@@ -20,12 +20,14 @@ def _conference_list_params(
     status: str | None,
     page: int | None,
     page_size: int | None,
+    page_token: str | None,
 ) -> dict[str, object]:
     return {
         "FriendlyName": friendly_name,
         "Status": status,
         "Page": page,
         "PageSize": page_size,
+        "PageToken": page_token,
     }
 
 
@@ -36,6 +38,7 @@ def _participant_list_params(
     coaching: bool | None,
     page: int | None,
     page_size: int | None,
+    page_token: str | None,
 ) -> dict[str, object]:
     return {
         "Muted": muted,
@@ -43,7 +46,14 @@ def _participant_list_params(
         "Coaching": coaching,
         "Page": page,
         "PageSize": page_size,
+        "PageToken": page_token,
     }
+
+
+def _page_params(
+    *, page: int | None, page_size: int | None, page_token: str | None
+) -> dict[str, object]:
+    return {"Page": page, "PageSize": page_size, "PageToken": page_token}
 
 
 class ConferencesResource(Resource):
@@ -56,6 +66,7 @@ class ConferencesResource(Resource):
         status: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> ConferenceList:
         return ConferenceList.model_validate(
             self._t.request(
@@ -66,6 +77,7 @@ class ConferencesResource(Resource):
                     status=status,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -96,6 +108,7 @@ class ConferencesResource(Resource):
         coaching: bool | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> ParticipantList:
         return ParticipantList.model_validate(
             self._t.request(
@@ -107,6 +120,7 @@ class ConferencesResource(Resource):
                     coaching=coaching,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -136,10 +150,19 @@ class ConferencesResource(Resource):
 
     # --- Recordings ---
 
-    def list_recordings(self, conference_sid: str) -> RecordingList:
+    def list_recordings(
+        self,
+        conference_sid: str,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> RecordingList:
         return RecordingList.model_validate(
             self._t.request(
-                "GET", self._path("Conferences", conference_sid, "Recordings")
+                "GET",
+                self._path("Conferences", conference_sid, "Recordings"),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )
 
@@ -152,6 +175,7 @@ class ConferencesAsyncResource(AsyncResource):
         status: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> ConferenceList:
         return ConferenceList.model_validate(
             await self._t.request(
@@ -162,6 +186,7 @@ class ConferencesAsyncResource(AsyncResource):
                     status=status,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -190,6 +215,7 @@ class ConferencesAsyncResource(AsyncResource):
         coaching: bool | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> ParticipantList:
         return ParticipantList.model_validate(
             await self._t.request(
@@ -201,6 +227,7 @@ class ConferencesAsyncResource(AsyncResource):
                     coaching=coaching,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -228,9 +255,18 @@ class ConferencesAsyncResource(AsyncResource):
             "DELETE", self._path("Conferences", conference_sid, "Participants", call_sid)
         )
 
-    async def list_recordings(self, conference_sid: str) -> RecordingList:
+    async def list_recordings(
+        self,
+        conference_sid: str,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> RecordingList:
         return RecordingList.model_validate(
             await self._t.request(
-                "GET", self._path("Conferences", conference_sid, "Recordings")
+                "GET",
+                self._path("Conferences", conference_sid, "Recordings"),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )

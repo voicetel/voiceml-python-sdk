@@ -23,6 +23,7 @@ class ApplicationsResource(Resource):
         friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> ApplicationList:
         return ApplicationList.model_validate(
             self._t.request(
@@ -32,6 +33,7 @@ class ApplicationsResource(Resource):
                     "FriendlyName": friendly_name,
                     "Page": page,
                     "PageSize": page_size,
+                    "PageToken": page_token,
                 },
             )
         )
@@ -68,6 +70,7 @@ class ApplicationsAsyncResource(AsyncResource):
         friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> ApplicationList:
         return ApplicationList.model_validate(
             await self._t.request(
@@ -77,6 +80,7 @@ class ApplicationsAsyncResource(AsyncResource):
                     "FriendlyName": friendly_name,
                     "Page": page,
                     "PageSize": page_size,
+                    "PageToken": page_token,
                 },
             )
         )

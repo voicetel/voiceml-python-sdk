@@ -44,7 +44,7 @@ BASE = "https://voiceml.voicetel.com"
 
 
 def test_version_is_set():
-    assert __version__ == "0.6.3"
+    assert __version__ == "0.6.4"
 
 
 def test_client_requires_credentials():
@@ -173,6 +173,26 @@ def test_calls_list_sends_twilio_shape_filter_params(httpx_mock: HTTPXMock):
     assert "StartTime%3E%3D=2026-01-01" in query
     assert "StartTime%3C%3D=2026-12-31" in query
     assert "PageSize=10" in query
+
+
+def test_calls_list_sends_page_token(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="GET",
+        url=re.compile(r".*/Calls\.json(\?.*)?$"),
+        json={
+            "calls": [],
+            "page": 0,
+            "page_size": 50,
+            "total": 0,
+            "next_page_uri": None,
+            "uri": "/Calls",
+        },
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.calls.list(page_token="abc123")
+    sent = httpx_mock.get_request()
+    assert sent is not None
+    assert "PageToken=abc123" in sent.url.query.decode()
 
 
 def test_calls_update_terminate(httpx_mock: HTTPXMock):

@@ -25,8 +25,14 @@ def _list_params(
     phone_number: str | None,
     page: int | None,
     page_size: int | None,
+    page_token: str | None,
 ) -> dict[str, object]:
-    return {"PhoneNumber": phone_number, "Page": page, "PageSize": page_size}
+    return {
+        "PhoneNumber": phone_number,
+        "Page": page,
+        "PageSize": page_size,
+        "PageToken": page_token,
+    }
 
 
 def _encode_sid(sid: str) -> str:
@@ -86,13 +92,17 @@ class IncomingPhoneNumbersResource(Resource):
         phone_number: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> IncomingPhoneNumberList:
         return IncomingPhoneNumberList.model_validate(
             self._t.request(
                 "GET",
                 self._path("IncomingPhoneNumbers"),
                 params=_list_params(
-                    phone_number=phone_number, page=page, page_size=page_size
+                    phone_number=phone_number,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -168,13 +178,17 @@ class IncomingPhoneNumbersAsyncResource(AsyncResource):
         phone_number: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> IncomingPhoneNumberList:
         return IncomingPhoneNumberList.model_validate(
             await self._t.request(
                 "GET",
                 self._path("IncomingPhoneNumbers"),
                 params=_list_params(
-                    phone_number=phone_number, page=page, page_size=page_size
+                    phone_number=phone_number,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )

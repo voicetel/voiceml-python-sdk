@@ -48,6 +48,7 @@ def _list_params(
     start_time_lte: str | None,
     page: int | None,
     page_size: int | None,
+    page_token: str | None,
 ) -> dict[str, object]:
     return {
         "To": to,
@@ -64,6 +65,7 @@ def _list_params(
         "StartTime<=": start_time_lte,
         "Page": page,
         "PageSize": page_size,
+        "PageToken": page_token,
     }
 
 
@@ -74,6 +76,7 @@ def _recording_list_params(
     date_created_gt: str | None,
     page: int | None,
     page_size: int | None,
+    page_token: str | None,
 ) -> dict[str, object]:
     return {
         "DateCreated": date_created,
@@ -81,11 +84,14 @@ def _recording_list_params(
         "DateCreated>": date_created_gt,
         "Page": page,
         "PageSize": page_size,
+        "PageToken": page_token,
     }
 
 
-def _page_params(*, page: int | None, page_size: int | None) -> dict[str, object]:
-    return {"Page": page, "PageSize": page_size}
+def _page_params(
+    *, page: int | None, page_size: int | None, page_token: str | None
+) -> dict[str, object]:
+    return {"Page": page, "PageSize": page_size, "PageToken": page_token}
 
 
 class CallsResource(Resource):
@@ -108,6 +114,7 @@ class CallsResource(Resource):
         start_time_lte: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> CallList:
         return CallList.model_validate(
             self._t.request(
@@ -128,6 +135,7 @@ class CallsResource(Resource):
                     start_time_lte=start_time_lte,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -159,6 +167,7 @@ class CallsResource(Resource):
         date_created_gt: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> RecordingList:
         return RecordingList.model_validate(
             self._t.request(
@@ -170,6 +179,7 @@ class CallsResource(Resource):
                     date_created_gt=date_created_gt,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -316,12 +326,13 @@ class CallsResource(Resource):
         *,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> NotificationsList:
         return NotificationsList.model_validate(
             self._t.request(
                 "GET",
                 self._path("Calls", call_sid, "Notifications"),
-                params=_page_params(page=page, page_size=page_size),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )
 
@@ -331,12 +342,13 @@ class CallsResource(Resource):
         *,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> EventsList:
         return EventsList.model_validate(
             self._t.request(
                 "GET",
                 self._path("Calls", call_sid, "Events"),
-                params=_page_params(page=page, page_size=page_size),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )
 
@@ -423,6 +435,7 @@ class CallsAsyncResource(AsyncResource):
         start_time_lte: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> CallList:
         return CallList.model_validate(
             await self._t.request(
@@ -443,6 +456,7 @@ class CallsAsyncResource(AsyncResource):
                     start_time_lte=start_time_lte,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -472,6 +486,7 @@ class CallsAsyncResource(AsyncResource):
         date_created_gt: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> RecordingList:
         return RecordingList.model_validate(
             await self._t.request(
@@ -483,6 +498,7 @@ class CallsAsyncResource(AsyncResource):
                     date_created_gt=date_created_gt,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -627,12 +643,13 @@ class CallsAsyncResource(AsyncResource):
         *,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> NotificationsList:
         return NotificationsList.model_validate(
             await self._t.request(
                 "GET",
                 self._path("Calls", call_sid, "Notifications"),
-                params=_page_params(page=page, page_size=page_size),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )
 
@@ -642,12 +659,13 @@ class CallsAsyncResource(AsyncResource):
         *,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> EventsList:
         return EventsList.model_validate(
             await self._t.request(
                 "GET",
                 self._path("Calls", call_sid, "Events"),
-                params=_page_params(page=page, page_size=page_size),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )
 

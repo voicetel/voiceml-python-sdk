@@ -20,6 +20,7 @@ def _list_params(
     conference_sid: str | None,
     page: int | None,
     page_size: int | None,
+    page_token: str | None,
 ) -> dict[str, object]:
     return {
         "DateCreated": date_created,
@@ -29,6 +30,7 @@ def _list_params(
         "ConferenceSid": conference_sid,
         "Page": page,
         "PageSize": page_size,
+        "PageToken": page_token,
     }
 
 
@@ -43,6 +45,7 @@ class RecordingsResource(Resource):
         conference_sid: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> RecordingList:
         return RecordingList.model_validate(
             self._t.request(
@@ -56,6 +59,7 @@ class RecordingsResource(Resource):
                     conference_sid=conference_sid,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
@@ -100,6 +104,7 @@ class RecordingsAsyncResource(AsyncResource):
         conference_sid: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
+        page_token: str | None = None,
     ) -> RecordingList:
         return RecordingList.model_validate(
             await self._t.request(
@@ -113,6 +118,7 @@ class RecordingsAsyncResource(AsyncResource):
                     conference_sid=conference_sid,
                     page=page,
                     page_size=page_size,
+                    page_token=page_token,
                 ),
             )
         )
