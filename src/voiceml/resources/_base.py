@@ -8,7 +8,7 @@ from .._http import AsyncTransport, Transport
 def _join_with_json_suffix(acct: str, parts: tuple[str, ...]) -> str:
     """Build ``/2010-04-01/Accounts/{acct}/<parts…>.json``.
 
-    The Twilio-shape REST surface terminates every resource path with ``.json``. The server
+    The Twilio-compatible REST surface terminates every resource path with ``.json``. The server
     accepts both forms for back-compat, but the SDK always emits the strict-Twilio form so
     URL comparisons in user code (logging, signature validators, route assertions) line up.
 

@@ -20,6 +20,27 @@ from ..models import (
 from ._base import AsyncResource, Resource
 
 
+def _typed_list_params(
+    *,
+    phone_number: str | None,
+    friendly_name: str | None,
+    beta: bool | None,
+    origin: str | None,
+    page: int | None,
+    page_size: int | None,
+    page_token: str | None,
+) -> dict[str, object]:
+    return {
+        "PhoneNumber": phone_number,
+        "FriendlyName": friendly_name,
+        "Beta": beta,
+        "Origin": origin,
+        "Page": page,
+        "PageSize": page_size,
+        "PageToken": page_token,
+    }
+
+
 def _list_params(
     *,
     phone_number: str | None,
@@ -168,6 +189,162 @@ class IncomingPhoneNumbersResource(Resource):
             "DELETE", self._path("IncomingPhoneNumbers", _encode_sid(sid))
         )
 
+    def list_local(
+        self,
+        *,
+        phone_number: str | None = None,
+        friendly_name: str | None = None,
+        beta: bool | None = None,
+        origin: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> IncomingPhoneNumberList:
+        return IncomingPhoneNumberList.model_validate(
+            self._t.request(
+                "GET",
+                self._path("IncomingPhoneNumbers", "Local"),
+                params=_typed_list_params(
+                    phone_number=phone_number,
+                    friendly_name=friendly_name,
+                    beta=beta,
+                    origin=origin,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    def create_local(
+        self,
+        *,
+        phone_number: str,
+        voice_url: str | None = None,
+        voice_method: str | None = None,
+        voice_fallback_url: str | None = None,
+        voice_fallback_method: str | None = None,
+        friendly_name: str | None = None,
+    ) -> IncomingPhoneNumber:
+        return IncomingPhoneNumber.model_validate(
+            self._t.request(
+                "POST",
+                self._path("IncomingPhoneNumbers", "Local"),
+                data=_build_create_form(
+                    phone_number=phone_number,
+                    voice_url=voice_url,
+                    voice_method=voice_method,
+                    voice_fallback_url=voice_fallback_url,
+                    voice_fallback_method=voice_fallback_method,
+                    friendly_name=friendly_name,
+                ),
+            )
+        )
+
+    def list_mobile(
+        self,
+        *,
+        phone_number: str | None = None,
+        friendly_name: str | None = None,
+        beta: bool | None = None,
+        origin: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> IncomingPhoneNumberList:
+        return IncomingPhoneNumberList.model_validate(
+            self._t.request(
+                "GET",
+                self._path("IncomingPhoneNumbers", "Mobile"),
+                params=_typed_list_params(
+                    phone_number=phone_number,
+                    friendly_name=friendly_name,
+                    beta=beta,
+                    origin=origin,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    def create_mobile(
+        self,
+        *,
+        phone_number: str,
+        voice_url: str | None = None,
+        voice_method: str | None = None,
+        voice_fallback_url: str | None = None,
+        voice_fallback_method: str | None = None,
+        friendly_name: str | None = None,
+    ) -> IncomingPhoneNumber:
+        return IncomingPhoneNumber.model_validate(
+            self._t.request(
+                "POST",
+                self._path("IncomingPhoneNumbers", "Mobile"),
+                data=_build_create_form(
+                    phone_number=phone_number,
+                    voice_url=voice_url,
+                    voice_method=voice_method,
+                    voice_fallback_url=voice_fallback_url,
+                    voice_fallback_method=voice_fallback_method,
+                    friendly_name=friendly_name,
+                ),
+            )
+        )
+
+    def list_toll_free(
+        self,
+        *,
+        phone_number: str | None = None,
+        friendly_name: str | None = None,
+        beta: bool | None = None,
+        origin: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> IncomingPhoneNumberList:
+        return IncomingPhoneNumberList.model_validate(
+            self._t.request(
+                "GET",
+                self._path("IncomingPhoneNumbers", "TollFree"),
+                params=_typed_list_params(
+                    phone_number=phone_number,
+                    friendly_name=friendly_name,
+                    beta=beta,
+                    origin=origin,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    def create_toll_free(
+        self,
+        *,
+        phone_number: str,
+        voice_url: str | None = None,
+        voice_method: str | None = None,
+        voice_fallback_url: str | None = None,
+        voice_fallback_method: str | None = None,
+        friendly_name: str | None = None,
+    ) -> IncomingPhoneNumber:
+        return IncomingPhoneNumber.model_validate(
+            self._t.request(
+                "POST",
+                self._path("IncomingPhoneNumbers", "TollFree"),
+                data=_build_create_form(
+                    phone_number=phone_number,
+                    voice_url=voice_url,
+                    voice_method=voice_method,
+                    voice_fallback_url=voice_fallback_url,
+                    voice_fallback_method=voice_fallback_method,
+                    friendly_name=friendly_name,
+                ),
+            )
+        )
+
 
 class IncomingPhoneNumbersAsyncResource(AsyncResource):
     """Async counterpart to :class:`IncomingPhoneNumbersResource`."""
@@ -252,4 +429,160 @@ class IncomingPhoneNumbersAsyncResource(AsyncResource):
     async def delete(self, sid: str) -> None:
         await self._t.request(
             "DELETE", self._path("IncomingPhoneNumbers", _encode_sid(sid))
+        )
+
+    async def list_local(
+        self,
+        *,
+        phone_number: str | None = None,
+        friendly_name: str | None = None,
+        beta: bool | None = None,
+        origin: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> IncomingPhoneNumberList:
+        return IncomingPhoneNumberList.model_validate(
+            await self._t.request(
+                "GET",
+                self._path("IncomingPhoneNumbers", "Local"),
+                params=_typed_list_params(
+                    phone_number=phone_number,
+                    friendly_name=friendly_name,
+                    beta=beta,
+                    origin=origin,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    async def create_local(
+        self,
+        *,
+        phone_number: str,
+        voice_url: str | None = None,
+        voice_method: str | None = None,
+        voice_fallback_url: str | None = None,
+        voice_fallback_method: str | None = None,
+        friendly_name: str | None = None,
+    ) -> IncomingPhoneNumber:
+        return IncomingPhoneNumber.model_validate(
+            await self._t.request(
+                "POST",
+                self._path("IncomingPhoneNumbers", "Local"),
+                data=_build_create_form(
+                    phone_number=phone_number,
+                    voice_url=voice_url,
+                    voice_method=voice_method,
+                    voice_fallback_url=voice_fallback_url,
+                    voice_fallback_method=voice_fallback_method,
+                    friendly_name=friendly_name,
+                ),
+            )
+        )
+
+    async def list_mobile(
+        self,
+        *,
+        phone_number: str | None = None,
+        friendly_name: str | None = None,
+        beta: bool | None = None,
+        origin: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> IncomingPhoneNumberList:
+        return IncomingPhoneNumberList.model_validate(
+            await self._t.request(
+                "GET",
+                self._path("IncomingPhoneNumbers", "Mobile"),
+                params=_typed_list_params(
+                    phone_number=phone_number,
+                    friendly_name=friendly_name,
+                    beta=beta,
+                    origin=origin,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    async def create_mobile(
+        self,
+        *,
+        phone_number: str,
+        voice_url: str | None = None,
+        voice_method: str | None = None,
+        voice_fallback_url: str | None = None,
+        voice_fallback_method: str | None = None,
+        friendly_name: str | None = None,
+    ) -> IncomingPhoneNumber:
+        return IncomingPhoneNumber.model_validate(
+            await self._t.request(
+                "POST",
+                self._path("IncomingPhoneNumbers", "Mobile"),
+                data=_build_create_form(
+                    phone_number=phone_number,
+                    voice_url=voice_url,
+                    voice_method=voice_method,
+                    voice_fallback_url=voice_fallback_url,
+                    voice_fallback_method=voice_fallback_method,
+                    friendly_name=friendly_name,
+                ),
+            )
+        )
+
+    async def list_toll_free(
+        self,
+        *,
+        phone_number: str | None = None,
+        friendly_name: str | None = None,
+        beta: bool | None = None,
+        origin: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> IncomingPhoneNumberList:
+        return IncomingPhoneNumberList.model_validate(
+            await self._t.request(
+                "GET",
+                self._path("IncomingPhoneNumbers", "TollFree"),
+                params=_typed_list_params(
+                    phone_number=phone_number,
+                    friendly_name=friendly_name,
+                    beta=beta,
+                    origin=origin,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    async def create_toll_free(
+        self,
+        *,
+        phone_number: str,
+        voice_url: str | None = None,
+        voice_method: str | None = None,
+        voice_fallback_url: str | None = None,
+        voice_fallback_method: str | None = None,
+        friendly_name: str | None = None,
+    ) -> IncomingPhoneNumber:
+        return IncomingPhoneNumber.model_validate(
+            await self._t.request(
+                "POST",
+                self._path("IncomingPhoneNumbers", "TollFree"),
+                data=_build_create_form(
+                    phone_number=phone_number,
+                    voice_url=voice_url,
+                    voice_method=voice_method,
+                    voice_fallback_url=voice_fallback_url,
+                    voice_fallback_method=voice_fallback_method,
+                    friendly_name=friendly_name,
+                ),
+            )
         )

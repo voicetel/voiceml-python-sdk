@@ -12,7 +12,7 @@ T = TypeVar("T")
 
 
 class Page(_Base, Generic[T]):
-    """Twilio-shape pagination envelope.
+    """Twilio-compatible pagination envelope.
 
     Field names match the wire shape exactly. ``items`` is a generic alias that subclasses
     bind to the concrete resource name (``calls``, ``conferences``, ``recordings``...).
@@ -39,7 +39,7 @@ class Page(_Base, Generic[T]):
 
 
 class ErrorBody(_Base):
-    """Twilio-shape error body — what the server returns for non-2xx responses.
+    """Twilio-compatible error body — what the server returns for non-2xx responses.
 
     Surface only — the transport raises :class:`voiceml.ApiError` (or a subclass) with
     this payload attached as ``error.body``. Code is the numeric Twilio code (e.g. 21211).

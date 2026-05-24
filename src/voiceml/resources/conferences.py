@@ -5,11 +5,14 @@ from __future__ import annotations
 from ..models import (
     Conference,
     ConferenceList,
+    CreateParticipantRequest,
     EndConferenceRequest,
     Participant,
     ParticipantList,
+    Recording,
     RecordingList,
     UpdateParticipantRequest,
+    UpdateRecordingRequest,
 )
 from ._base import AsyncResource, Resource
 
@@ -18,6 +21,12 @@ def _conference_list_params(
     *,
     friendly_name: str | None,
     status: str | None,
+    date_created: str | None,
+    date_created_lt: str | None,
+    date_created_gt: str | None,
+    date_updated: str | None,
+    date_updated_lt: str | None,
+    date_updated_gt: str | None,
     page: int | None,
     page_size: int | None,
     page_token: str | None,
@@ -25,6 +34,12 @@ def _conference_list_params(
     return {
         "FriendlyName": friendly_name,
         "Status": status,
+        "DateCreated": date_created,
+        "DateCreated<": date_created_lt,
+        "DateCreated>": date_created_gt,
+        "DateUpdated": date_updated,
+        "DateUpdated<": date_updated_lt,
+        "DateUpdated>": date_updated_gt,
         "Page": page,
         "PageSize": page_size,
         "PageToken": page_token,
@@ -64,6 +79,12 @@ class ConferencesResource(Resource):
         *,
         friendly_name: str | None = None,
         status: str | None = None,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        date_updated: str | None = None,
+        date_updated_lt: str | None = None,
+        date_updated_gt: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -75,6 +96,12 @@ class ConferencesResource(Resource):
                 params=_conference_list_params(
                     friendly_name=friendly_name,
                     status=status,
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    date_updated=date_updated,
+                    date_updated_lt=date_updated_lt,
+                    date_updated_gt=date_updated_gt,
                     page=page,
                     page_size=page_size,
                     page_token=page_token,
@@ -98,6 +125,17 @@ class ConferencesResource(Resource):
         )
 
     # --- Participants ---
+
+    def create_participant(
+        self, conference_sid: str, body: CreateParticipantRequest
+    ) -> Participant:
+        return Participant.model_validate(
+            self._t.request(
+                "POST",
+                self._path("Conferences", conference_sid, "Participants"),
+                data=body.to_form(),
+            )
+        )
 
     def list_participants(
         self,
@@ -166,6 +204,31 @@ class ConferencesResource(Resource):
             )
         )
 
+    def get_recording(self, conference_sid: str, recording_sid: str) -> Recording:
+        return Recording.model_validate(
+            self._t.request(
+                "GET",
+                self._path("Conferences", conference_sid, "Recordings", recording_sid),
+            )
+        )
+
+    def update_recording(
+        self, conference_sid: str, recording_sid: str, body: UpdateRecordingRequest
+    ) -> Recording:
+        return Recording.model_validate(
+            self._t.request(
+                "POST",
+                self._path("Conferences", conference_sid, "Recordings", recording_sid),
+                data=body.to_form(),
+            )
+        )
+
+    def delete_recording(self, conference_sid: str, recording_sid: str) -> None:
+        self._t.request(
+            "DELETE",
+            self._path("Conferences", conference_sid, "Recordings", recording_sid),
+        )
+
 
 class ConferencesAsyncResource(AsyncResource):
     async def list(
@@ -173,6 +236,12 @@ class ConferencesAsyncResource(AsyncResource):
         *,
         friendly_name: str | None = None,
         status: str | None = None,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        date_updated: str | None = None,
+        date_updated_lt: str | None = None,
+        date_updated_gt: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -184,6 +253,12 @@ class ConferencesAsyncResource(AsyncResource):
                 params=_conference_list_params(
                     friendly_name=friendly_name,
                     status=status,
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    date_updated=date_updated,
+                    date_updated_lt=date_updated_lt,
+                    date_updated_gt=date_updated_gt,
                     page=page,
                     page_size=page_size,
                     page_token=page_token,
@@ -203,6 +278,17 @@ class ConferencesAsyncResource(AsyncResource):
         return Conference.model_validate(
             await self._t.request(
                 "POST", self._path("Conferences", conference_sid), data=payload
+            )
+        )
+
+    async def create_participant(
+        self, conference_sid: str, body: CreateParticipantRequest
+    ) -> Participant:
+        return Participant.model_validate(
+            await self._t.request(
+                "POST",
+                self._path("Conferences", conference_sid, "Participants"),
+                data=body.to_form(),
             )
         )
 
@@ -269,4 +355,29 @@ class ConferencesAsyncResource(AsyncResource):
                 self._path("Conferences", conference_sid, "Recordings"),
                 params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
+        )
+
+    async def get_recording(self, conference_sid: str, recording_sid: str) -> Recording:
+        return Recording.model_validate(
+            await self._t.request(
+                "GET",
+                self._path("Conferences", conference_sid, "Recordings", recording_sid),
+            )
+        )
+
+    async def update_recording(
+        self, conference_sid: str, recording_sid: str, body: UpdateRecordingRequest
+    ) -> Recording:
+        return Recording.model_validate(
+            await self._t.request(
+                "POST",
+                self._path("Conferences", conference_sid, "Recordings", recording_sid),
+                data=body.to_form(),
+            )
+        )
+
+    async def delete_recording(self, conference_sid: str, recording_sid: str) -> None:
+        await self._t.request(
+            "DELETE",
+            self._path("Conferences", conference_sid, "Recordings", recording_sid),
         )

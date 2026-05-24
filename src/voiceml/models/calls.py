@@ -33,7 +33,7 @@ UpdateCallStatus = Literal["completed", "canceled"]
 
 
 class Call(_Base):
-    """A Twilio-shape Call resource."""
+    """A Twilio-compatible Call resource."""
 
     sid: str
     account_sid: str

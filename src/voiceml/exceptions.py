@@ -15,7 +15,7 @@ class ApiError(VoiceMLError):
     """Raised when the API returns a non-2xx response.
 
     Subclasses cover specific status families; catch :class:`ApiError` to handle them all.
-    The Twilio-shape error body (``{code, message, more_info, status}``) is parsed into
+    The Twilio-compatible error body (``{code, message, more_info, status}``) is parsed into
     :attr:`code` / :attr:`message` / :attr:`more_info` when present, with the raw payload
     exposed on :attr:`body`. ``more_info`` is the docs URL Twilio includes for each error
     code; matches ``TwilioRestException.more_info`` for drop-in compat.

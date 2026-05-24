@@ -76,3 +76,22 @@ class UpdateParticipantRequest(_Base):
 
     muted: bool | None = Field(default=None, alias="Muted")
     hold: bool | None = Field(default=None, alias="Hold")
+
+
+class CreateParticipantRequest(_Base):
+    """``POST /Conferences/{sid}/Participants`` — ``From`` and ``To`` are required."""
+
+    from_: str = Field(alias="From")
+    to: str = Field(alias="To")
+    label: str | None = Field(default=None, alias="Label")
+    muted: bool | None = Field(default=None, alias="Muted")
+    start_conference_on_enter: bool | None = Field(
+        default=None, alias="StartConferenceOnEnter"
+    )
+    end_conference_on_exit: bool | None = Field(default=None, alias="EndConferenceOnExit")
+    timeout: int | None = Field(default=None, alias="Timeout")
+    status_callback: str | None = Field(default=None, alias="StatusCallback")
+    status_callback_method: str | None = Field(
+        default=None, alias="StatusCallbackMethod"
+    )
+    status_callback_event: str | None = Field(default=None, alias="StatusCallbackEvent")

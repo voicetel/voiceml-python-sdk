@@ -1,6 +1,6 @@
 # voiceml
 
-Official Python SDK for the [VoiceML](https://voicetel.com/docs/api/v0.6/voiceml/) REST API — VoiceTel's outbound voice + AMD service with a Twilio-shaped REST surface.
+Official Python SDK for the [VoiceML](https://voicetel.com/docs/api/v0.6/voiceml/) REST API — VoiceTel's outbound voice + AMD service with a Twilio-compatible REST surface.
 
 The wire format, auth model (HTTP Basic with `AccountSid` as username, per-tenant API key as password), error codes, and pagination envelope all match Twilio's documented Programmable Voice surface. If you've used the Twilio Python SDK, the patterns here will look familiar.
 
@@ -75,11 +75,11 @@ The transport raises subclasses of `voiceml.ApiError` keyed off HTTP status:
 | 501 | `NotImplementedAPIError` |
 | 5xx | `ServerError` |
 
-Catch `ApiError` to handle any of them. The Twilio-shape body (`code`, `message`, `more_info`, `status`) is parsed into `error.code` / `error.message` with the raw payload on `error.body`.
+Catch `ApiError` to handle any of them. The Twilio-compatible body (`code`, `message`, `more_info`, `status`) is parsed into `error.code` / `error.message` with the raw payload on `error.body`.
 
 ## Pagination
 
-List operations return a `…List` model with a Twilio-shape pagination envelope (`page`, `page_size`, `total`, `next_page_uri`, `previous_page_uri`, …). For `/Calls`, use the `iter()` helper to walk all pages:
+List operations return a `…List` model with a Twilio-compatible pagination envelope (`page`, `page_size`, `total`, `next_page_uri`, `previous_page_uri`, …). For `/Calls`, use the `iter()` helper to walk all pages:
 
 ```python
 for call in c.calls.iter(status="completed", page_size=200):

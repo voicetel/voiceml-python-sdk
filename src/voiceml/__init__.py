@@ -1,6 +1,6 @@
 """Official Python SDK for the VoiceML REST API.
 
-VoiceML is VoiceTel's outbound voice + AMD service with a Twilio-shaped REST surface
+VoiceML is VoiceTel's outbound voice + AMD service with a Twilio-compatible REST surface
 (``https://voiceml.voicetel.com``). The wire shape, auth model, error codes, and
 pagination envelope all match Twilio's documented behaviour — so existing Twilio
 client patterns map across.

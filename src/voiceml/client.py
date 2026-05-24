@@ -23,6 +23,8 @@ from .resources import (
     DiagnosticsResource,
     IncomingPhoneNumbersAsyncResource,
     IncomingPhoneNumbersResource,
+    NotificationsAsyncResource,
+    NotificationsResource,
     QueuesAsyncResource,
     QueuesResource,
     RecordingsAsyncResource,
@@ -93,6 +95,7 @@ class Client:
         self.applications = ApplicationsResource(self._transport)
         self.recordings = RecordingsResource(self._transport)
         self.incoming_phone_numbers = IncomingPhoneNumbersResource(self._transport)
+        self.notifications = NotificationsResource(self._transport)
         self.diagnostics = DiagnosticsResource(self._transport)
 
     @property
@@ -148,6 +151,7 @@ class AsyncClient:
         self.applications = ApplicationsAsyncResource(self._transport)
         self.recordings = RecordingsAsyncResource(self._transport)
         self.incoming_phone_numbers = IncomingPhoneNumbersAsyncResource(self._transport)
+        self.notifications = NotificationsAsyncResource(self._transport)
         self.diagnostics = DiagnosticsAsyncResource(self._transport)
 
     @property

@@ -18,6 +18,7 @@ def _list_params(
     date_created_gt: str | None,
     call_sid: str | None,
     conference_sid: str | None,
+    include_soft_deleted: bool | None,
     page: int | None,
     page_size: int | None,
     page_token: str | None,
@@ -28,10 +29,15 @@ def _list_params(
         "DateCreated>": date_created_gt,
         "CallSid": call_sid,
         "ConferenceSid": conference_sid,
+        "IncludeSoftDeleted": include_soft_deleted,
         "Page": page,
         "PageSize": page_size,
         "PageToken": page_token,
     }
+
+
+def _get_params(*, include_soft_deleted: bool | None) -> dict[str, object]:
+    return {"IncludeSoftDeleted": include_soft_deleted}
 
 
 class RecordingsResource(Resource):
@@ -43,6 +49,7 @@ class RecordingsResource(Resource):
         date_created_gt: str | None = None,
         call_sid: str | None = None,
         conference_sid: str | None = None,
+        include_soft_deleted: bool | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -57,6 +64,7 @@ class RecordingsResource(Resource):
                     date_created_gt=date_created_gt,
                     call_sid=call_sid,
                     conference_sid=conference_sid,
+                    include_soft_deleted=include_soft_deleted,
                     page=page,
                     page_size=page_size,
                     page_token=page_token,
@@ -64,10 +72,16 @@ class RecordingsResource(Resource):
             )
         )
 
-    def get(self, recording_sid: str) -> Recording:
+    def get(
+        self, recording_sid: str, *, include_soft_deleted: bool | None = None
+    ) -> Recording:
         """Fetch the metadata JSON for a recording."""
         return Recording.model_validate(
-            self._t.request("GET", self._path("Recordings", recording_sid))
+            self._t.request(
+                "GET",
+                self._path("Recordings", recording_sid),
+                params=_get_params(include_soft_deleted=include_soft_deleted),
+            )
         )
 
     def get_audio(self, recording_sid: str) -> RecordingAudio:
@@ -102,6 +116,7 @@ class RecordingsAsyncResource(AsyncResource):
         date_created_gt: str | None = None,
         call_sid: str | None = None,
         conference_sid: str | None = None,
+        include_soft_deleted: bool | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -116,6 +131,7 @@ class RecordingsAsyncResource(AsyncResource):
                     date_created_gt=date_created_gt,
                     call_sid=call_sid,
                     conference_sid=conference_sid,
+                    include_soft_deleted=include_soft_deleted,
                     page=page,
                     page_size=page_size,
                     page_token=page_token,
@@ -123,9 +139,15 @@ class RecordingsAsyncResource(AsyncResource):
             )
         )
 
-    async def get(self, recording_sid: str) -> Recording:
+    async def get(
+        self, recording_sid: str, *, include_soft_deleted: bool | None = None
+    ) -> Recording:
         return Recording.model_validate(
-            await self._t.request("GET", self._path("Recordings", recording_sid))
+            await self._t.request(
+                "GET",
+                self._path("Recordings", recording_sid),
+                params=_get_params(include_soft_deleted=include_soft_deleted),
+            )
         )
 
     async def get_audio(self, recording_sid: str) -> RecordingAudio:

@@ -245,7 +245,15 @@ def _clean_params(params: dict[str, Any] | None) -> dict[str, Any] | None:
     """Drop ``None`` values. Keep empty strings — Twilio uses them as "explicit clear" tokens."""
     if params is None:
         return None
-    return {k: v for k, v in params.items() if v is not None}
+    out: dict[str, Any] = {}
+    for k, v in params.items():
+        if v is None:
+            continue
+        if isinstance(v, bool):
+            out[k] = "true" if v else "false"
+        else:
+            out[k] = v
+    return out
 
 
 def _clean_form(data: dict[str, Any] | None) -> dict[str, Any] | None:

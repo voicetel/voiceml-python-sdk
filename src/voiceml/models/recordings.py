@@ -48,7 +48,7 @@ class Recording(_Base):
 class RecordingList(_Base):
     """Recordings list response.
 
-    The account-scoped endpoint (``GET /Recordings``) returns the canonical Twilio fields
+    The account-scoped endpoint (``GET /Recordings``) returns the full Twilio-compatible pagination fields
     (``recordings/page/page_size/total``). Per-call (``GET /Calls/{sid}/Recordings``) and
     per-conference (``GET /Conferences/{sid}/Recordings``) endpoints currently return only
     ``recordings`` — the other pagination fields will be ``None``.

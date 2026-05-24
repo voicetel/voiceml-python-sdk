@@ -27,6 +27,7 @@ from voiceml.models import (
     CallList,
     Conference,
     CreateCallRequest,
+    CreateParticipantRequest,
     CreateQueueRequest,
     IncomingPhoneNumber,
     IncomingPhoneNumberList,
@@ -44,7 +45,7 @@ BASE = "https://voiceml.voicetel.com"
 
 
 def test_version_is_set():
-    assert __version__ == "0.6.4"
+    assert __version__ == "0.6.6"
 
 
 def test_client_requires_credentials():
@@ -91,6 +92,7 @@ def test_resource_groups_wired_up():
         assert c.applications is not None
         assert c.recordings is not None
         assert c.incoming_phone_numbers is not None
+        assert c.notifications is not None
         assert c.diagnostics is not None
         assert c.account_sid == ACCOUNT_SID
         assert c.base_url == BASE
@@ -129,7 +131,7 @@ def test_calls_create_sends_form_and_basic_auth(httpx_mock: HTTPXMock):
 
     sent = httpx_mock.get_request()
     assert sent is not None
-    # Twilio-shape: every REST path ends with `.json` (closes audit CC-1).
+    # Twilio-compatible: every REST path ends with `.json` (closes audit CC-1).
     assert sent.url.path.endswith("/Calls.json")
     # Basic auth: base64(account_sid:api_key)
     expected_auth = "Basic " + base64.b64encode(f"{ACCOUNT_SID}:{API_KEY}".encode()).decode()
@@ -705,3 +707,109 @@ def test_create_queue_allows_max_size_zero(httpx_mock: HTTPXMock):
     sent = httpx_mock.get_request()
     assert sent is not None
     assert b"MaxSize=0" in sent.content
+
+
+# --- spec v0.6.6 deltas ---
+
+
+def test_conferences_create_participant_sends_from_to(httpx_mock: HTTPXMock):
+    cf_sid = "CF" + "f" * 32
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences/{cf_sid}/Participants.json",
+        json={
+            "call_sid": "CA" + "f" * 32,
+            "conference_sid": cf_sid,
+            "account_sid": ACCOUNT_SID,
+            "muted": False,
+            "hold": False,
+            "coaching": False,
+            "queue_time": "0",
+            "start_conference_on_enter": True,
+            "end_conference_on_exit": False,
+            "status": "queued",
+            "api_version": "2010-04-01",
+            "uri": "/x",
+        },
+        status_code=201,
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        p = c.conferences.create_participant(
+            cf_sid,
+            CreateParticipantRequest(From="+18005550000", To="+18005551234"),
+        )
+    assert isinstance(p, Participant)
+    sent = httpx_mock.get_request()
+    body = sent.content.decode()
+    assert "From=%2B18005550000" in body
+    assert "To=%2B18005551234" in body
+
+
+def test_calls_list_notifications_sends_filter_params(httpx_mock: HTTPXMock):
+    call_sid = "CA" + "f" * 32
+    httpx_mock.add_response(
+        method="GET",
+        url=re.compile(
+            rf".*/Calls/{call_sid}/Notifications\.json(\?.*)?$"
+        ),
+        json={
+            "notifications": [],
+            "page": 0,
+            "page_size": 50,
+            "total": 0,
+            "uri": "/x",
+        },
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.calls.list_notifications(
+            call_sid,
+            log=1,
+            message_date="2026-05-01",
+            message_date_lt="2026-05-02",
+            message_date_gt="2026-04-30",
+        )
+    sent = httpx_mock.get_request()
+    assert sent is not None
+    q = sent.url.query.decode()
+    assert "Log=1" in q
+    assert "MessageDate=2026-05-01" in q
+    assert "MessageDate%3C=2026-05-02" in q
+    assert "MessageDate%3E=2026-04-30" in q
+
+
+def test_recordings_list_sends_include_soft_deleted(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="GET",
+        url=re.compile(r".*/Recordings\.json(\?.*)?$"),
+        json={
+            "recordings": [],
+            "page": 0,
+            "page_size": 50,
+            "total": 0,
+            "uri": "/x",
+        },
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.recordings.list(include_soft_deleted=True)
+    sent = httpx_mock.get_request()
+    assert sent is not None
+    assert "IncludeSoftDeleted=true" in sent.url.query.decode()
+
+
+def test_recordings_get_sends_include_soft_deleted(httpx_mock: HTTPXMock):
+    re_sid = "RE" + "c" * 32
+    httpx_mock.add_response(
+        method="GET",
+        url=re.compile(rf".*/Recordings/{re_sid}\.json(\?.*)?$"),
+        json={
+            "sid": re_sid,
+            "account_sid": ACCOUNT_SID,
+            "call_sid": "CA" + "0" * 32,
+            "status": "completed",
+        },
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.recordings.get(re_sid, include_soft_deleted=True)
+    sent = httpx_mock.get_request()
+    assert sent is not None
+    assert "IncludeSoftDeleted=true" in sent.url.query.decode()
