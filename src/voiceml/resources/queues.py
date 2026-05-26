@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Sequence
+
 from ..models import (
     CreateQueueRequest,
     DequeueRequest,
@@ -40,6 +42,20 @@ class QueuesResource(Resource):
                 params=_page_params(page=page, page_size=page_size, page_token=page_token),
             )
         )
+
+    def iter(
+        self,
+        *,
+        page_size: int | None = None,
+    ) -> Sequence[Queue]:
+        out: list[Queue] = []
+        page = 0
+        while True:
+            chunk = self.list(page=page, page_size=page_size)
+            out.extend(chunk.queues)
+            if not chunk.next_page_uri or not chunk.queues:
+                return out
+            page += 1
 
     def get(self, queue_sid: str) -> Queue:
         return Queue.model_validate(

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Sequence
+
 from ..models import (
     Conference,
     ConferenceList,
@@ -108,6 +110,39 @@ class ConferencesResource(Resource):
                 ),
             )
         )
+
+    def iter(
+        self,
+        *,
+        friendly_name: str | None = None,
+        status: str | None = None,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        date_updated: str | None = None,
+        date_updated_lt: str | None = None,
+        date_updated_gt: str | None = None,
+        page_size: int | None = None,
+    ) -> Sequence[Conference]:
+        out: list[Conference] = []
+        page = 0
+        while True:
+            chunk = self.list(
+                friendly_name=friendly_name,
+                status=status,
+                date_created=date_created,
+                date_created_lt=date_created_lt,
+                date_created_gt=date_created_gt,
+                date_updated=date_updated,
+                date_updated_lt=date_updated_lt,
+                date_updated_gt=date_updated_gt,
+                page=page,
+                page_size=page_size,
+            )
+            out.extend(chunk.conferences)
+            if not chunk.next_page_uri or not chunk.conferences:
+                return out
+            page += 1
 
     def get(self, conference_sid: str) -> Conference:
         return Conference.model_validate(

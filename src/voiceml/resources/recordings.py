@@ -7,6 +7,8 @@ and delete.
 
 from __future__ import annotations
 
+from typing import Sequence
+
 from ..models import Recording, RecordingAudio, RecordingList
 from ._base import AsyncResource, Resource
 
@@ -71,6 +73,35 @@ class RecordingsResource(Resource):
                 ),
             )
         )
+
+    def iter(
+        self,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        call_sid: str | None = None,
+        conference_sid: str | None = None,
+        include_soft_deleted: bool | None = None,
+        page_size: int | None = None,
+    ) -> Sequence[Recording]:
+        out: list[Recording] = []
+        page = 0
+        while True:
+            chunk = self.list(
+                date_created=date_created,
+                date_created_lt=date_created_lt,
+                date_created_gt=date_created_gt,
+                call_sid=call_sid,
+                conference_sid=conference_sid,
+                include_soft_deleted=include_soft_deleted,
+                page=page,
+                page_size=page_size,
+            )
+            out.extend(chunk.recordings)
+            if not chunk.next_page_uri or not chunk.recordings:
+                return out
+            page += 1
 
     def get(
         self, recording_sid: str, *, include_soft_deleted: bool | None = None
