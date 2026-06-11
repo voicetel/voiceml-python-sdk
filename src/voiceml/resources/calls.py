@@ -9,6 +9,7 @@ from typing import Any
 from ..models import (
     Call,
     CallList,
+    CallPayment,
     CallTranscription,
     CreateCallRequest,
     EventsList,
@@ -17,6 +18,7 @@ from ..models import (
     RecordingList,
     SiprecList,
     SiprecSession,
+    StartPaymentRequest,
     StartRecordingRequest,
     StartSiprecRequest,
     StartStreamRequest,
@@ -28,7 +30,16 @@ from ..models import (
     StreamList,
     TranscriptionList,
     UpdateCallRequest,
+    UpdatePaymentRequest,
     UpdateRecordingRequest,
+)
+from ..models.payments import (
+    PaymentBankAccountType,
+    PaymentCapture,
+    PaymentInput,
+    PaymentMethod,
+    PaymentSessionStatus,
+    PaymentTokenType,
 )
 from ._base import AsyncResource, Resource
 
@@ -411,6 +422,95 @@ class CallsResource(Resource):
             data=payload,
         )
 
+    # --- Payments — REST companion to the ``<Pay>`` TwiML verb. ---
+
+    def start_payment(
+        self,
+        call_sid: str,
+        *,
+        idempotency_key: str | None = None,
+        status_callback: str | None = None,
+        bank_account_type: PaymentBankAccountType | None = None,
+        charge_amount: str | None = None,
+        currency: str | None = None,
+        description: str | None = None,
+        input: PaymentInput | None = None,
+        min_postal_code_length: int | None = None,
+        parameter: str | None = None,
+        payment_connector: str | None = None,
+        payment_method: PaymentMethod | None = None,
+        postal_code: bool | None = None,
+        security_code: bool | None = None,
+        timeout: int | None = None,
+        token_type: PaymentTokenType | None = None,
+        valid_card_types: str | None = None,
+        require_matching_inputs: str | None = None,
+        confirmation: bool | None = None,
+    ) -> CallPayment:
+        """Begin a ``<Pay>`` session on the live call.
+
+        Returns 201 with the freshly-minted ``CallPayment``. Returns 403 when
+        the tenant is not ``pay_enabled`` or has no ``stripe_secret_key``
+        configured.
+        """
+        body = StartPaymentRequest(
+            IdempotencyKey=idempotency_key,
+            StatusCallback=status_callback,
+            BankAccountType=bank_account_type,
+            ChargeAmount=charge_amount,
+            Currency=currency,
+            Description=description,
+            Input=input,
+            MinPostalCodeLength=min_postal_code_length,
+            Parameter=parameter,
+            PaymentConnector=payment_connector,
+            PaymentMethod=payment_method,
+            PostalCode=postal_code,
+            SecurityCode=security_code,
+            Timeout=timeout,
+            TokenType=token_type,
+            ValidCardTypes=valid_card_types,
+            RequireMatchingInputs=require_matching_inputs,
+            Confirmation=confirmation,
+        )
+        return CallPayment.model_validate(
+            self._t.request(
+                "POST",
+                self._path("Calls", call_sid, "Payments"),
+                data=body.to_form(),
+            )
+        )
+
+    def update_payment(
+        self,
+        call_sid: str,
+        payment_sid: str,
+        *,
+        idempotency_key: str | None = None,
+        status_callback: str | None = None,
+        capture: PaymentCapture | None = None,
+        status: PaymentSessionStatus | None = None,
+    ) -> CallPayment:
+        """Advance or terminate an existing Pay session.
+
+        ``status="complete"`` captures the collected fields;
+        ``status="cancel"`` aborts the session. ``capture=...`` tells the
+        runtime which input the user is about to type next.
+        """
+        body = UpdatePaymentRequest(
+            IdempotencyKey=idempotency_key,
+            StatusCallback=status_callback,
+            Capture=capture,
+            Status=status,
+        )
+        return CallPayment.model_validate(
+            self._t.request(
+                "POST",
+                self._path("Calls", call_sid, "Payments", payment_sid),
+                data=body.to_form(),
+            )
+        )
+
     # Helper for auto-pagination
 
     def iter(
@@ -742,4 +842,79 @@ class CallsAsyncResource(AsyncResource):
             "POST",
             self._path("Calls", call_sid, "UserDefinedMessages"),
             data=payload,
+        )
+
+    async def start_payment(
+        self,
+        call_sid: str,
+        *,
+        idempotency_key: str | None = None,
+        status_callback: str | None = None,
+        bank_account_type: PaymentBankAccountType | None = None,
+        charge_amount: str | None = None,
+        currency: str | None = None,
+        description: str | None = None,
+        input: PaymentInput | None = None,
+        min_postal_code_length: int | None = None,
+        parameter: str | None = None,
+        payment_connector: str | None = None,
+        payment_method: PaymentMethod | None = None,
+        postal_code: bool | None = None,
+        security_code: bool | None = None,
+        timeout: int | None = None,
+        token_type: PaymentTokenType | None = None,
+        valid_card_types: str | None = None,
+        require_matching_inputs: str | None = None,
+        confirmation: bool | None = None,
+    ) -> CallPayment:
+        body = StartPaymentRequest(
+            IdempotencyKey=idempotency_key,
+            StatusCallback=status_callback,
+            BankAccountType=bank_account_type,
+            ChargeAmount=charge_amount,
+            Currency=currency,
+            Description=description,
+            Input=input,
+            MinPostalCodeLength=min_postal_code_length,
+            Parameter=parameter,
+            PaymentConnector=payment_connector,
+            PaymentMethod=payment_method,
+            PostalCode=postal_code,
+            SecurityCode=security_code,
+            Timeout=timeout,
+            TokenType=token_type,
+            ValidCardTypes=valid_card_types,
+            RequireMatchingInputs=require_matching_inputs,
+            Confirmation=confirmation,
+        )
+        return CallPayment.model_validate(
+            await self._t.request(
+                "POST",
+                self._path("Calls", call_sid, "Payments"),
+                data=body.to_form(),
+            )
+        )
+
+    async def update_payment(
+        self,
+        call_sid: str,
+        payment_sid: str,
+        *,
+        idempotency_key: str | None = None,
+        status_callback: str | None = None,
+        capture: PaymentCapture | None = None,
+        status: PaymentSessionStatus | None = None,
+    ) -> CallPayment:
+        body = UpdatePaymentRequest(
+            IdempotencyKey=idempotency_key,
+            StatusCallback=status_callback,
+            Capture=capture,
+            Status=status,
+        )
+        return CallPayment.model_validate(
+            await self._t.request(
+                "POST",
+                self._path("Calls", call_sid, "Payments", payment_sid),
+                data=body.to_form(),
+            )
         )

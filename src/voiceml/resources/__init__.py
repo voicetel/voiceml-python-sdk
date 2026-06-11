@@ -10,6 +10,7 @@ from .incoming_phone_numbers import (
     IncomingPhoneNumbersAsyncResource,
     IncomingPhoneNumbersResource,
 )
+from .messages import MessagesAsyncResource, MessagesResource
 from .notifications import NotificationsAsyncResource, NotificationsResource
 from .queues import QueuesAsyncResource, QueuesResource
 from .recordings import RecordingsAsyncResource, RecordingsResource
@@ -25,6 +26,8 @@ __all__ = [
     "DiagnosticsResource",
     "IncomingPhoneNumbersAsyncResource",
     "IncomingPhoneNumbersResource",
+    "MessagesAsyncResource",
+    "MessagesResource",
     "NotificationsAsyncResource",
     "NotificationsResource",
     "QueuesAsyncResource",

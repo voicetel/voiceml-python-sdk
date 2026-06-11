@@ -7,7 +7,7 @@ and delete.
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from ..models import Recording, RecordingAudio, RecordingList
 from ._base import AsyncResource, Resource

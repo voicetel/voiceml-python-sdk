@@ -45,7 +45,7 @@ BASE = "https://voiceml.voicetel.com"
 
 
 def test_version_is_set():
-    assert __version__ == "0.6.6"
+    assert __version__ == "0.7.0"
 
 
 def test_client_requires_credentials():
@@ -898,7 +898,9 @@ def test_conferences_iter_two_pages(httpx_mock: HTTPXMock):
             ],
             "page": 0,
             "page_size": 2,
-            "next_page_uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences.json?Page=1&PageSize=2",
+            "next_page_uri": (
+                f"/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences.json?Page=1&PageSize=2"
+            ),
             "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences.json",
         },
     )
@@ -935,7 +937,9 @@ def test_recordings_iter_two_pages(httpx_mock: HTTPXMock):
             ],
             "page": 0,
             "page_size": 2,
-            "next_page_uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Recordings.json?Page=1&PageSize=2",
+            "next_page_uri": (
+                f"/2010-04-01/Accounts/{ACCOUNT_SID}/Recordings.json?Page=1&PageSize=2"
+            ),
             "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Recordings.json",
         },
     )

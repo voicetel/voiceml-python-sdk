@@ -149,7 +149,11 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.mark.parametrize("entry", _load_entries(), ids=lambda e: f"{e['resource']}/{e['operation_id']}/{e.get('example_name', '')}")
+@pytest.mark.parametrize(
+    "entry",
+    _load_entries(),
+    ids=lambda e: f"{e['resource']}/{e['operation_id']}/{e.get('example_name', '')}",
+)
 def test_fixture_decodes(entry: dict[str, Any]) -> None:
     op_id = entry["operation_id"]
     model = _OP_TO_MODEL.get(op_id)
