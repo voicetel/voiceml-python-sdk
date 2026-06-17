@@ -31,6 +31,8 @@ from .resources import (
     QueuesResource,
     RecordingsAsyncResource,
     RecordingsResource,
+    RoutesV2AsyncResource,
+    RoutesV2Resource,
     SipAsyncResource,
     SipResource,
 )
@@ -102,6 +104,7 @@ class Client:
         self.messages = MessagesResource(self._transport)
         self.notifications = NotificationsResource(self._transport)
         self.sip = SipResource(self._transport)
+        self.routes_v2 = RoutesV2Resource(self._transport)
         self.diagnostics = DiagnosticsResource(self._transport)
 
     @property
@@ -160,6 +163,7 @@ class AsyncClient:
         self.messages = MessagesAsyncResource(self._transport)
         self.notifications = NotificationsAsyncResource(self._transport)
         self.sip = SipAsyncResource(self._transport)
+        self.routes_v2 = RoutesV2AsyncResource(self._transport)
         self.diagnostics = DiagnosticsAsyncResource(self._transport)
 
     @property

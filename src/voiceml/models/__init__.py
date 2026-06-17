@@ -116,6 +116,7 @@ from .sip import (
     UpdateSipIpAccessControlListRequest,
     UpdateSipIpAddressRequest,
 )
+from .routes_v2 import RoutesV2SipDomain, UpdateRoutesV2SipDomainRequest
 from .siprec import (
     SiprecList,
     SiprecSession,
@@ -216,6 +217,8 @@ __all__ = [
     "UpdateSipDomainRequest",
     "UpdateSipIpAccessControlListRequest",
     "UpdateSipIpAddressRequest",
+    "RoutesV2SipDomain",
+    "UpdateRoutesV2SipDomainRequest",
     "SiprecList",
     "SiprecSession",
     "SiprecStatus",

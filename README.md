@@ -2,7 +2,7 @@
 
 The official Python client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.7/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with type-safe, async-ready Python.
 
-![Version](https://img.shields.io/badge/version-0.8.0-blue)
+![Version](https://img.shields.io/badge/version-0.8.1-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-green)
 ![Tests](https://img.shields.io/badge/tests-57%20unit-brightgreen)
@@ -54,10 +54,11 @@ The official Python client for the [VoiceML REST API](https://voicetel.com/docs/
 - **IncomingPhoneNumbers** — list, fetch, update.
 - **Notifications** — fetch, list.
 - **SIP** — SIP Trunking: Domains (CRUD), CredentialLists + Credentials (CRUD), IpAccessControlLists + IpAddresses (CRUD), Domain↔ACL/CredentialList mappings (historical, Auth/Calls, Auth/Registrations namespaces).
+- **Routes V2** — Twilio Inbound Processing Region API: `client.routes_v2.sip_domains.fetch(name)` / `update(name, voice_region=..., friendly_name=...)`.
 - **Diagnostics** — `/health` deep probe, OpenAPI spec.
 
 ### 🧪 Tested
-- **97 unit tests** with mocked HTTP layer (`pytest-httpx`) and real Pydantic validation on every fixture — spec drift gets caught at parse time.
+- **103 unit tests** with mocked HTTP layer (`pytest-httpx`) and real Pydantic validation on every fixture — spec drift gets caught at parse time.
 - **Integration test suite** that runs against a callBroadcast / VoiceML instance — gated by env vars, safe for CI.
 
 ### 📦 Clean Distribution
