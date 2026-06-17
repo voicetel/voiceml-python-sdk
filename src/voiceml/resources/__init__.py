@@ -14,6 +14,7 @@ from .messages import MessagesAsyncResource, MessagesResource
 from .notifications import NotificationsAsyncResource, NotificationsResource
 from .queues import QueuesAsyncResource, QueuesResource
 from .recordings import RecordingsAsyncResource, RecordingsResource
+from .sip import SipAsyncResource, SipResource
 
 __all__ = [
     "ApplicationsAsyncResource",
@@ -34,4 +35,6 @@ __all__ = [
     "QueuesResource",
     "RecordingsAsyncResource",
     "RecordingsResource",
+    "SipAsyncResource",
+    "SipResource",
 ]

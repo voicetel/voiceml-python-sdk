@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "voiceml"
-version = "0.7.1.1"
+version = "0.8.0"
 description = "Official Python SDK for the VoiceML REST API (Twilio-compatible voice + AMD service from VoiceTel)"
 readme = "README.md"
 license = "MIT"
