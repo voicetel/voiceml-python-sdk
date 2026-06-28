@@ -17,7 +17,7 @@ class Application(_Base):
     account_sid: str
     friendly_name: str
     api_version: str
-    voice_url: str
+    voice_url: str | None = None
     voice_method: HttpMethod | None = None
     voice_fallback_url: str | None = None
     voice_fallback_method: HttpMethod | None = None

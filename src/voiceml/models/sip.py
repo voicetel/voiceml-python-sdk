@@ -163,6 +163,11 @@ class SipDomainMapping(_Base):
     sid of the bound resource (CL… for credential mappings, AL… for
     IP-ACL mappings); ``domain_sid`` records which domain the binding
     is attached to.
+
+    ``uri`` and ``domain_sid`` are populated on the historical (no-Auth)
+    namespace responses but omitted on the modern ``Auth/Calls`` and
+    ``Auth/Registrations`` namespace responses, which return the bare
+    mapping object without an envelope-style URI.
     """
 
     sid: str
@@ -171,7 +176,7 @@ class SipDomainMapping(_Base):
     domain_sid: str | None = None
     date_created: str
     date_updated: str
-    uri: str
+    uri: str | None = None
 
 
 class SipCredentialListMappingList(Page[SipDomainMapping]):
@@ -184,6 +189,18 @@ class SipIpAccessControlListMappingList(Page[SipDomainMapping]):
     ip_access_control_list_mappings: list[SipDomainMapping] = Field(
         default_factory=list
     )
+
+
+class SipAuthMappingList(Page[SipDomainMapping]):
+    """List envelope for ``Auth/Calls`` and ``Auth/Registrations`` mappings.
+
+    The modern Auth-namespace list endpoints all wrap their items in a
+    generic ``contents`` array instead of a resource-typed field name
+    (``credential_list_mappings`` / ``ip_access_control_list_mappings``)
+    the way the historical no-Auth endpoints do.
+    """
+
+    contents: list[SipDomainMapping] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

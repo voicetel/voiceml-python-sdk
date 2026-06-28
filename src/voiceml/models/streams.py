@@ -19,7 +19,7 @@ class Stream(_Base):
     call_sid: str
     name: str | None = None
     status: StreamStatus
-    api_version: str
+    api_version: str | None = None
     uri: str
     date_created: str | None = None
     date_updated: str | None = None

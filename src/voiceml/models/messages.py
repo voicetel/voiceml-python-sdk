@@ -54,7 +54,7 @@ class Message(_Base):
     account_sid: str
     api_version: str
     to: str
-    from_: str = Field(alias="from")
+    from_: str | None = Field(default=None, alias="from")
     body: str
     status: MessageStatus
     num_segments: str

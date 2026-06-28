@@ -44,7 +44,7 @@ class CallPayment(_Base):
     sid: str
     account_sid: str
     call_sid: str
-    api_version: str
+    api_version: str | None = None
     date_created: str
     date_updated: str
     uri: str

@@ -20,7 +20,7 @@ class SiprecSession(_Base):
     name: str | None = None
     connector_name: str | None = None
     status: SiprecStatus
-    api_version: str
+    api_version: str | None = None
     uri: str
     date_created: str | None = None
     date_updated: str | None = None

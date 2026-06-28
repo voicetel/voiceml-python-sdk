@@ -29,17 +29,23 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from voiceml.models import (
     Application,
     ApplicationList,
     Call,
     CallList,
+    CallPayment,
+    CallTranscription,
     Conference,
     ConferenceList,
+    EventsList,
     IncomingPhoneNumber,
     IncomingPhoneNumberList,
+    Message,
+    MessageList,
+    NotificationsList,
     Participant,
     ParticipantList,
     Queue,
@@ -48,15 +54,35 @@ from voiceml.models import (
     QueueMemberList,
     Recording,
     RecordingList,
+    SipAuthMappingList,
+    SipCredential,
+    SipCredentialList,
+    SipCredentialListList,
+    SipCredentialListMappingList,
+    SipCredentialListPage,
+    SipDomain,
+    SipDomainList,
+    SipDomainMapping,
+    SipIpAccessControlList,
+    SipIpAccessControlListList,
+    SipIpAccessControlListMappingList,
+    SipIpAddress,
+    SipIpAddressList,
     SiprecSession,
     Stream,
 )
 
-# CallTranscription lives on the calls module; importable via the models surface.
-try:
-    from voiceml.models import CallTranscription  # noqa: F401  (re-exported alias)
-except ImportError:
-    CallTranscription = None  # type: ignore[assignment,misc]
+
+class _RawJsonObject(BaseModel):
+    """Permissive container for resources the SDK does not model.
+
+    Equivalent to the Go SDK conformance harness's ``map[string]any``
+    target — confirms the wire payload is a valid JSON object and lets
+    the harness still pluck ``sid`` / ``account_sid`` from the extras
+    map for key-field assertions when present.
+    """
+
+    model_config = ConfigDict(extra="allow")
 
 
 FIXTURES_ENV = "VOICEML_CONFORMANCE_FIXTURES"
@@ -79,7 +105,7 @@ def _load_entries() -> list[dict[str, Any]]:
     return json.loads(path.read_text())
 
 
-_OP_TO_MODEL: dict[str, type[BaseModel] | None] = {
+_OP_TO_MODEL: dict[str, type[BaseModel]] = {
     "CreateCall": Call,
     "FetchCall": Call,
     "UpdateCall": Call,
@@ -127,19 +153,80 @@ _OP_TO_MODEL: dict[str, type[BaseModel] | None] = {
     "UpdateSiprec": SiprecSession,
     "CreateRealtimeTranscription": CallTranscription,
     "UpdateRealtimeTranscription": CallTranscription,
-    # Compat stubs / unmodelled — the Go SDK uses raw map[string]any;
-    # in Python we just skip rather than test a permissive container.
-    "ListCallEvent": None,
-    "ListCallNotification": None,
-    "FetchCallNotification": None,
-    "ListNotification": None,
-    "FetchNotification": None,
-    "CreateUserDefinedMessage": None,
-    # Messages — not yet modelled in this SDK.
-    "CreateMessage": None,
-    "FetchMessage": None,
-    "ListMessage": None,
-    "UpdateMessage": None,
+    # Messages — Twilio-compatible /Messages REST surface modelled in this SDK.
+    "CreateMessage": Message,
+    "FetchMessage": Message,
+    "UpdateMessage": Message,
+    "ListMessage": MessageList,
+    # Call diagnostics — Events + Notifications expose compat-stub list envelopes.
+    "ListCallEvent": EventsList,
+    "ListCallNotification": NotificationsList,
+    "ListNotification": NotificationsList,
+    # Payments — REST companion to the ``<Pay>`` TwiML verb.
+    "CreatePayments": CallPayment,
+    "UpdatePayments": CallPayment,
+    # SIP Trunking — Domains / CredentialLists / IpAccessControlLists +
+    # the four mapping namespaces (historical + Auth/Calls + Auth/Registrations).
+    "CreateSipDomain": SipDomain,
+    "FetchSipDomain": SipDomain,
+    "UpdateSipDomain": SipDomain,
+    "ListSipDomain": SipDomainList,
+    "CreateSipCredentialList": SipCredentialList,
+    "FetchSipCredentialList": SipCredentialList,
+    "UpdateSipCredentialList": SipCredentialList,
+    "ListSipCredentialList": SipCredentialListList,
+    "CreateSipCredential": SipCredential,
+    "FetchSipCredential": SipCredential,
+    "UpdateSipCredential": SipCredential,
+    "ListSipCredential": SipCredentialListPage,
+    "CreateSipIpAccessControlList": SipIpAccessControlList,
+    "FetchSipIpAccessControlList": SipIpAccessControlList,
+    "UpdateSipIpAccessControlList": SipIpAccessControlList,
+    "ListSipIpAccessControlList": SipIpAccessControlListList,
+    "CreateSipIpAddress": SipIpAddress,
+    "FetchSipIpAddress": SipIpAddress,
+    "UpdateSipIpAddress": SipIpAddress,
+    "ListSipIpAddress": SipIpAddressList,
+    # Historical (no-Auth) mapping namespaces.
+    "CreateSipCredentialListMapping": SipDomainMapping,
+    "FetchSipCredentialListMapping": SipDomainMapping,
+    "ListSipCredentialListMapping": SipCredentialListMappingList,
+    "CreateSipIpAccessControlListMapping": SipDomainMapping,
+    "FetchSipIpAccessControlListMapping": SipDomainMapping,
+    "ListSipIpAccessControlListMapping": SipIpAccessControlListMappingList,
+    # Modern Auth/Calls and Auth/Registrations mapping namespaces.
+    "CreateSipAuthCallsCredentialListMapping": SipDomainMapping,
+    "FetchSipAuthCallsCredentialListMapping": SipDomainMapping,
+    "ListSipAuthCallsCredentialListMapping": SipAuthMappingList,
+    "CreateSipAuthCallsIpAccessControlListMapping": SipDomainMapping,
+    "FetchSipAuthCallsIpAccessControlListMapping": SipDomainMapping,
+    "ListSipAuthCallsIpAccessControlListMapping": SipAuthMappingList,
+    "CreateSipAuthRegistrationsCredentialListMapping": SipDomainMapping,
+    "FetchSipAuthRegistrationsCredentialListMapping": SipDomainMapping,
+    "ListSipAuthRegistrationsCredentialListMapping": SipAuthMappingList,
+    # Compat surfaces the SDK does not field-model — validate as raw JSON
+    # objects so the wire shape is at least confirmed valid, matching the
+    # Go SDK's ``map[string]any`` posture for these operations.
+    "FetchAccount": _RawJsonObject,
+    "UpdateAccount": _RawJsonObject,
+    "FetchBalance": _RawJsonObject,
+    "FetchCallNotification": _RawJsonObject,
+    "FetchNotification": _RawJsonObject,
+    "CreateUserDefinedMessage": _RawJsonObject,
+    "FetchOutgoingCallerId": _RawJsonObject,
+    "ListOutgoingCallerId": _RawJsonObject,
+    "UpdateOutgoingCallerId": _RawJsonObject,
+    "CreateValidationRequest": _RawJsonObject,
+    "FetchMedia": _RawJsonObject,
+    "ListMedia": _RawJsonObject,
+    # Recording-side transcriptions are a distinct resource from the live
+    # CallTranscription (REST companion to ``<Start><Transcription>``)
+    # the SDK exposes; the recording-transcription wire shape carries
+    # ``duration``, ``transcription_text``, ``type`` and friends.
+    "FetchRecordingTranscription": _RawJsonObject,
+    "ListRecordingTranscription": _RawJsonObject,
+    "FetchTranscription": _RawJsonObject,
+    "ListTranscription": _RawJsonObject,
 }
 
 
@@ -156,9 +243,12 @@ pytestmark = pytest.mark.skipif(
 )
 def test_fixture_decodes(entry: dict[str, Any]) -> None:
     op_id = entry["operation_id"]
-    model = _OP_TO_MODEL.get(op_id)
-    if model is None:
-        pytest.skip(f"no model mapped for operation {op_id}")
+    if op_id not in _OP_TO_MODEL:
+        pytest.fail(
+            f"no model mapped for operation {op_id} — extend _OP_TO_MODEL "
+            "(use _RawJsonObject for compat surfaces the SDK does not model)"
+        )
+    model = _OP_TO_MODEL[op_id]
 
     root = Path(os.environ[FIXTURES_ENV])
     body = (root / entry["file"]).read_text()

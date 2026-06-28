@@ -24,7 +24,7 @@ class CallTranscription(_Base):
     language_code: str | None = None
     transcription_engine: TranscriptionEngine | None = None
     status: TranscriptionStatus
-    api_version: str
+    api_version: str | None = None
     uri: str
     date_created: str | None = None
     date_updated: str | None = None

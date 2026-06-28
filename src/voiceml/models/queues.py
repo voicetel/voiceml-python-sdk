@@ -29,7 +29,7 @@ class QueueList(Page[Queue]):
 class QueueMember(_Base):
     call_sid: str
     queue_sid: str
-    account_sid: str
+    account_sid: str | None = None
     date_enqueued: str
     wait_time: int
     position: int

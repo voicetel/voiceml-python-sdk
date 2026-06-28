@@ -15,10 +15,14 @@ from .exceptions import ConfigurationError
 from .resources import (
     ApplicationsAsyncResource,
     ApplicationsResource,
+    AssistantsV1AsyncResource,
+    AssistantsV1Resource,
     CallsAsyncResource,
     CallsResource,
     ConferencesAsyncResource,
     ConferencesResource,
+    ConversationsV1AsyncResource,
+    ConversationsV1Resource,
     DiagnosticsAsyncResource,
     DiagnosticsResource,
     IncomingPhoneNumbersAsyncResource,
@@ -35,6 +39,8 @@ from .resources import (
     RoutesV2Resource,
     SipAsyncResource,
     SipResource,
+    VoiceV1AsyncResource,
+    VoiceV1Resource,
 )
 
 
@@ -105,6 +111,9 @@ class Client:
         self.notifications = NotificationsResource(self._transport)
         self.sip = SipResource(self._transport)
         self.routes_v2 = RoutesV2Resource(self._transport)
+        self.voice_v1 = VoiceV1Resource(self._transport)
+        self.conversations_v1 = ConversationsV1Resource(self._transport)
+        self.assistants_v1 = AssistantsV1Resource(self._transport)
         self.diagnostics = DiagnosticsResource(self._transport)
 
     @property
@@ -164,6 +173,9 @@ class AsyncClient:
         self.notifications = NotificationsAsyncResource(self._transport)
         self.sip = SipAsyncResource(self._transport)
         self.routes_v2 = RoutesV2AsyncResource(self._transport)
+        self.voice_v1 = VoiceV1AsyncResource(self._transport)
+        self.conversations_v1 = ConversationsV1AsyncResource(self._transport)
+        self.assistants_v1 = AssistantsV1AsyncResource(self._transport)
         self.diagnostics = DiagnosticsAsyncResource(self._transport)
 
     @property

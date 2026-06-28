@@ -25,7 +25,7 @@ ParticipantStatus = Literal[
 class Conference(_Base):
     sid: str
     account_sid: str
-    friendly_name: str
+    friendly_name: str | None = None
     status: ConferenceStatus
     region: str | None = None
     api_version: str
@@ -50,12 +50,12 @@ class Participant(_Base):
     hold: bool
     coaching: bool
     call_sid_to_coach: str | None = None
-    queue_time: str
+    queue_time: str | None = None
     start_conference_on_enter: bool
     end_conference_on_exit: bool
     status: ParticipantStatus
     label: str | None = None
-    api_version: str
+    api_version: str | None = None
     uri: str
     date_created: str | None = None
     date_updated: str | None = None
