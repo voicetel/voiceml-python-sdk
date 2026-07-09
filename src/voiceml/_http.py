@@ -99,13 +99,19 @@ class Transport(_Transport):
         params: dict[str, Any] | None = None,
         data: dict[str, Any] | None = None,
         json: Any = None,
+        base_url: str | None = None,
     ) -> Any:
+        # ``base_url`` overrides the client's default host for this one call
+        # (used to route product resources at their subdomain — Conversations,
+        # Messaging Service). An absolute URL wins over the httpx client's
+        # baked-in base_url, so the correct host/SNI is used per request.
+        url = path if base_url is None else f"{base_url}{path}"
         last_exc: Exception | None = None
         for attempt in range(self._max_retries + 1):
             try:
                 response = self._http.request(
                     method,
-                    path,
+                    url,
                     params=_clean_params(params),
                     data=_clean_form(data),
                     json=json,
@@ -128,14 +134,17 @@ class Transport(_Transport):
         assert last_exc is not None  # pragma: no cover
         raise last_exc  # pragma: no cover
 
-    def fetch_bytes(self, path: str) -> tuple[int, bytes, httpx.Headers]:
+    def fetch_bytes(
+        self, path: str, *, base_url: str | None = None
+    ) -> tuple[int, bytes, httpx.Headers]:
         """Fetch a binary payload (audio/wav recordings). Follows the single 302→presigned
         redirect that ``GET /Recordings/{sid}.wav`` issues when the audio has been archived
         to S3 — the caller usually only cares about the final bytes.
         """
+        url = path if base_url is None else f"{base_url}{path}"
         response = self._http.request(
             "GET",
-            path,
+            url,
             headers=self._headers(),
             auth=self._auth(),
             follow_redirects=True,
@@ -189,13 +198,15 @@ class AsyncTransport(_Transport):
         params: dict[str, Any] | None = None,
         data: dict[str, Any] | None = None,
         json: Any = None,
+        base_url: str | None = None,
     ) -> Any:
+        url = path if base_url is None else f"{base_url}{path}"
         last_exc: Exception | None = None
         for attempt in range(self._max_retries + 1):
             try:
                 response = await self._http.request(
                     method,
-                    path,
+                    url,
                     params=_clean_params(params),
                     data=_clean_form(data),
                     json=json,
@@ -218,10 +229,13 @@ class AsyncTransport(_Transport):
         assert last_exc is not None  # pragma: no cover
         raise last_exc  # pragma: no cover
 
-    async def fetch_bytes(self, path: str) -> tuple[int, bytes, httpx.Headers]:
+    async def fetch_bytes(
+        self, path: str, *, base_url: str | None = None
+    ) -> tuple[int, bytes, httpx.Headers]:
+        url = path if base_url is None else f"{base_url}{path}"
         response = await self._http.request(
             "GET",
-            path,
+            url,
             headers=self._headers(),
             auth=self._auth(),
             follow_redirects=True,
@@ -239,6 +253,47 @@ class AsyncTransport(_Transport):
 
     async def __aexit__(self, *_: Any) -> None:
         await self.aclose()
+
+
+class _ScopedTransport:
+    """A transport view pinned to a specific product base URL.
+
+    Wraps a real (sync or async) transport and forwards every call, injecting a
+    ``base_url`` override so an entire resource group lands on its product
+    subdomain (``conversations.voicetel.com`` / ``messaging.voicetel.com``)
+    without each resource needing to know its own host. The forwarded
+    ``request`` returns whatever the inner transport returns — a value for the
+    sync transport, an awaitable for the async one — so a single wrapper serves
+    both.
+    """
+
+    def __init__(self, inner: _Transport, base_url: str) -> None:
+        self._inner = inner
+        self._base_url = base_url.rstrip("/")
+
+    @property
+    def account_sid(self) -> str:
+        return self._inner.account_sid
+
+    @property
+    def base_url(self) -> str:
+        return self._base_url
+
+    def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        json: Any = None,
+    ) -> Any:
+        return self._inner.request(  # type: ignore[attr-defined]
+            method, path, params=params, data=data, json=json, base_url=self._base_url
+        )
+
+    def fetch_bytes(self, path: str) -> Any:
+        return self._inner.fetch_bytes(path, base_url=self._base_url)  # type: ignore[attr-defined]
 
 
 def _clean_params(params: dict[str, Any] | None) -> dict[str, Any] | None:

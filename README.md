@@ -1,11 +1,11 @@
 # 📞 VoiceML Python SDK
 
-The official Python client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.8/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with type-safe, async-ready Python.
+The official Python client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.9/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with type-safe, async-ready Python.
 
-![Version](https://img.shields.io/badge/version-0.9.1-blue)
+![Version](https://img.shields.io/badge/version-0.9.2-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-green)
-![Tests](https://img.shields.io/badge/tests-57%20unit-brightgreen)
+![Tests](https://img.shields.io/badge/tests-176%20unit-brightgreen)
 ![Typed](https://img.shields.io/badge/typed-pydantic--v2-blue)
 
 ## 📚 Table of Contents
@@ -58,7 +58,7 @@ The official Python client for the [VoiceML REST API](https://voicetel.com/docs/
 - **Diagnostics** — `/health` deep probe, OpenAPI spec.
 
 ### 🧪 Tested
-- **103 unit tests** with mocked HTTP layer (`pytest-httpx`) and real Pydantic validation on every fixture — spec drift gets caught at parse time.
+- **176 unit tests** with mocked HTTP layer (`pytest-httpx`) and real Pydantic validation on every fixture — spec drift gets caught at parse time.
 - **Integration test suite** that runs against a callBroadcast / VoiceML instance — gated by env vars, safe for CI.
 
 ### 📦 Clean Distribution
@@ -106,7 +106,7 @@ with Client(account_sid="AC…", api_key="…") as c:
     me = c.diagnostics.health()  # uses your AccountSid + key on every call
 ```
 
-> Don't have credentials yet? See **[voicetel.com/docs/api/v0.8/voiceml/](https://voicetel.com/docs/api/v0.8/voiceml/)** for issuance and rotation.
+> Don't have credentials yet? See **[voicetel.com/docs/api/v0.9/voiceml/](https://voicetel.com/docs/api/v0.9/voiceml/)** for issuance and rotation.
 
 ## 🗺️ Resource Reference
 
@@ -120,6 +120,11 @@ with Client(account_sid="AC…", api_key="…") as c:
 | `client.messages` | create, fetch, list, update, delete | To/From/DateSent filters; Body redaction; Status=canceled |
 | `client.incoming_phone_numbers` | list, fetch, update | |
 | `client.notifications` | fetch, list | |
+| `client.conversations_v1` | conversations, messages, participants, roles, users, credentials, configuration, services | rides `conversations.voicetel.com` |
+| `client.messaging_v1.services` | create, list, fetch, update, delete | Messaging Service (`MG…`); rides `messaging.voicetel.com` |
+| `client.voice_v1` | byoc_trunks, connection_policies (+ targets), settings, source_ip_mappings, ip_records | |
+| `client.routes_v2` | phone_numbers, sip_domains | Inbound Processing Region |
+| `client.pricing` | `v1.{voice,messaging,phone_numbers}`, `v2.{voice,trunking}` | read-only rate lookups |
 | `client.diagnostics` | `/health`, OpenAPI spec | |
 
 Every method that takes a request body accepts a typed Pydantic model imported from `voiceml.models`:
@@ -140,6 +145,29 @@ with Client(account_sid="AC…", api_key="…") as c:
         StatusCallback="https://example.com/pay-status",
     ))
     print(session.sid, session.status)
+```
+
+### Product hosts
+
+VoiceML mirrors Twilio's product-per-subdomain model: the Conversations product
+answers on `conversations.voicetel.com` and Messaging Service on
+`messaging.voicetel.com`, while everything else stays on the default
+`voiceml.voicetel.com`. The two share the `/v1/Services` path shape, so the host
+is what disambiguates them. The client derives these automatically from
+`base_url` — you don't set anything for the hosted service.
+
+For a self-hosted deployment on a custom host, point the product base URLs at
+your own subdomains explicitly (otherwise every product stays on the single host
+you configured):
+
+```python
+Client(
+    account_sid="AC…",
+    api_key="…",
+    base_url="https://pbx.example.com",
+    messaging_base_url="https://messaging.example.com",
+    conversations_base_url="https://conversations.example.com",
+)
 ```
 
 ## 🚨 Error Handling
@@ -254,7 +282,7 @@ twine check dist/*
 
 ## 📖 API Documentation
 
-- **Reference docs:** [voicetel.com/docs/api/v0.8/voiceml/](https://voicetel.com/docs/api/v0.8/voiceml/)
+- **Reference docs:** [voicetel.com/docs/api/v0.9/voiceml/](https://voicetel.com/docs/api/v0.9/voiceml/)
 - **Validator:** [voicetel.com/voiceml/validator/](https://voicetel.com/voiceml/validator/)
 - **SDK catalogue:** [voicetel.com/docs/voiceml-sdks/](https://voicetel.com/docs/voiceml-sdks/)
 - **Type definitions:** see the `voiceml.models` module — every wire shape has a Pydantic model.

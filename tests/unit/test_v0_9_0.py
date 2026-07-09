@@ -17,6 +17,8 @@ from voiceml import AsyncClient, Client
 ACCOUNT_SID = "AC" + "f" * 32
 API_KEY = "secret-key-1234"
 BASE = "https://voiceml.voicetel.com"
+# Conversations rides its own product subdomain — see voiceml._hosts.
+CONV = "https://conversations.voicetel.com"
 
 # ---------------------------------------------------------------------------
 # Resource wiring
@@ -484,7 +486,7 @@ def _conversation_payload(sid: str = CH_SID) -> dict:
         "state": "active",
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Conversations/{sid}",
+        "url": f"{CONV}/v1/Conversations/{sid}",
     }
 
 
@@ -492,28 +494,28 @@ def test_conversations_v1_conversation_crud(httpx_mock: HTTPXMock):
     sid = CH_SID
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations",
+        url=f"{CONV}/v1/Conversations",
         json=_conversation_payload(sid),
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(rf"{re.escape(BASE)}/v1/Conversations(\?.*)?$"),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Conversations(\?.*)?$"),
         json={"conversations": [_conversation_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Conversations/{sid}",
+        url=f"{CONV}/v1/Conversations/{sid}",
         json=_conversation_payload(sid),
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations/{sid}",
+        url=f"{CONV}/v1/Conversations/{sid}",
         json=_conversation_payload(sid),
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Conversations/{sid}",
+        url=f"{CONV}/v1/Conversations/{sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -560,7 +562,7 @@ def _message_payload(
         "attributes": "{}",
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Conversations/{conv_sid}/Messages/{sid}",
+        "url": f"{CONV}/v1/Conversations/{conv_sid}/Messages/{sid}",
     }
 
 
@@ -568,30 +570,30 @@ def test_conversations_v1_messages_crud(httpx_mock: HTTPXMock):
     msg_sid = "IM" + "1" * 32
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Messages",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Messages",
         json=_message_payload(msg_sid),
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
         url=re.compile(
-            rf"{re.escape(BASE)}/v1/Conversations/{CH_SID}/Messages(\?.*)?$"
+            rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Messages(\?.*)?$"
         ),
         json={"messages": [_message_payload(msg_sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Messages/{msg_sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Messages/{msg_sid}",
         json=_message_payload(msg_sid),
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Messages/{msg_sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Messages/{msg_sid}",
         json=_message_payload(msg_sid),
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Messages/{msg_sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Messages/{msg_sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -619,18 +621,18 @@ def test_conversations_v1_message_receipts_list_and_fetch(httpx_mock: HTTPXMock)
         "error_code": 0,
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Conversations/{CH_SID}/Messages/{msg_sid}/Receipts/{receipt_sid}",
+        "url": f"{CONV}/v1/Conversations/{CH_SID}/Messages/{msg_sid}/Receipts/{receipt_sid}",
     }
     httpx_mock.add_response(
         method="GET",
         url=re.compile(
-            rf"{re.escape(BASE)}/v1/Conversations/{CH_SID}/Messages/{msg_sid}/Receipts(\?.*)?$"
+            rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Messages/{msg_sid}/Receipts(\?.*)?$"
         ),
         json={"delivery_receipts": [receipt_payload], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Messages/{msg_sid}/Receipts/{receipt_sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Messages/{msg_sid}/Receipts/{receipt_sid}",
         json=receipt_payload,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -655,7 +657,7 @@ def _participant_payload(sid: str = "MB" + "0" * 32) -> dict:
         "attributes": "{}",
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Conversations/{CH_SID}/Participants/{sid}",
+        "url": f"{CONV}/v1/Conversations/{CH_SID}/Participants/{sid}",
     }
 
 
@@ -663,30 +665,30 @@ def test_conversations_v1_participants_crud(httpx_mock: HTTPXMock):
     sid = "MB" + "6" * 32
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Participants",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Participants",
         json=_participant_payload(sid),
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
         url=re.compile(
-            rf"{re.escape(BASE)}/v1/Conversations/{CH_SID}/Participants(\?.*)?$"
+            rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Participants(\?.*)?$"
         ),
         json={"participants": [_participant_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Participants/{sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Participants/{sid}",
         json=_participant_payload(sid),
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Participants/{sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Participants/{sid}",
         json=_participant_payload(sid),
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Participants/{sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Participants/{sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -724,7 +726,7 @@ def _scoped_webhook_payload(sid: str = "WH" + "0" * 32) -> dict:
         "configuration": {"url": "https://example.com/hook", "method": "POST"},
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Conversations/{CH_SID}/Webhooks/{sid}",
+        "url": f"{CONV}/v1/Conversations/{CH_SID}/Webhooks/{sid}",
     }
 
 
@@ -732,30 +734,30 @@ def test_conversations_v1_scoped_webhooks_crud(httpx_mock: HTTPXMock):
     sid = "WH" + "7" * 32
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Webhooks",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Webhooks",
         json=_scoped_webhook_payload(sid),
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
         url=re.compile(
-            rf"{re.escape(BASE)}/v1/Conversations/{CH_SID}/Webhooks(\?.*)?$"
+            rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Webhooks(\?.*)?$"
         ),
         json={"webhooks": [_scoped_webhook_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Webhooks/{sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Webhooks/{sid}",
         json=_scoped_webhook_payload(sid),
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Webhooks/{sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Webhooks/{sid}",
         json=_scoped_webhook_payload(sid),
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Conversations/{CH_SID}/Webhooks/{sid}",
+        url=f"{CONV}/v1/Conversations/{CH_SID}/Webhooks/{sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -791,7 +793,7 @@ def _role_payload(sid: str = "RL" + "0" * 32) -> dict:
         "permissions": ["sendMessage", "leaveConversation"],
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Roles/{sid}",
+        "url": f"{CONV}/v1/Roles/{sid}",
     }
 
 
@@ -799,28 +801,28 @@ def test_conversations_v1_roles_crud(httpx_mock: HTTPXMock):
     sid = "RL" + "8" * 32
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Roles",
+        url=f"{CONV}/v1/Roles",
         json=_role_payload(sid),
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(rf"{re.escape(BASE)}/v1/Roles(\?.*)?$"),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Roles(\?.*)?$"),
         json={"roles": [_role_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Roles/{sid}",
+        url=f"{CONV}/v1/Roles/{sid}",
         json=_role_payload(sid),
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Roles/{sid}",
+        url=f"{CONV}/v1/Roles/{sid}",
         json=_role_payload(sid),
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Roles/{sid}",
+        url=f"{CONV}/v1/Roles/{sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -861,7 +863,7 @@ def _user_payload(sid: str = US_SID) -> dict:
         "is_notifiable": True,
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Users/{sid}",
+        "url": f"{CONV}/v1/Users/{sid}",
     }
 
 
@@ -869,28 +871,28 @@ def test_conversations_v1_users_crud(httpx_mock: HTTPXMock):
     sid = "US" + "9" * 32
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Users",
+        url=f"{CONV}/v1/Users",
         json=_user_payload(sid),
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(rf"{re.escape(BASE)}/v1/Users(\?.*)?$"),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Users(\?.*)?$"),
         json={"users": [_user_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Users/{sid}",
+        url=f"{CONV}/v1/Users/{sid}",
         json=_user_payload(sid),
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Users/{sid}",
+        url=f"{CONV}/v1/Users/{sid}",
         json=_user_payload(sid),
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Users/{sid}",
+        url=f"{CONV}/v1/Users/{sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -915,28 +917,28 @@ def test_conversations_v1_user_conversations_crud(httpx_mock: HTTPXMock):
         "notification_level": "default",
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Users/{US_SID}/Conversations/{CH_SID}",
+        "url": f"{CONV}/v1/Users/{US_SID}/Conversations/{CH_SID}",
     }
     httpx_mock.add_response(
         method="GET",
         url=re.compile(
-            rf"{re.escape(BASE)}/v1/Users/{US_SID}/Conversations(\?.*)?$"
+            rf"{re.escape(CONV)}/v1/Users/{US_SID}/Conversations(\?.*)?$"
         ),
         json={"conversations": [uc_payload], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Users/{US_SID}/Conversations/{CH_SID}",
+        url=f"{CONV}/v1/Users/{US_SID}/Conversations/{CH_SID}",
         json=uc_payload,
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Users/{US_SID}/Conversations/{CH_SID}",
+        url=f"{CONV}/v1/Users/{US_SID}/Conversations/{CH_SID}",
         json=uc_payload,
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Users/{US_SID}/Conversations/{CH_SID}",
+        url=f"{CONV}/v1/Users/{US_SID}/Conversations/{CH_SID}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -970,7 +972,7 @@ def _credential_payload(sid: str = "CR" + "0" * 32) -> dict:
         "type": "apn",
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Credentials/{sid}",
+        "url": f"{CONV}/v1/Credentials/{sid}",
     }
 
 
@@ -978,28 +980,28 @@ def test_conversations_v1_credentials_crud(httpx_mock: HTTPXMock):
     sid = "CR" + "a" * 32
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Credentials",
+        url=f"{CONV}/v1/Credentials",
         json=_credential_payload(sid),
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(rf"{re.escape(BASE)}/v1/Credentials(\?.*)?$"),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Credentials(\?.*)?$"),
         json={"credentials": [_credential_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Credentials/{sid}",
+        url=f"{CONV}/v1/Credentials/{sid}",
         json=_credential_payload(sid),
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Credentials/{sid}",
+        url=f"{CONV}/v1/Credentials/{sid}",
         json=_credential_payload(sid),
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Credentials/{sid}",
+        url=f"{CONV}/v1/Credentials/{sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -1034,10 +1036,10 @@ def test_conversations_v1_configuration_fetch_update(httpx_mock: HTTPXMock):
         "default_messaging_service_sid": "MG" + "0" * 32,
         "default_inactive_timer": "PT5M",
         "default_closed_timer": "PT1H",
-        "url": f"{BASE}/v1/Configuration",
+        "url": f"{CONV}/v1/Configuration",
     }
-    httpx_mock.add_response(method="GET", url=f"{BASE}/v1/Configuration", json=payload)
-    httpx_mock.add_response(method="POST", url=f"{BASE}/v1/Configuration", json=payload)
+    httpx_mock.add_response(method="GET", url=f"{CONV}/v1/Configuration", json=payload)
+    httpx_mock.add_response(method="POST", url=f"{CONV}/v1/Configuration", json=payload)
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         fetched = c.conversations_v1.configuration.fetch()
         c.conversations_v1.configuration.update(
@@ -1063,13 +1065,13 @@ def test_conversations_v1_configuration_webhooks_fetch_update(httpx_mock: HTTPXM
         "pre_webhook_url": "https://example.com/pre",
         "post_webhook_url": "https://example.com/post",
         "target": "webhook",
-        "url": f"{BASE}/v1/Configuration/Webhooks",
+        "url": f"{CONV}/v1/Configuration/Webhooks",
     }
     httpx_mock.add_response(
-        method="GET", url=f"{BASE}/v1/Configuration/Webhooks", json=payload
+        method="GET", url=f"{CONV}/v1/Configuration/Webhooks", json=payload
     )
     httpx_mock.add_response(
-        method="POST", url=f"{BASE}/v1/Configuration/Webhooks", json=payload
+        method="POST", url=f"{CONV}/v1/Configuration/Webhooks", json=payload
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         c.conversations_v1.configuration.webhooks.fetch()
@@ -1096,7 +1098,7 @@ def _config_address_payload(sid: str = "IG" + "0" * 32) -> dict:
         "auto_creation": {"enabled": True, "type": "webhook"},
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Configuration/Addresses/{sid}",
+        "url": f"{CONV}/v1/Configuration/Addresses/{sid}",
         "address_country": "US",
     }
 
@@ -1105,30 +1107,30 @@ def test_conversations_v1_config_addresses_crud(httpx_mock: HTTPXMock):
     sid = "IG" + "b" * 32
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Configuration/Addresses",
+        url=f"{CONV}/v1/Configuration/Addresses",
         json=_config_address_payload(sid),
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
         url=re.compile(
-            rf"{re.escape(BASE)}/v1/Configuration/Addresses(\?.*)?$"
+            rf"{re.escape(CONV)}/v1/Configuration/Addresses(\?.*)?$"
         ),
         json={"addresses": [_config_address_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Configuration/Addresses/{sid}",
+        url=f"{CONV}/v1/Configuration/Addresses/{sid}",
         json=_config_address_payload(sid),
     )
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Configuration/Addresses/{sid}",
+        url=f"{CONV}/v1/Configuration/Addresses/{sid}",
         json=_config_address_payload(sid),
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Configuration/Addresses/{sid}",
+        url=f"{CONV}/v1/Configuration/Addresses/{sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -1176,7 +1178,7 @@ def test_conversations_v1_participant_conversations_list(httpx_mock: HTTPXMock):
     }
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(rf"{re.escape(BASE)}/v1/ParticipantConversations(\?.*)?$"),
+        url=re.compile(rf"{re.escape(CONV)}/v1/ParticipantConversations(\?.*)?$"),
         json={"conversations": [payload], "meta": _meta()},
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -1197,7 +1199,7 @@ def test_conversations_v1_conversation_with_participants_create(
     }
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/ConversationWithParticipants",
+        url=f"{CONV}/v1/ConversationWithParticipants",
         json=payload,
         status_code=201,
     )
@@ -1232,27 +1234,27 @@ def test_conversations_v1_services_crud(httpx_mock: HTTPXMock):
         "friendly_name": "support-service",
         "date_created": "2026-06-27T00:00:00Z",
         "date_updated": "2026-06-27T00:00:00Z",
-        "url": f"{BASE}/v1/Services/{sid}",
+        "url": f"{CONV}/v1/Services/{sid}",
     }
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Services",
+        url=f"{CONV}/v1/Services",
         json=payload,
         status_code=201,
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(rf"{re.escape(BASE)}/v1/Services(\?.*)?$"),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Services(\?.*)?$"),
         json={"services": [payload], "meta": _meta()},
     )
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Services/{sid}",
+        url=f"{CONV}/v1/Services/{sid}",
         json=payload,
     )
     httpx_mock.add_response(
         method="DELETE",
-        url=f"{BASE}/v1/Services/{sid}",
+        url=f"{CONV}/v1/Services/{sid}",
         status_code=204,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
@@ -1276,7 +1278,7 @@ def test_conversations_v1_services_crud(httpx_mock: HTTPXMock):
 async def test_async_conversations_v1_conversation_create(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v1/Conversations",
+        url=f"{CONV}/v1/Conversations",
         json=_conversation_payload(),
         status_code=201,
     )

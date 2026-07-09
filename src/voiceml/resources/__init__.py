@@ -19,7 +19,9 @@ from .incoming_phone_numbers import (
     IncomingPhoneNumbersResource,
 )
 from .messages import MessagesAsyncResource, MessagesResource
+from .messaging_v1 import MessagingV1AsyncResource, MessagingV1Resource
 from .notifications import NotificationsAsyncResource, NotificationsResource
+from .pricing import PricingAsyncResource, PricingResource
 from .queues import QueuesAsyncResource, QueuesResource
 from .recordings import RecordingsAsyncResource, RecordingsResource
 from .routes_v2 import RoutesV2AsyncResource, RoutesV2Resource
@@ -43,8 +45,12 @@ __all__ = [
     "IncomingPhoneNumbersResource",
     "MessagesAsyncResource",
     "MessagesResource",
+    "MessagingV1AsyncResource",
+    "MessagingV1Resource",
     "NotificationsAsyncResource",
     "NotificationsResource",
+    "PricingAsyncResource",
+    "PricingResource",
     "QueuesAsyncResource",
     "QueuesResource",
     "RecordingsAsyncResource",

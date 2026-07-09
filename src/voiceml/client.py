@@ -4,12 +4,14 @@ from typing import Any
 
 import httpx
 
+from ._hosts import resolve_product_base_urls
 from ._http import (
     DEFAULT_BASE_URL,
     DEFAULT_MAX_RETRIES,
     DEFAULT_TIMEOUT,
     AsyncTransport,
     Transport,
+    _ScopedTransport,
 )
 from .exceptions import ConfigurationError
 from .resources import (
@@ -29,8 +31,12 @@ from .resources import (
     IncomingPhoneNumbersResource,
     MessagesAsyncResource,
     MessagesResource,
+    MessagingV1AsyncResource,
+    MessagingV1Resource,
     NotificationsAsyncResource,
     NotificationsResource,
+    PricingAsyncResource,
+    PricingResource,
     QueuesAsyncResource,
     QueuesResource,
     RecordingsAsyncResource,
@@ -88,19 +94,28 @@ class Client:
         api_key: str | None = None,
         auth_token: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
+        messaging_base_url: str | None = None,
+        conversations_base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.Client | None = None,
     ) -> None:
         resolved_key = _resolve_credentials(api_key, auth_token)
+        default_url, messaging_url, conversations_url = resolve_product_base_urls(
+            base_url, messaging_base_url, conversations_base_url
+        )
         self._transport = Transport(
             account_sid=account_sid,
             api_key=resolved_key,
-            base_url=base_url,
+            base_url=default_url,
             timeout=timeout,
             max_retries=max_retries,
             http_client=http_client,
         )
+        # Conversations and Messaging Service ride their own product subdomains
+        # (they share the /v1/Services path shape — host is what disambiguates).
+        messaging_transport = _ScopedTransport(self._transport, messaging_url)
+        conversations_transport = _ScopedTransport(self._transport, conversations_url)
         self.calls = CallsResource(self._transport)
         self.conferences = ConferencesResource(self._transport)
         self.queues = QueuesResource(self._transport)
@@ -108,11 +123,13 @@ class Client:
         self.recordings = RecordingsResource(self._transport)
         self.incoming_phone_numbers = IncomingPhoneNumbersResource(self._transport)
         self.messages = MessagesResource(self._transport)
+        self.messaging_v1 = MessagingV1Resource(messaging_transport)
         self.notifications = NotificationsResource(self._transport)
+        self.pricing = PricingResource(self._transport)
         self.sip = SipResource(self._transport)
         self.routes_v2 = RoutesV2Resource(self._transport)
         self.voice_v1 = VoiceV1Resource(self._transport)
-        self.conversations_v1 = ConversationsV1Resource(self._transport)
+        self.conversations_v1 = ConversationsV1Resource(conversations_transport)
         self.assistants_v1 = AssistantsV1Resource(self._transport)
         self.diagnostics = DiagnosticsResource(self._transport)
 
@@ -150,19 +167,26 @@ class AsyncClient:
         api_key: str | None = None,
         auth_token: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
+        messaging_base_url: str | None = None,
+        conversations_base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         resolved_key = _resolve_credentials(api_key, auth_token)
+        default_url, messaging_url, conversations_url = resolve_product_base_urls(
+            base_url, messaging_base_url, conversations_base_url
+        )
         self._transport = AsyncTransport(
             account_sid=account_sid,
             api_key=resolved_key,
-            base_url=base_url,
+            base_url=default_url,
             timeout=timeout,
             max_retries=max_retries,
             http_client=http_client,
         )
+        messaging_transport = _ScopedTransport(self._transport, messaging_url)
+        conversations_transport = _ScopedTransport(self._transport, conversations_url)
         self.calls = CallsAsyncResource(self._transport)
         self.conferences = ConferencesAsyncResource(self._transport)
         self.queues = QueuesAsyncResource(self._transport)
@@ -170,11 +194,13 @@ class AsyncClient:
         self.recordings = RecordingsAsyncResource(self._transport)
         self.incoming_phone_numbers = IncomingPhoneNumbersAsyncResource(self._transport)
         self.messages = MessagesAsyncResource(self._transport)
+        self.messaging_v1 = MessagingV1AsyncResource(messaging_transport)
         self.notifications = NotificationsAsyncResource(self._transport)
+        self.pricing = PricingAsyncResource(self._transport)
         self.sip = SipAsyncResource(self._transport)
         self.routes_v2 = RoutesV2AsyncResource(self._transport)
         self.voice_v1 = VoiceV1AsyncResource(self._transport)
-        self.conversations_v1 = ConversationsV1AsyncResource(self._transport)
+        self.conversations_v1 = ConversationsV1AsyncResource(conversations_transport)
         self.assistants_v1 = AssistantsV1AsyncResource(self._transport)
         self.diagnostics = DiagnosticsAsyncResource(self._transport)
 

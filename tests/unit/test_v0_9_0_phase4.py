@@ -17,7 +17,9 @@ from voiceml import AsyncClient, Client
 
 ACCOUNT_SID = "AC" + "f" * 32
 API_KEY = "secret-key-1234"
-BASE = "https://voiceml.voicetel.com"
+# Conversation Service (and its service-scoped children) rides the
+# conversations product subdomain — see voiceml._hosts.
+BASE = "https://conversations.voicetel.com"
 
 SVC_SID = "IS" + "0" * 32
 CH_SID = "CH" + "0" * 32
