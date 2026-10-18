@@ -1,10 +1,10 @@
-"""Account-scoped ``/Notifications`` — compat stubs (always empty list, fetch returns 404)."""
+"""Account-scoped ``/Notifications`` — alert-log entries raised by failed TwiML fetches."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Literal
 
-from ..models import NotificationsList
+from ..models import Notification, NotificationsList
 from ._base import AsyncResource, Resource
 
 
@@ -13,7 +13,7 @@ def _list_params(
     page: int | None,
     page_size: int | None,
     page_token: str | None,
-    log: int | None,
+    log: Literal[0, 1] | None,
     message_date: str | None,
     message_date_lt: str | None,
     message_date_gt: str | None,
@@ -36,7 +36,7 @@ class NotificationsResource(Resource):
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
-        log: int | None = None,
+        log: Literal[0, 1] | None = None,
         message_date: str | None = None,
         message_date_lt: str | None = None,
         message_date_gt: str | None = None,
@@ -57,11 +57,10 @@ class NotificationsResource(Resource):
             )
         )
 
-    def get(self, notification_sid: str) -> dict[str, Any]:
-        result = self._t.request("GET", self._path("Notifications", notification_sid))
-        if not isinstance(result, dict):
-            raise TypeError("expected JSON object from Notifications.get")
-        return result
+    def get(self, notification_sid: str) -> Notification:
+        return Notification.model_validate(
+            self._t.request("GET", self._path("Notifications", notification_sid))
+        )
 
 
 class NotificationsAsyncResource(AsyncResource):
@@ -71,7 +70,7 @@ class NotificationsAsyncResource(AsyncResource):
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
-        log: int | None = None,
+        log: Literal[0, 1] | None = None,
         message_date: str | None = None,
         message_date_lt: str | None = None,
         message_date_gt: str | None = None,
@@ -92,10 +91,7 @@ class NotificationsAsyncResource(AsyncResource):
             )
         )
 
-    async def get(self, notification_sid: str) -> dict[str, Any]:
-        result = await self._t.request(
-            "GET", self._path("Notifications", notification_sid)
+    async def get(self, notification_sid: str) -> Notification:
+        return Notification.model_validate(
+            await self._t.request("GET", self._path("Notifications", notification_sid))
         )
-        if not isinstance(result, dict):
-            raise TypeError("expected JSON object from Notifications.get")
-        return result

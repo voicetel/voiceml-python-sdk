@@ -1,4 +1,4 @@
-"""``/v1`` + ``/v2`` Pricing surface — Twilio ``pricing.twilio.com`` (#18).
+"""``/v1`` + ``/v2`` Pricing surface — Twilio-compatible pricing lookups.
 
 Read-only. Served on the default host (VoiceML has no pricing subdomain). Layout::
 
@@ -17,8 +17,11 @@ envelope; ``fetch`` returns the product-specific country/number body.
 
 from __future__ import annotations
 
-from urllib.parse import quote
+from typing import Generic, TypeVar
 
+from pydantic import BaseModel
+
+from .._http import AsyncTransport, Transport
 from ..models import (
     PricingCountriesList,
     PricingMessagingCountry,
@@ -30,6 +33,11 @@ from ..models import (
     PricingVoiceNumber,
     PricingVoiceNumberV2,
 )
+from ._base import path, seg
+
+ModelT = TypeVar("ModelT", bound=BaseModel)
+CountriesT = TypeVar("CountriesT")
+NumbersT = TypeVar("NumbersT")
 
 
 def _page_params(*, page_size: int | None) -> dict[str, object]:
@@ -41,10 +49,10 @@ def _page_params(*, page_size: int | None) -> dict[str, object]:
 # ===========================================================================
 
 
-class _PricingCountriesResource:
+class _PricingCountriesResource(Generic[ModelT]):
     """``.../Countries`` list + per-country fetch (sync). ``model`` is the fetch body."""
 
-    def __init__(self, transport: object, base_path: str, model: type) -> None:
+    def __init__(self, transport: Transport, base_path: str, model: type[ModelT]) -> None:
         self._t = transport
         self._base = base_path
         self._model = model
@@ -54,24 +62,24 @@ class _PricingCountriesResource:
             self._t.request("GET", self._base, params=_page_params(page_size=page_size))
         )
 
-    def fetch(self, iso_country: str) -> object:
+    def fetch(self, iso_country: str) -> ModelT:
         return self._model.model_validate(
-            self._t.request("GET", f"{self._base}/{iso_country}")
+            self._t.request("GET", f"{self._base}/{seg(iso_country)}")
         )
 
 
 class _PricingV1VoiceNumbersResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def fetch(self, number: str) -> PricingVoiceNumber:
         return PricingVoiceNumber.model_validate(
-            self._t.request("GET", f"/v1/Voice/Numbers/{quote(number, safe='')}")
+            self._t.request("GET", path("v1", "Voice", "Numbers", number))
         )
 
 
 class _PricingV2VoiceNumbersResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def fetch(
@@ -80,14 +88,14 @@ class _PricingV2VoiceNumbersResource:
         return PricingVoiceNumberV2.model_validate(
             self._t.request(
                 "GET",
-                f"/v2/Voice/Numbers/{quote(destination_number, safe='')}",
+                path("v2", "Voice", "Numbers", destination_number),
                 params={"OriginationNumber": origination_number},
             )
         )
 
 
 class _PricingV2TrunkingNumbersResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def fetch(
@@ -96,61 +104,67 @@ class _PricingV2TrunkingNumbersResource:
         return PricingTrunkingNumber.model_validate(
             self._t.request(
                 "GET",
-                f"/v2/Trunking/Numbers/{quote(destination_number, safe='')}",
+                path("v2", "Trunking", "Numbers", destination_number),
                 params={"OriginationNumber": origination_number},
             )
         )
 
 
 class _PricingV1Resource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self.voice = _PricingProduct(
-            _PricingCountriesResource(transport, "/v1/Voice/Countries", PricingVoiceCountry),
+            _PricingCountriesResource(
+                transport, path("v1", "Voice", "Countries"), PricingVoiceCountry
+            ),
             _PricingV1VoiceNumbersResource(transport),
         )
-        self.messaging = _PricingProduct(
+        self.messaging = _PricingCountriesOnlyProduct(
             _PricingCountriesResource(
-                transport, "/v1/Messaging/Countries", PricingMessagingCountry
+                transport, path("v1", "Messaging", "Countries"), PricingMessagingCountry
             ),
-            None,
         )
-        self.phone_numbers = _PricingProduct(
+        self.phone_numbers = _PricingCountriesOnlyProduct(
             _PricingCountriesResource(
-                transport, "/v1/PhoneNumbers/Countries", PricingPhoneNumberCountry
+                transport, path("v1", "PhoneNumbers", "Countries"), PricingPhoneNumberCountry
             ),
-            None,
         )
 
 
 class _PricingV2Resource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self.voice = _PricingProduct(
             _PricingCountriesResource(
-                transport, "/v2/Voice/Countries", PricingVoiceCountryV2
+                transport, path("v2", "Voice", "Countries"), PricingVoiceCountryV2
             ),
             _PricingV2VoiceNumbersResource(transport),
         )
         self.trunking = _PricingProduct(
             _PricingCountriesResource(
-                transport, "/v2/Trunking/Countries", PricingTrunkingCountry
+                transport, path("v2", "Trunking", "Countries"), PricingTrunkingCountry
             ),
             _PricingV2TrunkingNumbersResource(transport),
         )
 
 
-class _PricingProduct:
-    """A pricing product group exposing ``.countries`` and optionally ``.numbers``."""
+class _PricingProduct(Generic[CountriesT, NumbersT]):
+    """A pricing product group exposing ``.countries`` and ``.numbers``."""
 
-    def __init__(self, countries: object, numbers: object | None) -> None:
+    def __init__(self, countries: CountriesT, numbers: NumbersT) -> None:
         self.countries = countries
-        if numbers is not None:
-            self.numbers = numbers
+        self.numbers = numbers
+
+
+class _PricingCountriesOnlyProduct(Generic[CountriesT]):
+    """A pricing product group exposing only ``.countries``."""
+
+    def __init__(self, countries: CountriesT) -> None:
+        self.countries = countries
 
 
 class PricingResource:
     """Holder for ``client.pricing.*`` (sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self.v1 = _PricingV1Resource(transport)
         self.v2 = _PricingV2Resource(transport)
 
@@ -160,37 +174,35 @@ class PricingResource:
 # ===========================================================================
 
 
-class _PricingCountriesAsyncResource:
-    def __init__(self, transport: object, base_path: str, model: type) -> None:
+class _PricingCountriesAsyncResource(Generic[ModelT]):
+    def __init__(self, transport: AsyncTransport, base_path: str, model: type[ModelT]) -> None:
         self._t = transport
         self._base = base_path
         self._model = model
 
     async def list(self, *, page_size: int | None = None) -> PricingCountriesList:
         return PricingCountriesList.model_validate(
-            await self._t.request(
-                "GET", self._base, params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._base, params=_page_params(page_size=page_size))
         )
 
-    async def fetch(self, iso_country: str) -> object:
+    async def fetch(self, iso_country: str) -> ModelT:
         return self._model.model_validate(
-            await self._t.request("GET", f"{self._base}/{iso_country}")
+            await self._t.request("GET", f"{self._base}/{seg(iso_country)}")
         )
 
 
 class _PricingV1VoiceNumbersAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     async def fetch(self, number: str) -> PricingVoiceNumber:
         return PricingVoiceNumber.model_validate(
-            await self._t.request("GET", f"/v1/Voice/Numbers/{quote(number, safe='')}")
+            await self._t.request("GET", path("v1", "Voice", "Numbers", number))
         )
 
 
 class _PricingV2VoiceNumbersAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     async def fetch(
@@ -199,14 +211,14 @@ class _PricingV2VoiceNumbersAsyncResource:
         return PricingVoiceNumberV2.model_validate(
             await self._t.request(
                 "GET",
-                f"/v2/Voice/Numbers/{quote(destination_number, safe='')}",
+                path("v2", "Voice", "Numbers", destination_number),
                 params={"OriginationNumber": origination_number},
             )
         )
 
 
 class _PricingV2TrunkingNumbersAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     async def fetch(
@@ -215,45 +227,43 @@ class _PricingV2TrunkingNumbersAsyncResource:
         return PricingTrunkingNumber.model_validate(
             await self._t.request(
                 "GET",
-                f"/v2/Trunking/Numbers/{quote(destination_number, safe='')}",
+                path("v2", "Trunking", "Numbers", destination_number),
                 params={"OriginationNumber": origination_number},
             )
         )
 
 
 class _PricingV1AsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self.voice = _PricingProduct(
             _PricingCountriesAsyncResource(
-                transport, "/v1/Voice/Countries", PricingVoiceCountry
+                transport, path("v1", "Voice", "Countries"), PricingVoiceCountry
             ),
             _PricingV1VoiceNumbersAsyncResource(transport),
         )
-        self.messaging = _PricingProduct(
+        self.messaging = _PricingCountriesOnlyProduct(
             _PricingCountriesAsyncResource(
-                transport, "/v1/Messaging/Countries", PricingMessagingCountry
+                transport, path("v1", "Messaging", "Countries"), PricingMessagingCountry
             ),
-            None,
         )
-        self.phone_numbers = _PricingProduct(
+        self.phone_numbers = _PricingCountriesOnlyProduct(
             _PricingCountriesAsyncResource(
-                transport, "/v1/PhoneNumbers/Countries", PricingPhoneNumberCountry
+                transport, path("v1", "PhoneNumbers", "Countries"), PricingPhoneNumberCountry
             ),
-            None,
         )
 
 
 class _PricingV2AsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self.voice = _PricingProduct(
             _PricingCountriesAsyncResource(
-                transport, "/v2/Voice/Countries", PricingVoiceCountryV2
+                transport, path("v2", "Voice", "Countries"), PricingVoiceCountryV2
             ),
             _PricingV2VoiceNumbersAsyncResource(transport),
         )
         self.trunking = _PricingProduct(
             _PricingCountriesAsyncResource(
-                transport, "/v2/Trunking/Countries", PricingTrunkingCountry
+                transport, path("v2", "Trunking", "Countries"), PricingTrunkingCountry
             ),
             _PricingV2TrunkingNumbersAsyncResource(transport),
         )
@@ -262,6 +272,6 @@ class _PricingV2AsyncResource:
 class PricingAsyncResource:
     """Holder for ``client.pricing.*`` (async)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self.v1 = _PricingV1AsyncResource(transport)
         self.v2 = _PricingV2AsyncResource(transport)

@@ -32,9 +32,8 @@ from typing import Any
 
 from pydantic import Field
 
-from ._base import _Base
-from .voice_v1 import VoiceV1Meta
-
+from ._base import _Base, _Request
+from .common import V1Page
 
 # ---------------------------------------------------------------------------
 # Response models
@@ -42,7 +41,8 @@ from .voice_v1 import VoiceV1Meta
 
 
 class AssistantsV1Assistant(_Base):
-    """An AI Assistant — BYO-LLM agent with personality prompt and customer-AI knobs (``aia_asst_…``)."""
+    """An AI Assistant (``aia_asst_…``) — BYO-LLM agent with personality prompt and
+    customer-AI knobs."""
 
     account_sid: str | None = None
     customer_ai: dict[str, Any] | None = None
@@ -56,9 +56,8 @@ class AssistantsV1Assistant(_Base):
     date_updated: str | None = None
 
 
-class AssistantsV1AssistantList(_Base):
+class AssistantsV1AssistantList(V1Page[AssistantsV1Assistant]):
     assistants: list[AssistantsV1Assistant] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class AssistantsV1Tool(_Base):
@@ -77,9 +76,8 @@ class AssistantsV1Tool(_Base):
     date_updated: str | None = None
 
 
-class AssistantsV1ToolList(_Base):
+class AssistantsV1ToolList(V1Page[AssistantsV1Tool]):
     tools: list[AssistantsV1Tool] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class AssistantsV1Policy(_Base):
@@ -96,9 +94,8 @@ class AssistantsV1Policy(_Base):
     date_updated: str | None = None
 
 
-class AssistantsV1PolicyList(_Base):
+class AssistantsV1PolicyList(V1Page[AssistantsV1Policy]):
     policies: list[AssistantsV1Policy] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class AssistantsV1ToolWithPolicies(_Base):
@@ -134,9 +131,8 @@ class AssistantsV1Knowledge(_Base):
     date_updated: str | None = None
 
 
-class AssistantsV1KnowledgeList(_Base):
+class AssistantsV1KnowledgeList(V1Page[AssistantsV1Knowledge]):
     knowledge: list[AssistantsV1Knowledge] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class AssistantsV1KnowledgeStatus(_Base):
@@ -158,13 +154,15 @@ class AssistantsV1KnowledgeChunk(_Base):
     date_updated: str | None = None
 
 
-class AssistantsV1KnowledgeChunkList(_Base):
+class AssistantsV1KnowledgeChunkList(V1Page[AssistantsV1KnowledgeChunk]):
     chunks: list[AssistantsV1KnowledgeChunk] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class AssistantsV1AssistantWithToolsAndKnowledge(_Base):
-    """An Assistant plus its attached tools and knowledge — returned by ``GET /v1/Assistants/{id}``."""
+    """An Assistant plus its attached tools and knowledge.
+
+    Returned by ``GET /v1/Assistants/{id}``.
+    """
 
     account_sid: str | None = None
     customer_ai: dict[str, Any] | None = None
@@ -192,9 +190,8 @@ class AssistantsV1Session(_Base):
     date_updated: str | None = None
 
 
-class AssistantsV1SessionList(_Base):
+class AssistantsV1SessionList(V1Page[AssistantsV1Session]):
     sessions: list[AssistantsV1Session] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class AssistantsV1Message(_Base):
@@ -212,9 +209,8 @@ class AssistantsV1Message(_Base):
     date_updated: str | None = None
 
 
-class AssistantsV1MessageList(_Base):
+class AssistantsV1MessageList(V1Page[AssistantsV1Message]):
     messages: list[AssistantsV1Message] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class AssistantsV1SendMessageResponse(_Base):
@@ -244,9 +240,8 @@ class AssistantsV1Feedback(_Base):
     date_updated: str | None = None
 
 
-class AssistantsV1FeedbackList(_Base):
+class AssistantsV1FeedbackList(V1Page[AssistantsV1Feedback]):
     feedbacks: list[AssistantsV1Feedback] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -258,22 +253,13 @@ class AssistantsV1FeedbackList(_Base):
 # ---------------------------------------------------------------------------
 
 
-class _JsonBody(_Base):
-    """Request models for JSON-bodied endpoints."""
+class _JsonBody(_Request):
+    """Request models for JSON-bodied endpoints.
 
-    def to_json(self) -> dict[str, Any]:
-        """Render as a JSON-encodable dict — only fields the caller set to a
-        non-``None`` value are emitted.
-
-        ``None`` is filtered to match the form-encoded ``to_form()`` policy:
-        the resource-layer helpers always pass every keyword arg through to
-        the request model (including the unspecified ``... = None`` ones), so
-        relying on ``exclude_unset`` alone would round-trip those nulls onto
-        the wire. Twilio-shape callers expect omitted fields to be absent
-        from the JSON body, not present as ``null``.
-        """
-        raw = self.model_dump(exclude_unset=True, by_alias=True, mode="json")
-        return {k: v for k, v in raw.items() if v is not None}
+    Serialize with :meth:`_Request.to_json`: only fields the caller set to a
+    non-``None`` value are emitted, so omitted fields are absent from the JSON
+    body rather than present as ``null``.
+    """
 
 
 class CreateAssistantsV1AssistantRequest(_JsonBody):

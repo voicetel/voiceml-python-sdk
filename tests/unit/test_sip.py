@@ -15,6 +15,7 @@ from voiceml import AsyncClient, Client
 ACCOUNT_SID = "AC" + "f" * 32
 API_KEY = "secret-key-1234"
 BASE = "https://voiceml.voicetel.com"
+ACCOUNT_BASE = f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}"
 
 DOMAIN_SID = "SD" + "1" * 32
 CL_SID = "CL" + "2" * 32
@@ -115,8 +116,13 @@ def _mapping_payload(sid: str = MAPPING_SID) -> dict:
         "domain_sid": DOMAIN_SID,
         "date_created": "Mon, 17 Jun 2026 12:00:00 +0000",
         "date_updated": "Mon, 17 Jun 2026 12:00:00 +0000",
-        "uri": "/2010-04-01/Accounts/" + ACCOUNT_SID + "/SIP/Domains/" + DOMAIN_SID
-            + "/CredentialListMappings/" + sid + ".json",
+        "uri": "/2010-04-01/Accounts/"
+        + ACCOUNT_SID
+        + "/SIP/Domains/"
+        + DOMAIN_SID
+        + "/CredentialListMappings/"
+        + sid
+        + ".json",
     }
 
 
@@ -149,8 +155,13 @@ def test_sip_domains_list(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
         url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/SIP/Domains.json",
-        json={"domains": [_domain_payload()], "page": 0, "page_size": 50, "total": 1,
-              "next_page_uri": None, "uri": ""},
+        json={
+            "domains": [_domain_payload()],
+            "page": 0,
+            "page_size": 50,
+            "next_page_uri": None,
+            "uri": "",
+        },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         out = c.sip.domains.list()
@@ -225,8 +236,13 @@ def test_sip_credential_lists_list(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
         url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/SIP/CredentialLists.json",
-        json={"credential_lists": [_credential_list_payload()], "page": 0,
-              "page_size": 50, "total": 1, "next_page_uri": None, "uri": ""},
+        json={
+            "credential_lists": [_credential_list_payload()],
+            "page": 0,
+            "page_size": 50,
+            "next_page_uri": None,
+            "uri": "",
+        },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         out = c.sip.credential_lists.list()
@@ -287,8 +303,13 @@ def test_sip_credentials_list(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
         url=url,
-        json={"credentials": [_credential_payload()], "page": 0, "page_size": 50,
-              "total": 1, "next_page_uri": None, "uri": ""},
+        json={
+            "credentials": [_credential_payload()],
+            "page": 0,
+            "page_size": 50,
+            "next_page_uri": None,
+            "uri": "",
+        },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         out = c.sip.credential_lists.credentials(CL_SID).list()
@@ -347,8 +368,13 @@ def test_sip_ip_access_control_lists_list(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
         url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/SIP/IpAccessControlLists.json",
-        json={"ip_access_control_lists": [_ipacl_payload()], "page": 0,
-              "page_size": 50, "total": 1, "next_page_uri": None, "uri": ""},
+        json={
+            "ip_access_control_lists": [_ipacl_payload()],
+            "page": 0,
+            "page_size": 50,
+            "next_page_uri": None,
+            "uri": "",
+        },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         out = c.sip.ip_access_control_lists.list()
@@ -405,11 +431,17 @@ def test_sip_ip_access_control_lists_delete(httpx_mock: HTTPXMock):
 
 
 def test_sip_ip_addresses_list(httpx_mock: HTTPXMock):
-    url = f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/SIP/IpAccessControlLists/{ACL_SID}/IpAddresses.json"
+    url = f"{ACCOUNT_BASE}/SIP/IpAccessControlLists/{ACL_SID}/IpAddresses.json"
     httpx_mock.add_response(
-        method="GET", url=url,
-        json={"ip_addresses": [_ip_address_payload()], "page": 0, "page_size": 50,
-              "total": 1, "next_page_uri": None, "uri": ""},
+        method="GET",
+        url=url,
+        json={
+            "ip_addresses": [_ip_address_payload()],
+            "page": 0,
+            "page_size": 50,
+            "next_page_uri": None,
+            "uri": "",
+        },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         out = c.sip.ip_access_control_lists.ip_addresses(ACL_SID).list()
@@ -417,7 +449,7 @@ def test_sip_ip_addresses_list(httpx_mock: HTTPXMock):
 
 
 def test_sip_ip_addresses_create(httpx_mock: HTTPXMock):
-    url = f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/SIP/IpAccessControlLists/{ACL_SID}/IpAddresses.json"
+    url = f"{ACCOUNT_BASE}/SIP/IpAccessControlLists/{ACL_SID}/IpAddresses.json"
     httpx_mock.add_response(method="POST", url=url, json=_ip_address_payload())
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         ip = c.sip.ip_access_control_lists.ip_addresses(ACL_SID).create(
@@ -479,9 +511,7 @@ def test_sip_domain_credential_list_mappings_create(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(method="POST", url=url, json=_mapping_payload())
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        c.sip.domains.credential_list_mappings(DOMAIN_SID).create(
-            credential_list_sid=CL_SID
-        )
+        c.sip.domains.credential_list_mappings(DOMAIN_SID).create(credential_list_sid=CL_SID)
     body = _form(httpx_mock.get_request().content)
     assert body == {"CredentialListSid": [CL_SID]}
 
@@ -492,9 +522,15 @@ def test_sip_domain_credential_list_mappings_list(httpx_mock: HTTPXMock):
         f"/CredentialListMappings.json"
     )
     httpx_mock.add_response(
-        method="GET", url=url,
-        json={"credential_list_mappings": [_mapping_payload()], "page": 0,
-              "page_size": 50, "total": 1, "next_page_uri": None, "uri": ""},
+        method="GET",
+        url=url,
+        json={
+            "credential_list_mappings": [_mapping_payload()],
+            "page": 0,
+            "page_size": 50,
+            "next_page_uri": None,
+            "uri": "",
+        },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         out = c.sip.domains.credential_list_mappings(DOMAIN_SID).list()

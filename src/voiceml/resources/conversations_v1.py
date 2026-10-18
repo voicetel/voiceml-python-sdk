@@ -1,4 +1,4 @@
-"""``/v1/*`` Conversations REST surface — Twilio conversations.twilio.com/v1.
+"""``/v1/*`` Conversations REST surface — Twilio-compatible Conversations v1.
 
 Top-level holder is :class:`ConversationsV1Resource` (sync) /
 :class:`ConversationsV1AsyncResource` (async), wired under
@@ -9,7 +9,8 @@ Layout::
     client.conversations_v1.conversations.create / list / fetch / update / delete
     client.conversations_v1.conversations(conv_sid).messages.create / list / fetch / update / delete
     client.conversations_v1.conversations(conv_sid).messages(msg_sid).receipts.list / fetch
-    client.conversations_v1.conversations(conv_sid).participants.create / list / fetch / update / delete
+    client.conversations_v1.conversations(conv_sid).participants.create / list / fetch
+        / update / delete
     client.conversations_v1.conversations(conv_sid).webhooks.create / list / fetch / update / delete
 
     client.conversations_v1.roles.create / list / fetch / update / delete
@@ -36,7 +37,9 @@ account is resolved from HTTP Basic auth.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
+from .._http import _ScopedTransport
 from ..models import (
     ConversationsV1ConfigAddress,
     ConversationsV1ConfigAddressList,
@@ -124,7 +127,8 @@ from ..models import (
     UpdateConversationsV1UserConversationRequest,
     UpdateConversationsV1UserRequest,
 )
-
+from ..models.calls import HttpMethod
+from ._base import path
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -189,24 +193,22 @@ def _conversation_update_form(
 class _ConversationsV1MessageReceiptsResource:
     """Read-only ``/v1/Conversations/{ConvSid}/Messages/{MsgSid}/Receipts`` (sync)."""
 
-    def __init__(self, transport: object, conversation_sid: str, message_sid: str) -> None:
+    def __init__(
+        self, transport: _ScopedTransport, conversation_sid: str, message_sid: str
+    ) -> None:
         self._t = transport
         self._conv = conversation_sid
         self._msg = message_sid
 
     def _root(self, *tail: str) -> str:
-        parts = [
-            "v1", "Conversations", self._conv, "Messages", self._msg, "Receipts", *tail
-        ]
-        return "/" + "/".join(parts)
+        parts = ["v1", "Conversations", self._conv, "Messages", self._msg, "Receipts", *tail]
+        return path(*parts)
 
     def list(
         self, *, page_size: int | None = None
     ) -> ConversationsV1ConversationMessageReceiptList:
         return ConversationsV1ConversationMessageReceiptList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, sid: str) -> ConversationsV1ConversationMessageReceipt:
@@ -218,13 +220,13 @@ class _ConversationsV1MessageReceiptsResource:
 class _ConversationsV1MessagesResource:
     """``/v1/Conversations/{ConvSid}/Messages`` (sync)."""
 
-    def __init__(self, transport: object, conversation_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, conversation_sid: str) -> None:
         self._t = transport
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Conversations", self._conv, "Messages", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     def create(
         self,
@@ -235,22 +237,18 @@ class _ConversationsV1MessagesResource:
         content_sid: str | None = None,
     ) -> ConversationsV1ConversationMessage:
         body_form = CreateConversationsV1ConversationMessageRequest(
-            Author=author,
-            Body=body,
-            Attributes=attributes,
-            ContentSid=content_sid,
+            author=author,
+            body=body,
+            attributes=attributes,
+            content_sid=content_sid,
         ).to_form()
         return ConversationsV1ConversationMessage.model_validate(
             self._t.request("POST", self._root(), data=body_form)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ConversationMessageList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ConversationMessageList:
         return ConversationsV1ConversationMessageList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, message_sid: str) -> ConversationsV1ConversationMessage:
@@ -267,7 +265,7 @@ class _ConversationsV1MessagesResource:
         attributes: str | None = None,
     ) -> ConversationsV1ConversationMessage:
         body_form = UpdateConversationsV1ConversationMessageRequest(
-            Author=author, Body=body, Attributes=attributes
+            author=author, body=body, attributes=attributes
         ).to_form()
         return ConversationsV1ConversationMessage.model_validate(
             self._t.request("POST", self._root(message_sid), data=body_form)
@@ -283,13 +281,13 @@ class _ConversationsV1MessagesResource:
 class _ConversationsV1ParticipantsResource:
     """``/v1/Conversations/{ConvSid}/Participants`` (sync)."""
 
-    def __init__(self, transport: object, conversation_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, conversation_sid: str) -> None:
         self._t = transport
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Conversations", self._conv, "Participants", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     def create(
         self,
@@ -313,13 +311,9 @@ class _ConversationsV1ParticipantsResource:
             self._t.request("POST", self._root(), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ConversationParticipantList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ConversationParticipantList:
         return ConversationsV1ConversationParticipantList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, participant_sid: str) -> ConversationsV1ConversationParticipant:
@@ -338,11 +332,11 @@ class _ConversationsV1ParticipantsResource:
         last_read_timestamp: str | None = None,
     ) -> ConversationsV1ConversationParticipant:
         body = UpdateConversationsV1ConversationParticipantRequest(
-            Identity=identity,
-            Attributes=attributes,
-            RoleSid=role_sid,
-            LastReadMessageIndex=last_read_message_index,
-            LastReadTimestamp=last_read_timestamp,
+            identity=identity,
+            attributes=attributes,
+            role_sid=role_sid,
+            last_read_message_index=last_read_message_index,
+            last_read_timestamp=last_read_timestamp,
         ).to_form()
         return ConversationsV1ConversationParticipant.model_validate(
             self._t.request("POST", self._root(participant_sid), data=body)
@@ -355,20 +349,20 @@ class _ConversationsV1ParticipantsResource:
 class _ConversationsV1WebhooksResource:
     """``/v1/Conversations/{ConvSid}/Webhooks`` (sync)."""
 
-    def __init__(self, transport: object, conversation_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, conversation_sid: str) -> None:
         self._t = transport
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Conversations", self._conv, "Webhooks", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     def create(
         self,
         *,
-        target: str,
+        target: Literal["webhook", "trigger", "studio"],
         configuration_url: str | None = None,
-        configuration_method: str | None = None,
+        configuration_method: HttpMethod | None = None,
         configuration_flow_sid: str | None = None,
         configuration_replay_after: int | None = None,
     ) -> ConversationsV1ConversationScopedWebhook:
@@ -383,13 +377,9 @@ class _ConversationsV1WebhooksResource:
             self._t.request("POST", self._root(), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ConversationScopedWebhookList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ConversationScopedWebhookList:
         return ConversationsV1ConversationScopedWebhookList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, webhook_sid: str) -> ConversationsV1ConversationScopedWebhook:
@@ -402,7 +392,7 @@ class _ConversationsV1WebhooksResource:
         webhook_sid: str,
         *,
         configuration_url: str | None = None,
-        configuration_method: str | None = None,
+        configuration_method: HttpMethod | None = None,
         configuration_flow_sid: str | None = None,
     ) -> ConversationsV1ConversationScopedWebhook:
         body = UpdateConversationsV1ConversationScopedWebhookRequest(
@@ -421,7 +411,7 @@ class _ConversationsV1WebhooksResource:
 class _ConversationContext:
     """Returned by ``client.conversations_v1.conversations(sid)`` — sub-resource factory."""
 
-    def __init__(self, transport: object, conversation_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, conversation_sid: str) -> None:
         self.messages = _ConversationsV1MessagesResource(transport, conversation_sid)
         self.participants = _ConversationsV1ParticipantsResource(transport, conversation_sid)
         self.webhooks = _ConversationsV1WebhooksResource(transport, conversation_sid)
@@ -435,7 +425,7 @@ class _ConversationsCallable:
     ``conversations.list``, …) drives the un-bound CRUD.
     """
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def __call__(self, conversation_sid: str) -> _ConversationContext:
@@ -448,7 +438,7 @@ class _ConversationsCallable:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
         bindings_email_address: str | None = None,
@@ -457,7 +447,7 @@ class _ConversationsCallable:
         return ConversationsV1Conversation.model_validate(
             self._t.request(
                 "POST",
-                "/v1/Conversations",
+                path("v1", "Conversations"),
                 data=_conversation_create_form(
                     friendly_name=friendly_name,
                     unique_name=unique_name,
@@ -472,20 +462,18 @@ class _ConversationsCallable:
             )
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ConversationList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ConversationList:
         return ConversationsV1ConversationList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/Conversations",
+                path("v1", "Conversations"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     def fetch(self, conversation_sid: str) -> ConversationsV1Conversation:
         return ConversationsV1Conversation.model_validate(
-            self._t.request("GET", f"/v1/Conversations/{conversation_sid}")
+            self._t.request("GET", path("v1", "Conversations", conversation_sid))
         )
 
     def update(
@@ -496,14 +484,14 @@ class _ConversationsCallable:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
     ) -> ConversationsV1Conversation:
         return ConversationsV1Conversation.model_validate(
             self._t.request(
                 "POST",
-                f"/v1/Conversations/{conversation_sid}",
+                path("v1", "Conversations", conversation_sid),
                 data=_conversation_update_form(
                     friendly_name=friendly_name,
                     unique_name=unique_name,
@@ -517,69 +505,61 @@ class _ConversationsCallable:
         )
 
     def delete(self, conversation_sid: str) -> None:
-        self._t.request("DELETE", f"/v1/Conversations/{conversation_sid}")
+        self._t.request("DELETE", path("v1", "Conversations", conversation_sid))
 
 
 class _ConversationsV1RolesResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def create(
-        self, *, friendly_name: str, type: str, permission: Sequence[str]
+        self,
+        *,
+        friendly_name: str,
+        type: Literal["conversation", "service"],
+        permission: Sequence[str],
     ) -> ConversationsV1Role:
         body = CreateConversationsV1RoleRequest(
-            FriendlyName=friendly_name,
-            Type=type,
-            Permission=list(permission),
+            friendly_name=friendly_name,
+            type=type,
+            permission=list(permission),
         ).to_form()
         return ConversationsV1Role.model_validate(
-            self._t.request("POST", "/v1/Roles", data=body)
+            self._t.request("POST", path("v1", "Roles"), data=body)
         )
 
     def list(self, *, page_size: int | None = None) -> ConversationsV1RoleList:
         return ConversationsV1RoleList.model_validate(
-            self._t.request(
-                "GET", "/v1/Roles", params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", path("v1", "Roles"), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, sid: str) -> ConversationsV1Role:
-        return ConversationsV1Role.model_validate(
-            self._t.request("GET", f"/v1/Roles/{sid}")
-        )
+        return ConversationsV1Role.model_validate(self._t.request("GET", path("v1", "Roles", sid)))
 
-    def update(
-        self, sid: str, *, permission: Sequence[str]
-    ) -> ConversationsV1Role:
-        body = UpdateConversationsV1RoleRequest(
-            Permission=list(permission)
-        ).to_form()
+    def update(self, sid: str, *, permission: Sequence[str]) -> ConversationsV1Role:
+        body = UpdateConversationsV1RoleRequest(permission=list(permission)).to_form()
         return ConversationsV1Role.model_validate(
-            self._t.request("POST", f"/v1/Roles/{sid}", data=body)
+            self._t.request("POST", path("v1", "Roles", sid), data=body)
         )
 
     def delete(self, sid: str) -> None:
-        self._t.request("DELETE", f"/v1/Roles/{sid}")
+        self._t.request("DELETE", path("v1", "Roles", sid))
 
 
 class _ConversationsV1UserConversationsResource:
     """Per-user ``/v1/Users/{Sid}/Conversations`` (sync)."""
 
-    def __init__(self, transport: object, user_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, user_sid: str) -> None:
         self._t = transport
         self._user = user_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Users", self._user, "Conversations", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1UserConversationList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1UserConversationList:
         return ConversationsV1UserConversationList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, conversation_sid: str) -> ConversationsV1UserConversation:
@@ -591,14 +571,14 @@ class _ConversationsV1UserConversationsResource:
         self,
         conversation_sid: str,
         *,
-        notification_level: str | None = None,
+        notification_level: Literal["default", "muted"] | None = None,
         last_read_message_index: int | None = None,
         last_read_timestamp: str | None = None,
     ) -> ConversationsV1UserConversation:
         body = UpdateConversationsV1UserConversationRequest(
-            NotificationLevel=notification_level,
-            LastReadMessageIndex=last_read_message_index,
-            LastReadTimestamp=last_read_timestamp,
+            notification_level=notification_level,
+            last_read_message_index=last_read_message_index,
+            last_read_timestamp=last_read_timestamp,
         ).to_form()
         return ConversationsV1UserConversation.model_validate(
             self._t.request("POST", self._root(conversation_sid), data=body)
@@ -611,14 +591,14 @@ class _ConversationsV1UserConversationsResource:
 class _UserContext:
     """Returned by ``client.conversations_v1.users(sid)`` — sub-resource factory."""
 
-    def __init__(self, transport: object, user_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, user_sid: str) -> None:
         self.conversations = _ConversationsV1UserConversationsResource(transport, user_sid)
 
 
 class _ConversationsV1UsersCallable:
     """Top-level ``client.conversations_v1.users`` — callable + namespace."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def __call__(self, user_sid: str) -> _UserContext:
@@ -633,26 +613,22 @@ class _ConversationsV1UsersCallable:
         role_sid: str | None = None,
     ) -> ConversationsV1User:
         body = CreateConversationsV1UserRequest(
-            Identity=identity,
-            FriendlyName=friendly_name,
-            Attributes=attributes,
-            RoleSid=role_sid,
+            identity=identity,
+            friendly_name=friendly_name,
+            attributes=attributes,
+            role_sid=role_sid,
         ).to_form()
         return ConversationsV1User.model_validate(
-            self._t.request("POST", "/v1/Users", data=body)
+            self._t.request("POST", path("v1", "Users"), data=body)
         )
 
     def list(self, *, page_size: int | None = None) -> ConversationsV1UserList:
         return ConversationsV1UserList.model_validate(
-            self._t.request(
-                "GET", "/v1/Users", params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", path("v1", "Users"), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, sid: str) -> ConversationsV1User:
-        return ConversationsV1User.model_validate(
-            self._t.request("GET", f"/v1/Users/{sid}")
-        )
+        return ConversationsV1User.model_validate(self._t.request("GET", path("v1", "Users", sid)))
 
     def update(
         self,
@@ -663,26 +639,26 @@ class _ConversationsV1UsersCallable:
         role_sid: str | None = None,
     ) -> ConversationsV1User:
         body = UpdateConversationsV1UserRequest(
-            FriendlyName=friendly_name,
-            Attributes=attributes,
-            RoleSid=role_sid,
+            friendly_name=friendly_name,
+            attributes=attributes,
+            role_sid=role_sid,
         ).to_form()
         return ConversationsV1User.model_validate(
-            self._t.request("POST", f"/v1/Users/{sid}", data=body)
+            self._t.request("POST", path("v1", "Users", sid), data=body)
         )
 
     def delete(self, sid: str) -> None:
-        self._t.request("DELETE", f"/v1/Users/{sid}")
+        self._t.request("DELETE", path("v1", "Users", sid))
 
 
 class _ConversationsV1CredentialsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def create(
         self,
         *,
-        type: str,
+        type: Literal["apn", "gcm", "fcm"],
         friendly_name: str | None = None,
         certificate: str | None = None,
         private_key: str | None = None,
@@ -691,37 +667,35 @@ class _ConversationsV1CredentialsResource:
         secret: str | None = None,
     ) -> ConversationsV1Credential:
         body = CreateConversationsV1CredentialRequest(
-            Type=type,
-            FriendlyName=friendly_name,
-            Certificate=certificate,
-            PrivateKey=private_key,
-            Sandbox=sandbox,
-            ApiKey=api_key,
-            Secret=secret,
+            type=type,
+            friendly_name=friendly_name,
+            certificate=certificate,
+            private_key=private_key,
+            sandbox=sandbox,
+            api_key=api_key,
+            secret=secret,
         ).to_form()
         return ConversationsV1Credential.model_validate(
-            self._t.request("POST", "/v1/Credentials", data=body)
+            self._t.request("POST", path("v1", "Credentials"), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1CredentialList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1CredentialList:
         return ConversationsV1CredentialList.model_validate(
             self._t.request(
-                "GET", "/v1/Credentials", params=_page_params(page_size=page_size)
+                "GET", path("v1", "Credentials"), params=_page_params(page_size=page_size)
             )
         )
 
     def fetch(self, sid: str) -> ConversationsV1Credential:
         return ConversationsV1Credential.model_validate(
-            self._t.request("GET", f"/v1/Credentials/{sid}")
+            self._t.request("GET", path("v1", "Credentials", sid))
         )
 
     def update(
         self,
         sid: str,
         *,
-        type: str | None = None,
+        type: Literal["apn", "gcm", "fcm"] | None = None,
         friendly_name: str | None = None,
         certificate: str | None = None,
         private_key: str | None = None,
@@ -730,64 +704,64 @@ class _ConversationsV1CredentialsResource:
         secret: str | None = None,
     ) -> ConversationsV1Credential:
         body = UpdateConversationsV1CredentialRequest(
-            Type=type,
-            FriendlyName=friendly_name,
-            Certificate=certificate,
-            PrivateKey=private_key,
-            Sandbox=sandbox,
-            ApiKey=api_key,
-            Secret=secret,
+            type=type,
+            friendly_name=friendly_name,
+            certificate=certificate,
+            private_key=private_key,
+            sandbox=sandbox,
+            api_key=api_key,
+            secret=secret,
         ).to_form()
         return ConversationsV1Credential.model_validate(
-            self._t.request("POST", f"/v1/Credentials/{sid}", data=body)
+            self._t.request("POST", path("v1", "Credentials", sid), data=body)
         )
 
     def delete(self, sid: str) -> None:
-        self._t.request("DELETE", f"/v1/Credentials/{sid}")
+        self._t.request("DELETE", path("v1", "Credentials", sid))
 
 
 class _ConversationsV1ConfigWebhooksResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def fetch(self) -> ConversationsV1ConfigurationWebhook:
         return ConversationsV1ConfigurationWebhook.model_validate(
-            self._t.request("GET", "/v1/Configuration/Webhooks")
+            self._t.request("GET", path("v1", "Configuration", "Webhooks"))
         )
 
     def update(
         self,
         *,
-        method: str | None = None,
+        method: HttpMethod | None = None,
         filters: Sequence[str] | None = None,
         pre_webhook_url: str | None = None,
         post_webhook_url: str | None = None,
-        target: str | None = None,
+        target: Literal["webhook", "flex"] | None = None,
     ) -> ConversationsV1ConfigurationWebhook:
         body = UpdateConversationsV1ConfigurationWebhookRequest(
-            Method=method,
-            Filters=list(filters) if filters is not None else None,
-            PreWebhookUrl=pre_webhook_url,
-            PostWebhookUrl=post_webhook_url,
-            Target=target,
+            method=method,
+            filters=list(filters) if filters is not None else None,
+            pre_webhook_url=pre_webhook_url,
+            post_webhook_url=post_webhook_url,
+            target=target,
         ).to_form()
         return ConversationsV1ConfigurationWebhook.model_validate(
-            self._t.request("POST", "/v1/Configuration/Webhooks", data=body)
+            self._t.request("POST", path("v1", "Configuration", "Webhooks"), data=body)
         )
 
 
 class _ConversationsV1ConfigAddressesResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def create(
         self,
         *,
-        type: str,
+        type: Literal["sms", "whatsapp", "messenger", "gbm", "email", "rcs", "apple", "chat"],
         address: str,
         friendly_name: str | None = None,
         auto_creation_enabled: bool | None = None,
-        auto_creation_type: str | None = None,
+        auto_creation_type: Literal["webhook", "studio", "default"] | None = None,
         auto_creation_webhook_url: str | None = None,
         address_country: str | None = None,
     ) -> ConversationsV1ConfigAddress:
@@ -801,23 +775,21 @@ class _ConversationsV1ConfigAddressesResource:
             address_country=address_country,
         ).to_form()
         return ConversationsV1ConfigAddress.model_validate(
-            self._t.request("POST", "/v1/Configuration/Addresses", data=body)
+            self._t.request("POST", path("v1", "Configuration", "Addresses"), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ConfigAddressList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ConfigAddressList:
         return ConversationsV1ConfigAddressList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/Configuration/Addresses",
+                path("v1", "Configuration", "Addresses"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     def fetch(self, sid: str) -> ConversationsV1ConfigAddress:
         return ConversationsV1ConfigAddress.model_validate(
-            self._t.request("GET", f"/v1/Configuration/Addresses/{sid}")
+            self._t.request("GET", path("v1", "Configuration", "Addresses", sid))
         )
 
     def update(
@@ -826,7 +798,7 @@ class _ConversationsV1ConfigAddressesResource:
         *,
         friendly_name: str | None = None,
         auto_creation_enabled: bool | None = None,
-        auto_creation_type: str | None = None,
+        auto_creation_type: Literal["webhook", "studio", "default"] | None = None,
         auto_creation_webhook_url: str | None = None,
     ) -> ConversationsV1ConfigAddress:
         body = UpdateConversationsV1ConfigAddressRequest(
@@ -836,26 +808,24 @@ class _ConversationsV1ConfigAddressesResource:
             auto_creation_webhook_url=auto_creation_webhook_url,
         ).to_form()
         return ConversationsV1ConfigAddress.model_validate(
-            self._t.request(
-                "POST", f"/v1/Configuration/Addresses/{sid}", data=body
-            )
+            self._t.request("POST", path("v1", "Configuration", "Addresses", sid), data=body)
         )
 
     def delete(self, sid: str) -> None:
-        self._t.request("DELETE", f"/v1/Configuration/Addresses/{sid}")
+        self._t.request("DELETE", path("v1", "Configuration", "Addresses", sid))
 
 
 class _ConversationsV1ConfigurationResource:
     """``/v1/Configuration`` singleton + nested ``.webhooks`` and ``.addresses``."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
         self.webhooks = _ConversationsV1ConfigWebhooksResource(transport)
         self.addresses = _ConversationsV1ConfigAddressesResource(transport)
 
     def fetch(self) -> ConversationsV1Configuration:
         return ConversationsV1Configuration.model_validate(
-            self._t.request("GET", "/v1/Configuration")
+            self._t.request("GET", path("v1", "Configuration"))
         )
 
     def update(
@@ -867,18 +837,18 @@ class _ConversationsV1ConfigurationResource:
         default_closed_timer: str | None = None,
     ) -> ConversationsV1Configuration:
         body = UpdateConversationsV1ConfigurationRequest(
-            DefaultChatServiceSid=default_chat_service_sid,
-            DefaultMessagingServiceSid=default_messaging_service_sid,
-            DefaultInactiveTimer=default_inactive_timer,
-            DefaultClosedTimer=default_closed_timer,
+            default_chat_service_sid=default_chat_service_sid,
+            default_messaging_service_sid=default_messaging_service_sid,
+            default_inactive_timer=default_inactive_timer,
+            default_closed_timer=default_closed_timer,
         ).to_form()
         return ConversationsV1Configuration.model_validate(
-            self._t.request("POST", "/v1/Configuration", data=body)
+            self._t.request("POST", path("v1", "Configuration"), data=body)
         )
 
 
 class _ConversationsV1ParticipantConversationsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def list(
@@ -891,7 +861,7 @@ class _ConversationsV1ParticipantConversationsResource:
         return ConversationsV1ParticipantConversationList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/ParticipantConversations",
+                path("v1", "ParticipantConversations"),
                 params={
                     "Identity": identity,
                     "Address": address,
@@ -902,7 +872,7 @@ class _ConversationsV1ParticipantConversationsResource:
 
 
 class _ConversationsV1ConversationWithParticipantsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def create(
@@ -912,7 +882,7 @@ class _ConversationsV1ConversationWithParticipantsResource:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
         participant: Sequence[str] | None = None,
@@ -928,9 +898,7 @@ class _ConversationsV1ConversationWithParticipantsResource:
             participant=list(participant) if participant is not None else None,
         ).to_form()
         return ConversationsV1ConversationWithParticipants.model_validate(
-            self._t.request(
-                "POST", "/v1/ConversationWithParticipants", data=body
-            )
+            self._t.request("POST", path("v1", "ConversationWithParticipants"), data=body)
         )
 
 
@@ -942,52 +910,44 @@ class _ConversationsV1ServicesResource:
     ChatServiceSid, which exposes the Phase 4 service-scoped sub-resources.
     """
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def __call__(self, chat_service_sid: str) -> _ConversationsV1ServiceScopeResource:
         return _ConversationsV1ServiceScopeResource(self._t, chat_service_sid)
 
     def create(self, *, friendly_name: str) -> ConversationsV1Service:
-        body = CreateConversationsV1ServiceRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+        body = CreateConversationsV1ServiceRequest(friendly_name=friendly_name).to_form()
         return ConversationsV1Service.model_validate(
-            self._t.request("POST", "/v1/Services", data=body)
+            self._t.request("POST", path("v1", "Services"), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceList:
         return ConversationsV1ServiceList.model_validate(
-            self._t.request(
-                "GET", "/v1/Services", params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", path("v1", "Services"), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, chat_service_sid: str) -> ConversationsV1Service:
         return ConversationsV1Service.model_validate(
-            self._t.request("GET", f"/v1/Services/{chat_service_sid}")
+            self._t.request("GET", path("v1", "Services", chat_service_sid))
         )
 
     def delete(self, chat_service_sid: str) -> None:
-        self._t.request("DELETE", f"/v1/Services/{chat_service_sid}")
+        self._t.request("DELETE", path("v1", "Services", chat_service_sid))
 
 
 class ConversationsV1Resource:
     """Holder for ``client.conversations_v1.*`` sub-resources (sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self.conversations = _ConversationsCallable(transport)
         self.roles = _ConversationsV1RolesResource(transport)
         self.users = _ConversationsV1UsersCallable(transport)
         self.credentials = _ConversationsV1CredentialsResource(transport)
         self.configuration = _ConversationsV1ConfigurationResource(transport)
-        self.participant_conversations = _ConversationsV1ParticipantConversationsResource(
+        self.participant_conversations = _ConversationsV1ParticipantConversationsResource(transport)
+        self.conversation_with_participants = _ConversationsV1ConversationWithParticipantsResource(
             transport
-        )
-        self.conversation_with_participants = (
-            _ConversationsV1ConversationWithParticipantsResource(transport)
         )
         self.services = _ConversationsV1ServicesResource(transport)
 
@@ -998,24 +958,22 @@ class ConversationsV1Resource:
 
 
 class _AsyncConversationsV1MessageReceiptsResource:
-    def __init__(self, transport: object, conversation_sid: str, message_sid: str) -> None:
+    def __init__(
+        self, transport: _ScopedTransport, conversation_sid: str, message_sid: str
+    ) -> None:
         self._t = transport
         self._conv = conversation_sid
         self._msg = message_sid
 
     def _root(self, *tail: str) -> str:
-        parts = [
-            "v1", "Conversations", self._conv, "Messages", self._msg, "Receipts", *tail
-        ]
-        return "/" + "/".join(parts)
+        parts = ["v1", "Conversations", self._conv, "Messages", self._msg, "Receipts", *tail]
+        return path(*parts)
 
     async def list(
         self, *, page_size: int | None = None
     ) -> ConversationsV1ConversationMessageReceiptList:
         return ConversationsV1ConversationMessageReceiptList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     async def fetch(self, sid: str) -> ConversationsV1ConversationMessageReceipt:
@@ -1025,13 +983,13 @@ class _AsyncConversationsV1MessageReceiptsResource:
 
 
 class _AsyncConversationsV1MessagesResource:
-    def __init__(self, transport: object, conversation_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, conversation_sid: str) -> None:
         self._t = transport
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Conversations", self._conv, "Messages", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     async def create(
         self,
@@ -1042,22 +1000,18 @@ class _AsyncConversationsV1MessagesResource:
         content_sid: str | None = None,
     ) -> ConversationsV1ConversationMessage:
         body_form = CreateConversationsV1ConversationMessageRequest(
-            Author=author,
-            Body=body,
-            Attributes=attributes,
-            ContentSid=content_sid,
+            author=author,
+            body=body,
+            attributes=attributes,
+            content_sid=content_sid,
         ).to_form()
         return ConversationsV1ConversationMessage.model_validate(
             await self._t.request("POST", self._root(), data=body_form)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ConversationMessageList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1ConversationMessageList:
         return ConversationsV1ConversationMessageList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     async def fetch(self, message_sid: str) -> ConversationsV1ConversationMessage:
@@ -1074,7 +1028,7 @@ class _AsyncConversationsV1MessagesResource:
         attributes: str | None = None,
     ) -> ConversationsV1ConversationMessage:
         body_form = UpdateConversationsV1ConversationMessageRequest(
-            Author=author, Body=body, Attributes=attributes
+            author=author, body=body, attributes=attributes
         ).to_form()
         return ConversationsV1ConversationMessage.model_validate(
             await self._t.request("POST", self._root(message_sid), data=body_form)
@@ -1083,22 +1037,18 @@ class _AsyncConversationsV1MessagesResource:
     async def delete(self, message_sid: str) -> None:
         await self._t.request("DELETE", self._root(message_sid))
 
-    def receipts(
-        self, message_sid: str
-    ) -> _AsyncConversationsV1MessageReceiptsResource:
-        return _AsyncConversationsV1MessageReceiptsResource(
-            self._t, self._conv, message_sid
-        )
+    def receipts(self, message_sid: str) -> _AsyncConversationsV1MessageReceiptsResource:
+        return _AsyncConversationsV1MessageReceiptsResource(self._t, self._conv, message_sid)
 
 
 class _AsyncConversationsV1ParticipantsResource:
-    def __init__(self, transport: object, conversation_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, conversation_sid: str) -> None:
         self._t = transport
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Conversations", self._conv, "Participants", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     async def create(
         self,
@@ -1126,14 +1076,10 @@ class _AsyncConversationsV1ParticipantsResource:
         self, *, page_size: int | None = None
     ) -> ConversationsV1ConversationParticipantList:
         return ConversationsV1ConversationParticipantList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    async def fetch(
-        self, participant_sid: str
-    ) -> ConversationsV1ConversationParticipant:
+    async def fetch(self, participant_sid: str) -> ConversationsV1ConversationParticipant:
         return ConversationsV1ConversationParticipant.model_validate(
             await self._t.request("GET", self._root(participant_sid))
         )
@@ -1149,11 +1095,11 @@ class _AsyncConversationsV1ParticipantsResource:
         last_read_timestamp: str | None = None,
     ) -> ConversationsV1ConversationParticipant:
         body = UpdateConversationsV1ConversationParticipantRequest(
-            Identity=identity,
-            Attributes=attributes,
-            RoleSid=role_sid,
-            LastReadMessageIndex=last_read_message_index,
-            LastReadTimestamp=last_read_timestamp,
+            identity=identity,
+            attributes=attributes,
+            role_sid=role_sid,
+            last_read_message_index=last_read_message_index,
+            last_read_timestamp=last_read_timestamp,
         ).to_form()
         return ConversationsV1ConversationParticipant.model_validate(
             await self._t.request("POST", self._root(participant_sid), data=body)
@@ -1164,20 +1110,20 @@ class _AsyncConversationsV1ParticipantsResource:
 
 
 class _AsyncConversationsV1WebhooksResource:
-    def __init__(self, transport: object, conversation_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, conversation_sid: str) -> None:
         self._t = transport
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Conversations", self._conv, "Webhooks", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     async def create(
         self,
         *,
-        target: str,
+        target: Literal["webhook", "trigger", "studio"],
         configuration_url: str | None = None,
-        configuration_method: str | None = None,
+        configuration_method: HttpMethod | None = None,
         configuration_flow_sid: str | None = None,
         configuration_replay_after: int | None = None,
     ) -> ConversationsV1ConversationScopedWebhook:
@@ -1196,14 +1142,10 @@ class _AsyncConversationsV1WebhooksResource:
         self, *, page_size: int | None = None
     ) -> ConversationsV1ConversationScopedWebhookList:
         return ConversationsV1ConversationScopedWebhookList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    async def fetch(
-        self, webhook_sid: str
-    ) -> ConversationsV1ConversationScopedWebhook:
+    async def fetch(self, webhook_sid: str) -> ConversationsV1ConversationScopedWebhook:
         return ConversationsV1ConversationScopedWebhook.model_validate(
             await self._t.request("GET", self._root(webhook_sid))
         )
@@ -1213,7 +1155,7 @@ class _AsyncConversationsV1WebhooksResource:
         webhook_sid: str,
         *,
         configuration_url: str | None = None,
-        configuration_method: str | None = None,
+        configuration_method: HttpMethod | None = None,
         configuration_flow_sid: str | None = None,
     ) -> ConversationsV1ConversationScopedWebhook:
         body = UpdateConversationsV1ConversationScopedWebhookRequest(
@@ -1230,18 +1172,14 @@ class _AsyncConversationsV1WebhooksResource:
 
 
 class _AsyncConversationContext:
-    def __init__(self, transport: object, conversation_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, conversation_sid: str) -> None:
         self.messages = _AsyncConversationsV1MessagesResource(transport, conversation_sid)
-        self.participants = _AsyncConversationsV1ParticipantsResource(
-            transport, conversation_sid
-        )
-        self.webhooks = _AsyncConversationsV1WebhooksResource(
-            transport, conversation_sid
-        )
+        self.participants = _AsyncConversationsV1ParticipantsResource(transport, conversation_sid)
+        self.webhooks = _AsyncConversationsV1WebhooksResource(transport, conversation_sid)
 
 
 class _AsyncConversationsCallable:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def __call__(self, conversation_sid: str) -> _AsyncConversationContext:
@@ -1254,7 +1192,7 @@ class _AsyncConversationsCallable:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
         bindings_email_address: str | None = None,
@@ -1263,7 +1201,7 @@ class _AsyncConversationsCallable:
         return ConversationsV1Conversation.model_validate(
             await self._t.request(
                 "POST",
-                "/v1/Conversations",
+                path("v1", "Conversations"),
                 data=_conversation_create_form(
                     friendly_name=friendly_name,
                     unique_name=unique_name,
@@ -1278,20 +1216,18 @@ class _AsyncConversationsCallable:
             )
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ConversationList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1ConversationList:
         return ConversationsV1ConversationList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/Conversations",
+                path("v1", "Conversations"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     async def fetch(self, conversation_sid: str) -> ConversationsV1Conversation:
         return ConversationsV1Conversation.model_validate(
-            await self._t.request("GET", f"/v1/Conversations/{conversation_sid}")
+            await self._t.request("GET", path("v1", "Conversations", conversation_sid))
         )
 
     async def update(
@@ -1302,14 +1238,14 @@ class _AsyncConversationsCallable:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
     ) -> ConversationsV1Conversation:
         return ConversationsV1Conversation.model_validate(
             await self._t.request(
                 "POST",
-                f"/v1/Conversations/{conversation_sid}",
+                path("v1", "Conversations", conversation_sid),
                 data=_conversation_update_form(
                     friendly_name=friendly_name,
                     unique_name=unique_name,
@@ -1323,74 +1259,66 @@ class _AsyncConversationsCallable:
         )
 
     async def delete(self, conversation_sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/Conversations/{conversation_sid}")
+        await self._t.request("DELETE", path("v1", "Conversations", conversation_sid))
 
 
 class _AsyncConversationsV1RolesResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     async def create(
-        self, *, friendly_name: str, type: str, permission: Sequence[str]
+        self,
+        *,
+        friendly_name: str,
+        type: Literal["conversation", "service"],
+        permission: Sequence[str],
     ) -> ConversationsV1Role:
         body = CreateConversationsV1RoleRequest(
-            FriendlyName=friendly_name,
-            Type=type,
-            Permission=list(permission),
+            friendly_name=friendly_name,
+            type=type,
+            permission=list(permission),
         ).to_form()
         return ConversationsV1Role.model_validate(
-            await self._t.request("POST", "/v1/Roles", data=body)
+            await self._t.request("POST", path("v1", "Roles"), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1RoleList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1RoleList:
         return ConversationsV1RoleList.model_validate(
             await self._t.request(
-                "GET", "/v1/Roles", params=_page_params(page_size=page_size)
+                "GET", path("v1", "Roles"), params=_page_params(page_size=page_size)
             )
         )
 
     async def fetch(self, sid: str) -> ConversationsV1Role:
         return ConversationsV1Role.model_validate(
-            await self._t.request("GET", f"/v1/Roles/{sid}")
+            await self._t.request("GET", path("v1", "Roles", sid))
         )
 
-    async def update(
-        self, sid: str, *, permission: Sequence[str]
-    ) -> ConversationsV1Role:
-        body = UpdateConversationsV1RoleRequest(
-            Permission=list(permission)
-        ).to_form()
+    async def update(self, sid: str, *, permission: Sequence[str]) -> ConversationsV1Role:
+        body = UpdateConversationsV1RoleRequest(permission=list(permission)).to_form()
         return ConversationsV1Role.model_validate(
-            await self._t.request("POST", f"/v1/Roles/{sid}", data=body)
+            await self._t.request("POST", path("v1", "Roles", sid), data=body)
         )
 
     async def delete(self, sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/Roles/{sid}")
+        await self._t.request("DELETE", path("v1", "Roles", sid))
 
 
 class _AsyncConversationsV1UserConversationsResource:
-    def __init__(self, transport: object, user_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, user_sid: str) -> None:
         self._t = transport
         self._user = user_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Users", self._user, "Conversations", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1UserConversationList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1UserConversationList:
         return ConversationsV1UserConversationList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    async def fetch(
-        self, conversation_sid: str
-    ) -> ConversationsV1UserConversation:
+    async def fetch(self, conversation_sid: str) -> ConversationsV1UserConversation:
         return ConversationsV1UserConversation.model_validate(
             await self._t.request("GET", self._root(conversation_sid))
         )
@@ -1399,14 +1327,14 @@ class _AsyncConversationsV1UserConversationsResource:
         self,
         conversation_sid: str,
         *,
-        notification_level: str | None = None,
+        notification_level: Literal["default", "muted"] | None = None,
         last_read_message_index: int | None = None,
         last_read_timestamp: str | None = None,
     ) -> ConversationsV1UserConversation:
         body = UpdateConversationsV1UserConversationRequest(
-            NotificationLevel=notification_level,
-            LastReadMessageIndex=last_read_message_index,
-            LastReadTimestamp=last_read_timestamp,
+            notification_level=notification_level,
+            last_read_message_index=last_read_message_index,
+            last_read_timestamp=last_read_timestamp,
         ).to_form()
         return ConversationsV1UserConversation.model_validate(
             await self._t.request("POST", self._root(conversation_sid), data=body)
@@ -1417,14 +1345,12 @@ class _AsyncConversationsV1UserConversationsResource:
 
 
 class _AsyncUserContext:
-    def __init__(self, transport: object, user_sid: str) -> None:
-        self.conversations = _AsyncConversationsV1UserConversationsResource(
-            transport, user_sid
-        )
+    def __init__(self, transport: _ScopedTransport, user_sid: str) -> None:
+        self.conversations = _AsyncConversationsV1UserConversationsResource(transport, user_sid)
 
 
 class _AsyncConversationsV1UsersCallable:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     def __call__(self, user_sid: str) -> _AsyncUserContext:
@@ -1439,25 +1365,25 @@ class _AsyncConversationsV1UsersCallable:
         role_sid: str | None = None,
     ) -> ConversationsV1User:
         body = CreateConversationsV1UserRequest(
-            Identity=identity,
-            FriendlyName=friendly_name,
-            Attributes=attributes,
-            RoleSid=role_sid,
+            identity=identity,
+            friendly_name=friendly_name,
+            attributes=attributes,
+            role_sid=role_sid,
         ).to_form()
         return ConversationsV1User.model_validate(
-            await self._t.request("POST", "/v1/Users", data=body)
+            await self._t.request("POST", path("v1", "Users"), data=body)
         )
 
     async def list(self, *, page_size: int | None = None) -> ConversationsV1UserList:
         return ConversationsV1UserList.model_validate(
             await self._t.request(
-                "GET", "/v1/Users", params=_page_params(page_size=page_size)
+                "GET", path("v1", "Users"), params=_page_params(page_size=page_size)
             )
         )
 
     async def fetch(self, sid: str) -> ConversationsV1User:
         return ConversationsV1User.model_validate(
-            await self._t.request("GET", f"/v1/Users/{sid}")
+            await self._t.request("GET", path("v1", "Users", sid))
         )
 
     async def update(
@@ -1469,26 +1395,26 @@ class _AsyncConversationsV1UsersCallable:
         role_sid: str | None = None,
     ) -> ConversationsV1User:
         body = UpdateConversationsV1UserRequest(
-            FriendlyName=friendly_name,
-            Attributes=attributes,
-            RoleSid=role_sid,
+            friendly_name=friendly_name,
+            attributes=attributes,
+            role_sid=role_sid,
         ).to_form()
         return ConversationsV1User.model_validate(
-            await self._t.request("POST", f"/v1/Users/{sid}", data=body)
+            await self._t.request("POST", path("v1", "Users", sid), data=body)
         )
 
     async def delete(self, sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/Users/{sid}")
+        await self._t.request("DELETE", path("v1", "Users", sid))
 
 
 class _AsyncConversationsV1CredentialsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     async def create(
         self,
         *,
-        type: str,
+        type: Literal["apn", "gcm", "fcm"],
         friendly_name: str | None = None,
         certificate: str | None = None,
         private_key: str | None = None,
@@ -1497,37 +1423,35 @@ class _AsyncConversationsV1CredentialsResource:
         secret: str | None = None,
     ) -> ConversationsV1Credential:
         body = CreateConversationsV1CredentialRequest(
-            Type=type,
-            FriendlyName=friendly_name,
-            Certificate=certificate,
-            PrivateKey=private_key,
-            Sandbox=sandbox,
-            ApiKey=api_key,
-            Secret=secret,
+            type=type,
+            friendly_name=friendly_name,
+            certificate=certificate,
+            private_key=private_key,
+            sandbox=sandbox,
+            api_key=api_key,
+            secret=secret,
         ).to_form()
         return ConversationsV1Credential.model_validate(
-            await self._t.request("POST", "/v1/Credentials", data=body)
+            await self._t.request("POST", path("v1", "Credentials"), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1CredentialList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1CredentialList:
         return ConversationsV1CredentialList.model_validate(
             await self._t.request(
-                "GET", "/v1/Credentials", params=_page_params(page_size=page_size)
+                "GET", path("v1", "Credentials"), params=_page_params(page_size=page_size)
             )
         )
 
     async def fetch(self, sid: str) -> ConversationsV1Credential:
         return ConversationsV1Credential.model_validate(
-            await self._t.request("GET", f"/v1/Credentials/{sid}")
+            await self._t.request("GET", path("v1", "Credentials", sid))
         )
 
     async def update(
         self,
         sid: str,
         *,
-        type: str | None = None,
+        type: Literal["apn", "gcm", "fcm"] | None = None,
         friendly_name: str | None = None,
         certificate: str | None = None,
         private_key: str | None = None,
@@ -1536,64 +1460,64 @@ class _AsyncConversationsV1CredentialsResource:
         secret: str | None = None,
     ) -> ConversationsV1Credential:
         body = UpdateConversationsV1CredentialRequest(
-            Type=type,
-            FriendlyName=friendly_name,
-            Certificate=certificate,
-            PrivateKey=private_key,
-            Sandbox=sandbox,
-            ApiKey=api_key,
-            Secret=secret,
+            type=type,
+            friendly_name=friendly_name,
+            certificate=certificate,
+            private_key=private_key,
+            sandbox=sandbox,
+            api_key=api_key,
+            secret=secret,
         ).to_form()
         return ConversationsV1Credential.model_validate(
-            await self._t.request("POST", f"/v1/Credentials/{sid}", data=body)
+            await self._t.request("POST", path("v1", "Credentials", sid), data=body)
         )
 
     async def delete(self, sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/Credentials/{sid}")
+        await self._t.request("DELETE", path("v1", "Credentials", sid))
 
 
 class _AsyncConversationsV1ConfigWebhooksResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     async def fetch(self) -> ConversationsV1ConfigurationWebhook:
         return ConversationsV1ConfigurationWebhook.model_validate(
-            await self._t.request("GET", "/v1/Configuration/Webhooks")
+            await self._t.request("GET", path("v1", "Configuration", "Webhooks"))
         )
 
     async def update(
         self,
         *,
-        method: str | None = None,
+        method: HttpMethod | None = None,
         filters: Sequence[str] | None = None,
         pre_webhook_url: str | None = None,
         post_webhook_url: str | None = None,
-        target: str | None = None,
+        target: Literal["webhook", "flex"] | None = None,
     ) -> ConversationsV1ConfigurationWebhook:
         body = UpdateConversationsV1ConfigurationWebhookRequest(
-            Method=method,
-            Filters=list(filters) if filters is not None else None,
-            PreWebhookUrl=pre_webhook_url,
-            PostWebhookUrl=post_webhook_url,
-            Target=target,
+            method=method,
+            filters=list(filters) if filters is not None else None,
+            pre_webhook_url=pre_webhook_url,
+            post_webhook_url=post_webhook_url,
+            target=target,
         ).to_form()
         return ConversationsV1ConfigurationWebhook.model_validate(
-            await self._t.request("POST", "/v1/Configuration/Webhooks", data=body)
+            await self._t.request("POST", path("v1", "Configuration", "Webhooks"), data=body)
         )
 
 
 class _AsyncConversationsV1ConfigAddressesResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     async def create(
         self,
         *,
-        type: str,
+        type: Literal["sms", "whatsapp", "messenger", "gbm", "email", "rcs", "apple", "chat"],
         address: str,
         friendly_name: str | None = None,
         auto_creation_enabled: bool | None = None,
-        auto_creation_type: str | None = None,
+        auto_creation_type: Literal["webhook", "studio", "default"] | None = None,
         auto_creation_webhook_url: str | None = None,
         address_country: str | None = None,
     ) -> ConversationsV1ConfigAddress:
@@ -1607,23 +1531,21 @@ class _AsyncConversationsV1ConfigAddressesResource:
             address_country=address_country,
         ).to_form()
         return ConversationsV1ConfigAddress.model_validate(
-            await self._t.request("POST", "/v1/Configuration/Addresses", data=body)
+            await self._t.request("POST", path("v1", "Configuration", "Addresses"), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ConfigAddressList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1ConfigAddressList:
         return ConversationsV1ConfigAddressList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/Configuration/Addresses",
+                path("v1", "Configuration", "Addresses"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     async def fetch(self, sid: str) -> ConversationsV1ConfigAddress:
         return ConversationsV1ConfigAddress.model_validate(
-            await self._t.request("GET", f"/v1/Configuration/Addresses/{sid}")
+            await self._t.request("GET", path("v1", "Configuration", "Addresses", sid))
         )
 
     async def update(
@@ -1632,7 +1554,7 @@ class _AsyncConversationsV1ConfigAddressesResource:
         *,
         friendly_name: str | None = None,
         auto_creation_enabled: bool | None = None,
-        auto_creation_type: str | None = None,
+        auto_creation_type: Literal["webhook", "studio", "default"] | None = None,
         auto_creation_webhook_url: str | None = None,
     ) -> ConversationsV1ConfigAddress:
         body = UpdateConversationsV1ConfigAddressRequest(
@@ -1642,24 +1564,22 @@ class _AsyncConversationsV1ConfigAddressesResource:
             auto_creation_webhook_url=auto_creation_webhook_url,
         ).to_form()
         return ConversationsV1ConfigAddress.model_validate(
-            await self._t.request(
-                "POST", f"/v1/Configuration/Addresses/{sid}", data=body
-            )
+            await self._t.request("POST", path("v1", "Configuration", "Addresses", sid), data=body)
         )
 
     async def delete(self, sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/Configuration/Addresses/{sid}")
+        await self._t.request("DELETE", path("v1", "Configuration", "Addresses", sid))
 
 
 class _AsyncConversationsV1ConfigurationResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
         self.webhooks = _AsyncConversationsV1ConfigWebhooksResource(transport)
         self.addresses = _AsyncConversationsV1ConfigAddressesResource(transport)
 
     async def fetch(self) -> ConversationsV1Configuration:
         return ConversationsV1Configuration.model_validate(
-            await self._t.request("GET", "/v1/Configuration")
+            await self._t.request("GET", path("v1", "Configuration"))
         )
 
     async def update(
@@ -1671,18 +1591,18 @@ class _AsyncConversationsV1ConfigurationResource:
         default_closed_timer: str | None = None,
     ) -> ConversationsV1Configuration:
         body = UpdateConversationsV1ConfigurationRequest(
-            DefaultChatServiceSid=default_chat_service_sid,
-            DefaultMessagingServiceSid=default_messaging_service_sid,
-            DefaultInactiveTimer=default_inactive_timer,
-            DefaultClosedTimer=default_closed_timer,
+            default_chat_service_sid=default_chat_service_sid,
+            default_messaging_service_sid=default_messaging_service_sid,
+            default_inactive_timer=default_inactive_timer,
+            default_closed_timer=default_closed_timer,
         ).to_form()
         return ConversationsV1Configuration.model_validate(
-            await self._t.request("POST", "/v1/Configuration", data=body)
+            await self._t.request("POST", path("v1", "Configuration"), data=body)
         )
 
 
 class _AsyncConversationsV1ParticipantConversationsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     async def list(
@@ -1695,7 +1615,7 @@ class _AsyncConversationsV1ParticipantConversationsResource:
         return ConversationsV1ParticipantConversationList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/ParticipantConversations",
+                path("v1", "ParticipantConversations"),
                 params={
                     "Identity": identity,
                     "Address": address,
@@ -1706,7 +1626,7 @@ class _AsyncConversationsV1ParticipantConversationsResource:
 
 
 class _AsyncConversationsV1ConversationWithParticipantsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
     async def create(
@@ -1716,7 +1636,7 @@ class _AsyncConversationsV1ConversationWithParticipantsResource:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
         participant: Sequence[str] | None = None,
@@ -1732,60 +1652,52 @@ class _AsyncConversationsV1ConversationWithParticipantsResource:
             participant=list(participant) if participant is not None else None,
         ).to_form()
         return ConversationsV1ConversationWithParticipants.model_validate(
-            await self._t.request(
-                "POST", "/v1/ConversationWithParticipants", data=body
-            )
+            await self._t.request("POST", path("v1", "ConversationWithParticipants"), data=body)
         )
 
 
 class _AsyncConversationsV1ServicesResource:
     """``/v1/Services`` (async) — see sync sibling for behaviour."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self._t = transport
 
-    def __call__(
-        self, chat_service_sid: str
-    ) -> _AsyncConversationsV1ServiceScopeResource:
+    def __call__(self, chat_service_sid: str) -> _AsyncConversationsV1ServiceScopeResource:
         return _AsyncConversationsV1ServiceScopeResource(self._t, chat_service_sid)
 
     async def create(self, *, friendly_name: str) -> ConversationsV1Service:
-        body = CreateConversationsV1ServiceRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+        body = CreateConversationsV1ServiceRequest(friendly_name=friendly_name).to_form()
         return ConversationsV1Service.model_validate(
-            await self._t.request("POST", "/v1/Services", data=body)
+            await self._t.request("POST", path("v1", "Services"), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceList:
         return ConversationsV1ServiceList.model_validate(
             await self._t.request(
-                "GET", "/v1/Services", params=_page_params(page_size=page_size)
+                "GET", path("v1", "Services"), params=_page_params(page_size=page_size)
             )
         )
 
     async def fetch(self, chat_service_sid: str) -> ConversationsV1Service:
         return ConversationsV1Service.model_validate(
-            await self._t.request("GET", f"/v1/Services/{chat_service_sid}")
+            await self._t.request("GET", path("v1", "Services", chat_service_sid))
         )
 
     async def delete(self, chat_service_sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/Services/{chat_service_sid}")
+        await self._t.request("DELETE", path("v1", "Services", chat_service_sid))
 
 
 class ConversationsV1AsyncResource:
     """Holder for ``client.conversations_v1.*`` sub-resources (async)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: _ScopedTransport) -> None:
         self.conversations = _AsyncConversationsCallable(transport)
         self.roles = _AsyncConversationsV1RolesResource(transport)
         self.users = _AsyncConversationsV1UsersCallable(transport)
         self.credentials = _AsyncConversationsV1CredentialsResource(transport)
         self.configuration = _AsyncConversationsV1ConfigurationResource(transport)
-        self.participant_conversations = (
-            _AsyncConversationsV1ParticipantConversationsResource(transport)
+        self.participant_conversations = _AsyncConversationsV1ParticipantConversationsResource(
+            transport
         )
         self.conversation_with_participants = (
             _AsyncConversationsV1ConversationWithParticipantsResource(transport)
@@ -1805,7 +1717,7 @@ class ConversationsV1AsyncResource:
 
 def _service_root(service_sid: str, *tail: str) -> str:
     parts = ["v1", "Services", service_sid, *tail]
-    return "/" + "/".join(parts)
+    return path(*parts)
 
 
 # ---------------------------------------------------------------------------
@@ -1817,7 +1729,7 @@ class _ConversationsV1ServiceMessageReceiptsResource:
     """``/v1/Services/{Sid}/Conversations/{ConvSid}/Messages/{MsgSid}/Receipts`` (sync)."""
 
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str, message_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str, message_sid: str
     ) -> None:
         self._t = transport
         self._svc = service_sid
@@ -1827,18 +1739,19 @@ class _ConversationsV1ServiceMessageReceiptsResource:
     def _root(self, *tail: str) -> str:
         return _service_root(
             self._svc,
-            "Conversations", self._conv,
-            "Messages", self._msg,
-            "Receipts", *tail,
+            "Conversations",
+            self._conv,
+            "Messages",
+            self._msg,
+            "Receipts",
+            *tail,
         )
 
     def list(
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceConversationMessageReceiptList:
         return ConversationsV1ServiceConversationMessageReceiptList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, sid: str) -> ConversationsV1ServiceConversationMessageReceipt:
@@ -1851,16 +1764,14 @@ class _ConversationsV1ServiceMessagesResource:
     """``/v1/Services/{Sid}/Conversations/{ConvSid}/Messages`` (sync)."""
 
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str
     ) -> None:
         self._t = transport
         self._svc = service_sid
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
-        return _service_root(
-            self._svc, "Conversations", self._conv, "Messages", *tail
-        )
+        return _service_root(self._svc, "Conversations", self._conv, "Messages", *tail)
 
     def create(
         self,
@@ -1884,9 +1795,7 @@ class _ConversationsV1ServiceMessagesResource:
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceConversationMessageList:
         return ConversationsV1ServiceConversationMessageList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, message_sid: str) -> ConversationsV1ServiceConversationMessage:
@@ -1912,9 +1821,7 @@ class _ConversationsV1ServiceMessagesResource:
     def delete(self, message_sid: str) -> None:
         self._t.request("DELETE", self._root(message_sid))
 
-    def receipts(
-        self, message_sid: str
-    ) -> _ConversationsV1ServiceMessageReceiptsResource:
+    def receipts(self, message_sid: str) -> _ConversationsV1ServiceMessageReceiptsResource:
         return _ConversationsV1ServiceMessageReceiptsResource(
             self._t, self._svc, self._conv, message_sid
         )
@@ -1924,16 +1831,14 @@ class _ConversationsV1ServiceParticipantsResource:
     """``/v1/Services/{Sid}/Conversations/{ConvSid}/Participants`` (sync)."""
 
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str
     ) -> None:
         self._t = transport
         self._svc = service_sid
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
-        return _service_root(
-            self._svc, "Conversations", self._conv, "Participants", *tail
-        )
+        return _service_root(self._svc, "Conversations", self._conv, "Participants", *tail)
 
     def create(
         self,
@@ -1961,14 +1866,10 @@ class _ConversationsV1ServiceParticipantsResource:
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceConversationParticipantList:
         return ConversationsV1ServiceConversationParticipantList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    def fetch(
-        self, participant_sid: str
-    ) -> ConversationsV1ServiceConversationParticipant:
+    def fetch(self, participant_sid: str) -> ConversationsV1ServiceConversationParticipant:
         return ConversationsV1ServiceConversationParticipant.model_validate(
             self._t.request("GET", self._root(participant_sid))
         )
@@ -1996,23 +1897,21 @@ class _ConversationsV1ServiceConversationWebhooksResource:
     """``/v1/Services/{Sid}/Conversations/{ConvSid}/Webhooks`` (sync)."""
 
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str
     ) -> None:
         self._t = transport
         self._svc = service_sid
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
-        return _service_root(
-            self._svc, "Conversations", self._conv, "Webhooks", *tail
-        )
+        return _service_root(self._svc, "Conversations", self._conv, "Webhooks", *tail)
 
     def create(
         self,
         *,
-        target: str,
+        target: Literal["webhook", "trigger", "studio"],
         configuration_url: str | None = None,
-        configuration_method: str | None = None,
+        configuration_method: HttpMethod | None = None,
         configuration_flow_sid: str | None = None,
     ) -> ConversationsV1ServiceConversationScopedWebhook:
         body = CreateConversationsV1ServiceConversationScopedWebhookRequest(
@@ -2029,14 +1928,10 @@ class _ConversationsV1ServiceConversationWebhooksResource:
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceConversationScopedWebhookList:
         return ConversationsV1ServiceConversationScopedWebhookList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    def fetch(
-        self, webhook_sid: str
-    ) -> ConversationsV1ServiceConversationScopedWebhook:
+    def fetch(self, webhook_sid: str) -> ConversationsV1ServiceConversationScopedWebhook:
         return ConversationsV1ServiceConversationScopedWebhook.model_validate(
             self._t.request("GET", self._root(webhook_sid))
         )
@@ -2046,7 +1941,7 @@ class _ConversationsV1ServiceConversationWebhooksResource:
         webhook_sid: str,
         *,
         configuration_url: str | None = None,
-        configuration_method: str | None = None,
+        configuration_method: HttpMethod | None = None,
         configuration_flow_sid: str | None = None,
     ) -> ConversationsV1ServiceConversationScopedWebhook:
         body = UpdateConversationsV1ServiceConversationScopedWebhookRequest(
@@ -2066,7 +1961,7 @@ class _ServiceConversationContext:
     """Returned by ``services(svc).conversations(conv_sid)`` — sub-resource factory (sync)."""
 
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str
     ) -> None:
         self.messages = _ConversationsV1ServiceMessagesResource(
             transport, service_sid, conversation_sid
@@ -2082,7 +1977,7 @@ class _ServiceConversationContext:
 class _ConversationsV1ServiceConversationsCallable:
     """``services(svc).conversations`` — callable + namespace (sync)."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2099,7 +1994,7 @@ class _ConversationsV1ServiceConversationsCallable:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
     ) -> ConversationsV1ServiceConversation:
@@ -2116,13 +2011,9 @@ class _ConversationsV1ServiceConversationsCallable:
             self._t.request("POST", self._root(), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceConversationList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceConversationList:
         return ConversationsV1ServiceConversationList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, conversation_sid: str) -> ConversationsV1ServiceConversation:
@@ -2137,7 +2028,7 @@ class _ConversationsV1ServiceConversationsCallable:
         friendly_name: str | None = None,
         unique_name: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
     ) -> ConversationsV1ServiceConversation:
@@ -2160,7 +2051,7 @@ class _ConversationsV1ServiceConversationsCallable:
 class _ConversationsV1ServiceRolesResource:
     """``/v1/Services/{Sid}/Roles`` (sync)."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2168,7 +2059,11 @@ class _ConversationsV1ServiceRolesResource:
         return _service_root(self._svc, "Roles", *tail)
 
     def create(
-        self, *, friendly_name: str, type: str, permission: Sequence[str]
+        self,
+        *,
+        friendly_name: str,
+        type: Literal["conversation", "service"],
+        permission: Sequence[str],
     ) -> ConversationsV1ServiceRole:
         body = CreateConversationsV1ServiceRoleRequest(
             friendly_name=friendly_name,
@@ -2179,26 +2074,16 @@ class _ConversationsV1ServiceRolesResource:
             self._t.request("POST", self._root(), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceRoleList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceRoleList:
         return ConversationsV1ServiceRoleList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, sid: str) -> ConversationsV1ServiceRole:
-        return ConversationsV1ServiceRole.model_validate(
-            self._t.request("GET", self._root(sid))
-        )
+        return ConversationsV1ServiceRole.model_validate(self._t.request("GET", self._root(sid)))
 
-    def update(
-        self, sid: str, *, permission: Sequence[str]
-    ) -> ConversationsV1ServiceRole:
-        body = UpdateConversationsV1ServiceRoleRequest(
-            permission=list(permission)
-        ).to_form()
+    def update(self, sid: str, *, permission: Sequence[str]) -> ConversationsV1ServiceRole:
+        body = UpdateConversationsV1ServiceRoleRequest(permission=list(permission)).to_form()
         return ConversationsV1ServiceRole.model_validate(
             self._t.request("POST", self._root(sid), data=body)
         )
@@ -2210,34 +2095,24 @@ class _ConversationsV1ServiceRolesResource:
 class _ConversationsV1ServiceUserConversationsResource:
     """``/v1/Services/{Sid}/Users/{UserSid}/Conversations`` (sync) — list only."""
 
-    def __init__(
-        self, transport: object, service_sid: str, user_sid: str
-    ) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str, user_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
         self._user = user_sid
 
     def _root(self, *tail: str) -> str:
-        return _service_root(
-            self._svc, "Users", self._user, "Conversations", *tail
-        )
+        return _service_root(self._svc, "Users", self._user, "Conversations", *tail)
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceUserConversationList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceUserConversationList:
         return ConversationsV1ServiceUserConversationList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
 
 class _ServiceUserContext:
     """Returned by ``services(svc).users(user_sid)`` (sync)."""
 
-    def __init__(
-        self, transport: object, service_sid: str, user_sid: str
-    ) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str, user_sid: str) -> None:
         self.conversations = _ConversationsV1ServiceUserConversationsResource(
             transport, service_sid, user_sid
         )
@@ -2246,7 +2121,7 @@ class _ServiceUserContext:
 class _ConversationsV1ServiceUsersCallable:
     """``services(svc).users`` — callable + namespace (sync)."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2274,19 +2149,13 @@ class _ConversationsV1ServiceUsersCallable:
             self._t.request("POST", self._root(), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceUserList:
+    def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceUserList:
         return ConversationsV1ServiceUserList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, sid: str) -> ConversationsV1ServiceUser:
-        return ConversationsV1ServiceUser.model_validate(
-            self._t.request("GET", self._root(sid))
-        )
+        return ConversationsV1ServiceUser.model_validate(self._t.request("GET", self._root(sid)))
 
     def update(
         self,
@@ -2312,7 +2181,7 @@ class _ConversationsV1ServiceUsersCallable:
 class _ConversationsV1ServiceBindingsResource:
     """``/v1/Services/{Sid}/Bindings`` (sync) — list+fetch+delete only."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2322,7 +2191,7 @@ class _ConversationsV1ServiceBindingsResource:
     def list(
         self,
         *,
-        binding_type: str | None = None,
+        binding_type: Literal["apn", "gcm", "fcm", "twilsock"] | None = None,
         identity: str | None = None,
         page_size: int | None = None,
     ) -> ConversationsV1ServiceBindingList:
@@ -2339,9 +2208,7 @@ class _ConversationsV1ServiceBindingsResource:
         )
 
     def fetch(self, sid: str) -> ConversationsV1ServiceBinding:
-        return ConversationsV1ServiceBinding.model_validate(
-            self._t.request("GET", self._root(sid))
-        )
+        return ConversationsV1ServiceBinding.model_validate(self._t.request("GET", self._root(sid)))
 
     def delete(self, sid: str) -> None:
         self._t.request("DELETE", self._root(sid))
@@ -2350,7 +2217,7 @@ class _ConversationsV1ServiceBindingsResource:
 class _ConversationsV1ServiceNotificationsResource:
     """``/v1/Services/{Sid}/Configuration/Notifications`` (sync) — singleton."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2402,7 +2269,7 @@ class _ConversationsV1ServiceNotificationsResource:
 class _ConversationsV1ServiceWebhookConfigurationResource:
     """``/v1/Services/{Sid}/Configuration/Webhooks`` (sync) — singleton."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2419,7 +2286,7 @@ class _ConversationsV1ServiceWebhookConfigurationResource:
         *,
         pre_webhook_url: str | None = None,
         post_webhook_url: str | None = None,
-        method: str | None = None,
+        method: HttpMethod | None = None,
         filters: Sequence[str] | None = None,
     ) -> ConversationsV1ServiceWebhookConfiguration:
         body = UpdateConversationsV1ServiceWebhookConfigurationRequest(
@@ -2436,15 +2303,11 @@ class _ConversationsV1ServiceWebhookConfigurationResource:
 class _ConversationsV1ServiceConfigurationResource:
     """``/v1/Services/{Sid}/Configuration`` (sync) + nested ``.notifications`` / ``.webhooks``."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
-        self.notifications = _ConversationsV1ServiceNotificationsResource(
-            transport, service_sid
-        )
-        self.webhooks = _ConversationsV1ServiceWebhookConfigurationResource(
-            transport, service_sid
-        )
+        self.notifications = _ConversationsV1ServiceNotificationsResource(transport, service_sid)
+        self.webhooks = _ConversationsV1ServiceWebhookConfigurationResource(transport, service_sid)
 
     def _path(self) -> str:
         return _service_root(self._svc, "Configuration")
@@ -2476,7 +2339,7 @@ class _ConversationsV1ServiceConfigurationResource:
 class _ConversationsV1ServiceParticipantConversationsResource:
     """``/v1/Services/{Sid}/ParticipantConversations`` (sync) — list only."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2506,7 +2369,7 @@ class _ConversationsV1ServiceParticipantConversationsResource:
 class _ConversationsV1ServiceConversationWithParticipantsResource:
     """``/v1/Services/{Sid}/ConversationWithParticipants`` (sync) — create only."""
 
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2520,7 +2383,7 @@ class _ConversationsV1ServiceConversationWithParticipantsResource:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
         participant: Sequence[str] | None = None,
@@ -2547,7 +2410,7 @@ class _ConversationsV1ServiceScopeResource:
     every attribute is bound to ``chat_service_sid`` so callers don't repeat it.
     """
 
-    def __init__(self, transport: object, chat_service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, chat_service_sid: str) -> None:
         self._t = transport
         self._svc = chat_service_sid
         self.conversations = _ConversationsV1ServiceConversationsCallable(
@@ -2555,21 +2418,15 @@ class _ConversationsV1ServiceScopeResource:
         )
         self.roles = _ConversationsV1ServiceRolesResource(transport, chat_service_sid)
         self.users = _ConversationsV1ServiceUsersCallable(transport, chat_service_sid)
-        self.bindings = _ConversationsV1ServiceBindingsResource(
-            transport, chat_service_sid
-        )
+        self.bindings = _ConversationsV1ServiceBindingsResource(transport, chat_service_sid)
         self.configuration = _ConversationsV1ServiceConfigurationResource(
             transport, chat_service_sid
         )
-        self.participant_conversations = (
-            _ConversationsV1ServiceParticipantConversationsResource(
-                transport, chat_service_sid
-            )
+        self.participant_conversations = _ConversationsV1ServiceParticipantConversationsResource(
+            transport, chat_service_sid
         )
         self.conversation_with_participants = (
-            _ConversationsV1ServiceConversationWithParticipantsResource(
-                transport, chat_service_sid
-            )
+            _ConversationsV1ServiceConversationWithParticipantsResource(transport, chat_service_sid)
         )
 
 
@@ -2580,7 +2437,7 @@ class _ConversationsV1ServiceScopeResource:
 
 class _AsyncConversationsV1ServiceMessageReceiptsResource:
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str, message_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str, message_sid: str
     ) -> None:
         self._t = transport
         self._svc = service_sid
@@ -2590,23 +2447,22 @@ class _AsyncConversationsV1ServiceMessageReceiptsResource:
     def _root(self, *tail: str) -> str:
         return _service_root(
             self._svc,
-            "Conversations", self._conv,
-            "Messages", self._msg,
-            "Receipts", *tail,
+            "Conversations",
+            self._conv,
+            "Messages",
+            self._msg,
+            "Receipts",
+            *tail,
         )
 
     async def list(
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceConversationMessageReceiptList:
         return ConversationsV1ServiceConversationMessageReceiptList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    async def fetch(
-        self, sid: str
-    ) -> ConversationsV1ServiceConversationMessageReceipt:
+    async def fetch(self, sid: str) -> ConversationsV1ServiceConversationMessageReceipt:
         return ConversationsV1ServiceConversationMessageReceipt.model_validate(
             await self._t.request("GET", self._root(sid))
         )
@@ -2614,16 +2470,14 @@ class _AsyncConversationsV1ServiceMessageReceiptsResource:
 
 class _AsyncConversationsV1ServiceMessagesResource:
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str
     ) -> None:
         self._t = transport
         self._svc = service_sid
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
-        return _service_root(
-            self._svc, "Conversations", self._conv, "Messages", *tail
-        )
+        return _service_root(self._svc, "Conversations", self._conv, "Messages", *tail)
 
     async def create(
         self,
@@ -2647,14 +2501,10 @@ class _AsyncConversationsV1ServiceMessagesResource:
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceConversationMessageList:
         return ConversationsV1ServiceConversationMessageList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    async def fetch(
-        self, message_sid: str
-    ) -> ConversationsV1ServiceConversationMessage:
+    async def fetch(self, message_sid: str) -> ConversationsV1ServiceConversationMessage:
         return ConversationsV1ServiceConversationMessage.model_validate(
             await self._t.request("GET", self._root(message_sid))
         )
@@ -2677,9 +2527,7 @@ class _AsyncConversationsV1ServiceMessagesResource:
     async def delete(self, message_sid: str) -> None:
         await self._t.request("DELETE", self._root(message_sid))
 
-    def receipts(
-        self, message_sid: str
-    ) -> _AsyncConversationsV1ServiceMessageReceiptsResource:
+    def receipts(self, message_sid: str) -> _AsyncConversationsV1ServiceMessageReceiptsResource:
         return _AsyncConversationsV1ServiceMessageReceiptsResource(
             self._t, self._svc, self._conv, message_sid
         )
@@ -2687,16 +2535,14 @@ class _AsyncConversationsV1ServiceMessagesResource:
 
 class _AsyncConversationsV1ServiceParticipantsResource:
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str
     ) -> None:
         self._t = transport
         self._svc = service_sid
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
-        return _service_root(
-            self._svc, "Conversations", self._conv, "Participants", *tail
-        )
+        return _service_root(self._svc, "Conversations", self._conv, "Participants", *tail)
 
     async def create(
         self,
@@ -2724,14 +2570,10 @@ class _AsyncConversationsV1ServiceParticipantsResource:
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceConversationParticipantList:
         return ConversationsV1ServiceConversationParticipantList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    async def fetch(
-        self, participant_sid: str
-    ) -> ConversationsV1ServiceConversationParticipant:
+    async def fetch(self, participant_sid: str) -> ConversationsV1ServiceConversationParticipant:
         return ConversationsV1ServiceConversationParticipant.model_validate(
             await self._t.request("GET", self._root(participant_sid))
         )
@@ -2757,23 +2599,21 @@ class _AsyncConversationsV1ServiceParticipantsResource:
 
 class _AsyncConversationsV1ServiceConversationWebhooksResource:
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str
     ) -> None:
         self._t = transport
         self._svc = service_sid
         self._conv = conversation_sid
 
     def _root(self, *tail: str) -> str:
-        return _service_root(
-            self._svc, "Conversations", self._conv, "Webhooks", *tail
-        )
+        return _service_root(self._svc, "Conversations", self._conv, "Webhooks", *tail)
 
     async def create(
         self,
         *,
-        target: str,
+        target: Literal["webhook", "trigger", "studio"],
         configuration_url: str | None = None,
-        configuration_method: str | None = None,
+        configuration_method: HttpMethod | None = None,
         configuration_flow_sid: str | None = None,
     ) -> ConversationsV1ServiceConversationScopedWebhook:
         body = CreateConversationsV1ServiceConversationScopedWebhookRequest(
@@ -2790,14 +2630,10 @@ class _AsyncConversationsV1ServiceConversationWebhooksResource:
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceConversationScopedWebhookList:
         return ConversationsV1ServiceConversationScopedWebhookList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    async def fetch(
-        self, webhook_sid: str
-    ) -> ConversationsV1ServiceConversationScopedWebhook:
+    async def fetch(self, webhook_sid: str) -> ConversationsV1ServiceConversationScopedWebhook:
         return ConversationsV1ServiceConversationScopedWebhook.model_validate(
             await self._t.request("GET", self._root(webhook_sid))
         )
@@ -2807,7 +2643,7 @@ class _AsyncConversationsV1ServiceConversationWebhooksResource:
         webhook_sid: str,
         *,
         configuration_url: str | None = None,
-        configuration_method: str | None = None,
+        configuration_method: HttpMethod | None = None,
         configuration_flow_sid: str | None = None,
     ) -> ConversationsV1ServiceConversationScopedWebhook:
         body = UpdateConversationsV1ServiceConversationScopedWebhookRequest(
@@ -2825,7 +2661,7 @@ class _AsyncConversationsV1ServiceConversationWebhooksResource:
 
 class _AsyncServiceConversationContext:
     def __init__(
-        self, transport: object, service_sid: str, conversation_sid: str
+        self, transport: _ScopedTransport, service_sid: str, conversation_sid: str
     ) -> None:
         self.messages = _AsyncConversationsV1ServiceMessagesResource(
             transport, service_sid, conversation_sid
@@ -2839,7 +2675,7 @@ class _AsyncServiceConversationContext:
 
 
 class _AsyncConversationsV1ServiceConversationsCallable:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2856,7 +2692,7 @@ class _AsyncConversationsV1ServiceConversationsCallable:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
     ) -> ConversationsV1ServiceConversation:
@@ -2873,18 +2709,12 @@ class _AsyncConversationsV1ServiceConversationsCallable:
             await self._t.request("POST", self._root(), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceConversationList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceConversationList:
         return ConversationsV1ServiceConversationList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
-    async def fetch(
-        self, conversation_sid: str
-    ) -> ConversationsV1ServiceConversation:
+    async def fetch(self, conversation_sid: str) -> ConversationsV1ServiceConversation:
         return ConversationsV1ServiceConversation.model_validate(
             await self._t.request("GET", self._root(conversation_sid))
         )
@@ -2896,7 +2726,7 @@ class _AsyncConversationsV1ServiceConversationsCallable:
         friendly_name: str | None = None,
         unique_name: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
     ) -> ConversationsV1ServiceConversation:
@@ -2917,7 +2747,7 @@ class _AsyncConversationsV1ServiceConversationsCallable:
 
 
 class _AsyncConversationsV1ServiceRolesResource:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -2925,7 +2755,11 @@ class _AsyncConversationsV1ServiceRolesResource:
         return _service_root(self._svc, "Roles", *tail)
 
     async def create(
-        self, *, friendly_name: str, type: str, permission: Sequence[str]
+        self,
+        *,
+        friendly_name: str,
+        type: Literal["conversation", "service"],
+        permission: Sequence[str],
     ) -> ConversationsV1ServiceRole:
         body = CreateConversationsV1ServiceRoleRequest(
             friendly_name=friendly_name,
@@ -2936,13 +2770,9 @@ class _AsyncConversationsV1ServiceRolesResource:
             await self._t.request("POST", self._root(), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceRoleList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceRoleList:
         return ConversationsV1ServiceRoleList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     async def fetch(self, sid: str) -> ConversationsV1ServiceRole:
@@ -2950,12 +2780,8 @@ class _AsyncConversationsV1ServiceRolesResource:
             await self._t.request("GET", self._root(sid))
         )
 
-    async def update(
-        self, sid: str, *, permission: Sequence[str]
-    ) -> ConversationsV1ServiceRole:
-        body = UpdateConversationsV1ServiceRoleRequest(
-            permission=list(permission)
-        ).to_form()
+    async def update(self, sid: str, *, permission: Sequence[str]) -> ConversationsV1ServiceRole:
+        body = UpdateConversationsV1ServiceRoleRequest(permission=list(permission)).to_form()
         return ConversationsV1ServiceRole.model_validate(
             await self._t.request("POST", self._root(sid), data=body)
         )
@@ -2965,39 +2791,31 @@ class _AsyncConversationsV1ServiceRolesResource:
 
 
 class _AsyncConversationsV1ServiceUserConversationsResource:
-    def __init__(
-        self, transport: object, service_sid: str, user_sid: str
-    ) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str, user_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
         self._user = user_sid
 
     def _root(self, *tail: str) -> str:
-        return _service_root(
-            self._svc, "Users", self._user, "Conversations", *tail
-        )
+        return _service_root(self._svc, "Users", self._user, "Conversations", *tail)
 
     async def list(
         self, *, page_size: int | None = None
     ) -> ConversationsV1ServiceUserConversationList:
         return ConversationsV1ServiceUserConversationList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
 
 class _AsyncServiceUserContext:
-    def __init__(
-        self, transport: object, service_sid: str, user_sid: str
-    ) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str, user_sid: str) -> None:
         self.conversations = _AsyncConversationsV1ServiceUserConversationsResource(
             transport, service_sid, user_sid
         )
 
 
 class _AsyncConversationsV1ServiceUsersCallable:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -3025,13 +2843,9 @@ class _AsyncConversationsV1ServiceUsersCallable:
             await self._t.request("POST", self._root(), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> ConversationsV1ServiceUserList:
+    async def list(self, *, page_size: int | None = None) -> ConversationsV1ServiceUserList:
         return ConversationsV1ServiceUserList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     async def fetch(self, sid: str) -> ConversationsV1ServiceUser:
@@ -3061,7 +2875,7 @@ class _AsyncConversationsV1ServiceUsersCallable:
 
 
 class _AsyncConversationsV1ServiceBindingsResource:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -3071,7 +2885,7 @@ class _AsyncConversationsV1ServiceBindingsResource:
     async def list(
         self,
         *,
-        binding_type: str | None = None,
+        binding_type: Literal["apn", "gcm", "fcm", "twilsock"] | None = None,
         identity: str | None = None,
         page_size: int | None = None,
     ) -> ConversationsV1ServiceBindingList:
@@ -3097,7 +2911,7 @@ class _AsyncConversationsV1ServiceBindingsResource:
 
 
 class _AsyncConversationsV1ServiceNotificationsResource:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -3147,7 +2961,7 @@ class _AsyncConversationsV1ServiceNotificationsResource:
 
 
 class _AsyncConversationsV1ServiceWebhookConfigurationResource:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -3164,7 +2978,7 @@ class _AsyncConversationsV1ServiceWebhookConfigurationResource:
         *,
         pre_webhook_url: str | None = None,
         post_webhook_url: str | None = None,
-        method: str | None = None,
+        method: HttpMethod | None = None,
         filters: Sequence[str] | None = None,
     ) -> ConversationsV1ServiceWebhookConfiguration:
         body = UpdateConversationsV1ServiceWebhookConfigurationRequest(
@@ -3179,7 +2993,7 @@ class _AsyncConversationsV1ServiceWebhookConfigurationResource:
 
 
 class _AsyncConversationsV1ServiceConfigurationResource:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
         self.notifications = _AsyncConversationsV1ServiceNotificationsResource(
@@ -3217,7 +3031,7 @@ class _AsyncConversationsV1ServiceConfigurationResource:
 
 
 class _AsyncConversationsV1ServiceParticipantConversationsResource:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -3245,7 +3059,7 @@ class _AsyncConversationsV1ServiceParticipantConversationsResource:
 
 
 class _AsyncConversationsV1ServiceConversationWithParticipantsResource:
-    def __init__(self, transport: object, service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, service_sid: str) -> None:
         self._t = transport
         self._svc = service_sid
 
@@ -3259,7 +3073,7 @@ class _AsyncConversationsV1ServiceConversationWithParticipantsResource:
         unique_name: str | None = None,
         messaging_service_sid: str | None = None,
         attributes: str | None = None,
-        state: str | None = None,
+        state: Literal["initializing", "inactive", "active", "closed"] | None = None,
         timers_inactive: str | None = None,
         timers_closed: str | None = None,
         participant: Sequence[str] | None = None,
@@ -3282,21 +3096,15 @@ class _AsyncConversationsV1ServiceConversationWithParticipantsResource:
 class _AsyncConversationsV1ServiceScopeResource:
     """Per-service Conversations v1 surface (async)."""
 
-    def __init__(self, transport: object, chat_service_sid: str) -> None:
+    def __init__(self, transport: _ScopedTransport, chat_service_sid: str) -> None:
         self._t = transport
         self._svc = chat_service_sid
         self.conversations = _AsyncConversationsV1ServiceConversationsCallable(
             transport, chat_service_sid
         )
-        self.roles = _AsyncConversationsV1ServiceRolesResource(
-            transport, chat_service_sid
-        )
-        self.users = _AsyncConversationsV1ServiceUsersCallable(
-            transport, chat_service_sid
-        )
-        self.bindings = _AsyncConversationsV1ServiceBindingsResource(
-            transport, chat_service_sid
-        )
+        self.roles = _AsyncConversationsV1ServiceRolesResource(transport, chat_service_sid)
+        self.users = _AsyncConversationsV1ServiceUsersCallable(transport, chat_service_sid)
+        self.bindings = _AsyncConversationsV1ServiceBindingsResource(transport, chat_service_sid)
         self.configuration = _AsyncConversationsV1ServiceConfigurationResource(
             transport, chat_service_sid
         )

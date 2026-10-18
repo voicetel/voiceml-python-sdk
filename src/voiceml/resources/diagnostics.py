@@ -1,54 +1,79 @@
-"""Diagnostic surfaces — ``/health`` and the OpenAPI doc endpoints.
+"""Diagnostic surfaces — ``/health`` and the OpenAPI document endpoints.
 
-These don't sit under ``/2010-04-01/Accounts/{AccountSid}/…``; they're mounted at the server
-root and don't require auth (the spec marks them ``security: []``).
+These are mounted at the server root, outside ``/2010-04-01/Accounts/{AccountSid}/…``,
+and the spec marks them ``security: []``. They go through the client's normal
+transport — so an injected ``http_client``, the timeout, proxies and the SDK
+User-Agent all apply — but without the ``Authorization`` header. A client created
+without credentials (``Client()``) can call them.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
 from .._http import AsyncTransport, Transport
+from ..exceptions import ApiError
 from ..models import HealthStatus
+
+_YAML_ACCEPT = "application/yaml, application/x-yaml, text/yaml, */*"
+
+
+def _text(content: bytes, path: str) -> str:
+    try:
+        return content.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ApiError(f"could not decode {path} as UTF-8: {exc}", status_code=200) from exc
 
 
 class DiagnosticsResource:
-    """Sync diagnostics. Does NOT auth — the spec marks ``/health`` + spec endpoints as open."""
+    """Sync diagnostics. Never sends credentials."""
 
     def __init__(self, transport: Transport) -> None:
         self._t = transport
 
+    def __repr__(self) -> str:
+        return "<DiagnosticsResource>"
+
     def health(self) -> HealthStatus:
-        """Hit ``/health``. 200 = all hard checks pass; 503 raises :class:`voiceml.ServerError`
-        with the failure list on ``error.body``.
+        """``GET /health``. 200 = all hard checks pass; 503 raises
+        :class:`voiceml.ServerError` with the failure list on ``error.body``.
         """
-        return HealthStatus.model_validate(self._unauth_request("GET", "/health"))
+        return HealthStatus.model_validate(self._t.request("GET", "/health", auth=False))
 
     def openapi_json(self) -> Any:
-        """Fetch the OpenAPI spec as parsed JSON."""
-        return self._unauth_request("GET", "/openapi.json")
+        """``GET /openapi.json`` — the OpenAPI document, parsed."""
+        return self._t.request("GET", "/openapi.json", auth=False)
 
-    def _unauth_request(self, method: str, path: str) -> Any:
-        with httpx.Client(base_url=self._t.base_url, timeout=10.0) as h:
-            r = h.request(method, path, headers={"Accept": "application/json"})
-            r.raise_for_status()
-            return r.json()
+    def openapi_yaml(self) -> str:
+        """``GET /openapi.yaml`` — the OpenAPI document as YAML text."""
+        result = self._t.fetch_bytes("/openapi.yaml", accept=_YAML_ACCEPT, auth=False)
+        return _text(result.content, "/openapi.yaml")
+
+    def openapi_yml(self) -> str:
+        """``GET /openapi.yml`` — alias of :meth:`openapi_yaml` served at ``.yml``."""
+        result = self._t.fetch_bytes("/openapi.yml", accept=_YAML_ACCEPT, auth=False)
+        return _text(result.content, "/openapi.yml")
 
 
 class DiagnosticsAsyncResource:
+    """Async diagnostics. Never sends credentials."""
+
     def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
+    def __repr__(self) -> str:
+        return "<DiagnosticsAsyncResource>"
+
     async def health(self) -> HealthStatus:
-        return HealthStatus.model_validate(await self._unauth_request("GET", "/health"))
+        return HealthStatus.model_validate(await self._t.request("GET", "/health", auth=False))
 
     async def openapi_json(self) -> Any:
-        return await self._unauth_request("GET", "/openapi.json")
+        return await self._t.request("GET", "/openapi.json", auth=False)
 
-    async def _unauth_request(self, method: str, path: str) -> Any:
-        async with httpx.AsyncClient(base_url=self._t.base_url, timeout=10.0) as h:
-            r = await h.request(method, path, headers={"Accept": "application/json"})
-            r.raise_for_status()
-            return r.json()
+    async def openapi_yaml(self) -> str:
+        result = await self._t.fetch_bytes("/openapi.yaml", accept=_YAML_ACCEPT, auth=False)
+        return _text(result.content, "/openapi.yaml")
+
+    async def openapi_yml(self) -> str:
+        result = await self._t.fetch_bytes("/openapi.yml", accept=_YAML_ACCEPT, auth=False)
+        return _text(result.content, "/openapi.yml")

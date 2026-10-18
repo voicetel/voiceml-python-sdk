@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Iterator
 
 from ..models import (
     CreateQueueRequest,
@@ -43,30 +43,16 @@ class QueuesResource(Resource):
             )
         )
 
-    def iter(
-        self,
-        *,
-        page_size: int | None = None,
-    ) -> Sequence[Queue]:
-        out: list[Queue] = []
-        page = 0
-        while True:
-            chunk = self.list(page=page, page_size=page_size)
-            out.extend(chunk.queues)
-            if not chunk.next_page_uri or not chunk.queues:
-                return out
-            page += 1
+    def iter(self, *, page_size: int | None = None) -> Iterator[Queue]:
+        """Lazily yield every queue, following ``next_page_uri`` page by page."""
+        yield from self._paginate(self.list(page_size=page_size))
 
     def get(self, queue_sid: str) -> Queue:
-        return Queue.model_validate(
-            self._t.request("GET", self._path("Queues", queue_sid))
-        )
+        return Queue.model_validate(self._t.request("GET", self._path("Queues", queue_sid)))
 
     def update(self, queue_sid: str, body: UpdateQueueRequest) -> Queue:
         return Queue.model_validate(
-            self._t.request(
-                "POST", self._path("Queues", queue_sid), data=body.to_form()
-            )
+            self._t.request("POST", self._path("Queues", queue_sid), data=body.to_form())
         )
 
     def delete(self, queue_sid: str) -> None:
@@ -109,9 +95,7 @@ class QueuesResource(Resource):
             self._t.request("GET", self._path("Queues", queue_sid, "Members", call_sid))
         )
 
-    def dequeue_member(
-        self, queue_sid: str, call_sid: str, body: DequeueRequest
-    ) -> QueueMember:
+    def dequeue_member(self, queue_sid: str, call_sid: str, body: DequeueRequest) -> QueueMember:
         return QueueMember.model_validate(
             self._t.request(
                 "POST",
@@ -142,16 +126,17 @@ class QueuesAsyncResource(AsyncResource):
             )
         )
 
+    async def iter(self, *, page_size: int | None = None) -> AsyncIterator[Queue]:
+        """Lazily yield every queue, following ``next_page_uri`` page by page."""
+        async for item in self._paginate(await self.list(page_size=page_size)):
+            yield item
+
     async def get(self, queue_sid: str) -> Queue:
-        return Queue.model_validate(
-            await self._t.request("GET", self._path("Queues", queue_sid))
-        )
+        return Queue.model_validate(await self._t.request("GET", self._path("Queues", queue_sid)))
 
     async def update(self, queue_sid: str, body: UpdateQueueRequest) -> Queue:
         return Queue.model_validate(
-            await self._t.request(
-                "POST", self._path("Queues", queue_sid), data=body.to_form()
-            )
+            await self._t.request("POST", self._path("Queues", queue_sid), data=body.to_form())
         )
 
     async def delete(self, queue_sid: str) -> None:
@@ -175,9 +160,7 @@ class QueuesAsyncResource(AsyncResource):
 
     async def peek_front(self, queue_sid: str) -> QueueMember:
         return QueueMember.model_validate(
-            await self._t.request(
-                "GET", self._path("Queues", queue_sid, "Members", "Front")
-            )
+            await self._t.request("GET", self._path("Queues", queue_sid, "Members", "Front"))
         )
 
     async def dequeue_front(self, queue_sid: str, body: DequeueRequest) -> QueueMember:
@@ -191,9 +174,7 @@ class QueuesAsyncResource(AsyncResource):
 
     async def get_member(self, queue_sid: str, call_sid: str) -> QueueMember:
         return QueueMember.model_validate(
-            await self._t.request(
-                "GET", self._path("Queues", queue_sid, "Members", call_sid)
-            )
+            await self._t.request("GET", self._path("Queues", queue_sid, "Members", call_sid))
         )
 
     async def dequeue_member(

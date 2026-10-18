@@ -43,9 +43,7 @@ class ApplicationsResource(Resource):
             self._t.request("GET", self._path("Applications", application_sid))
         )
 
-    def update(
-        self, application_sid: str, body: UpdateApplicationRequest
-    ) -> Application:
+    def update(self, application_sid: str, body: UpdateApplicationRequest) -> Application:
         return Application.model_validate(
             self._t.request(
                 "POST", self._path("Applications", application_sid), data=body.to_form()
@@ -59,9 +57,7 @@ class ApplicationsResource(Resource):
 class ApplicationsAsyncResource(AsyncResource):
     async def create(self, body: CreateApplicationRequest) -> Application:
         return Application.model_validate(
-            await self._t.request(
-                "POST", self._path("Applications"), data=body.to_form()
-            )
+            await self._t.request("POST", self._path("Applications"), data=body.to_form())
         )
 
     async def list(
@@ -90,9 +86,7 @@ class ApplicationsAsyncResource(AsyncResource):
             await self._t.request("GET", self._path("Applications", application_sid))
         )
 
-    async def update(
-        self, application_sid: str, body: UpdateApplicationRequest
-    ) -> Application:
+    async def update(self, application_sid: str, body: UpdateApplicationRequest) -> Application:
         return Application.model_validate(
             await self._t.request(
                 "POST",

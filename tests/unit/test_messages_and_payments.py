@@ -28,8 +28,8 @@ BASE = "https://voiceml.voicetel.com"
 def _message_payload(
     sid: str = "SM" + "0" * 32,
     *,
-    to: str = "+18005551234",
-    from_: str = "+18005550000",
+    to: str = "+14155550100",
+    from_: str = "+14155550101",
     body: str = "hello",
     status: str = "sent",
     error_code: int | None = None,
@@ -85,16 +85,16 @@ def test_messages_create_sends_form_and_basic_auth(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         msg = c.messages.create(
-            to="+18005551234",
+            to="+14155550100",
             body="hello there",
-            from_="+18005550000",
+            from_="+14155550101",
             status_callback="https://example.com/sms-status",
         )
     assert isinstance(msg, Message)
     assert msg.sid.startswith("SM")
     assert msg.status == "sent"
     # `from` is reserved so the model field is `from_` — make sure the alias round-trips.
-    assert msg.from_ == "+18005550000"
+    assert msg.from_ == "+14155550101"
     # Wire-shape: num_segments/num_media are strings, not ints (Twilio compat).
     assert msg.num_segments == "1"
     assert msg.num_media == "0"
@@ -104,13 +104,11 @@ def test_messages_create_sends_form_and_basic_auth(httpx_mock: HTTPXMock):
     assert sent.url.path.endswith("/Messages.json")
     assert sent.headers["Content-Type"].startswith("application/x-www-form-urlencoded")
     body = sent.content.decode()
-    assert "To=%2B18005551234" in body
+    assert "To=%2B14155550100" in body
     # URL-encoded space inside Body.
     assert "Body=hello+there" in body or "Body=hello%20there" in body
-    assert "From=%2B18005550000" in body
-    assert (
-        "StatusCallback=https%3A%2F%2Fexample.com%2Fsms-status" in body
-    )
+    assert "From=%2B14155550101" in body
+    assert "StatusCallback=https%3A%2F%2Fexample.com%2Fsms-status" in body
 
 
 def test_messages_create_with_messaging_service_sid(httpx_mock: HTTPXMock):
@@ -123,7 +121,7 @@ def test_messages_create_with_messaging_service_sid(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         msg = c.messages.create(
-            to="+18005551234",
+            to="+14155550100",
             body="hi",
             messaging_service_sid="MG" + "1" * 32,
         )
@@ -155,15 +153,14 @@ def test_messages_list_sends_filter_params(httpx_mock: HTTPXMock):
             "messages": [_message_payload()],
             "page": 0,
             "page_size": 50,
-            "total": 1,
             "next_page_uri": None,
             "uri": "/x",
         },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         result = c.messages.list(
-            to="+18005551234",
-            from_="+18005550000",
+            to="+14155550100",
+            from_="+14155550101",
             date_sent="2026-05-26",
             date_sent_lt="2026-05-27",
             date_sent_gt="2026-05-25",
@@ -174,51 +171,13 @@ def test_messages_list_sends_filter_params(httpx_mock: HTTPXMock):
     sent = httpx_mock.get_request()
     assert sent is not None
     q = sent.url.query.decode()
-    assert "To=%2B18005551234" in q
-    assert "From=%2B18005550000" in q
+    assert "To=%2B14155550100" in q
+    assert "From=%2B14155550101" in q
     assert "DateSent=2026-05-26" in q
     # Twilio uses literal `DateSent<` / `DateSent>` operators in the query string.
     assert "DateSent%3C=2026-05-27" in q
     assert "DateSent%3E=2026-05-25" in q
     assert "PageSize=25" in q
-
-
-def test_messages_list_pagination(httpx_mock: HTTPXMock):
-    """``iter()`` walks ``next_page_uri`` and concatenates pages."""
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Messages\.json(\?.*)?$"),
-        json={
-            "messages": [
-                _message_payload("SM" + "1" * 32),
-                _message_payload("SM" + "2" * 32),
-            ],
-            "page": 0,
-            "page_size": 2,
-            "next_page_uri": (
-                f"/2010-04-01/Accounts/{ACCOUNT_SID}/Messages.json?Page=1&PageSize=2"
-            ),
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Messages.json",
-        },
-    )
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Messages\.json(\?.*)?$"),
-        json={
-            "messages": [_message_payload("SM" + "3" * 32)],
-            "page": 1,
-            "page_size": 2,
-            "next_page_uri": None,
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Messages.json?Page=1",
-        },
-    )
-    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        results = c.messages.iter(page_size=2)
-    assert len(results) == 3
-    assert results[0].sid == "SM" + "1" * 32
-    assert results[2].sid == "SM" + "3" * 32
-    requests = httpx_mock.get_requests()
-    assert len(requests) == 2
 
 
 def test_messages_update_body_redaction(httpx_mock: HTTPXMock):
@@ -291,16 +250,14 @@ async def test_messages_async_create(httpx_mock: HTTPXMock):
         status_code=201,
     )
     async with AsyncClient(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        msg = await c.messages.create(to="+18005551234", body="async hello")
+        msg = await c.messages.create(to="+14155550100", body="async hello")
     assert msg.sid.startswith("SM")
 
 
 # --- Payments: start / update -------------------------------------------------
 
 
-def _payment_payload(
-    sid: str = "PY" + "0" * 32, call_sid: str = "CA" + "0" * 32
-) -> dict:
+def _payment_payload(sid: str = "PY" + "0" * 32, call_sid: str = "CA" + "0" * 32) -> dict:
     return {
         "sid": sid,
         "account_sid": ACCOUNT_SID,
@@ -308,17 +265,13 @@ def _payment_payload(
         "api_version": "2010-04-01",
         "date_created": "Mon, 26 May 2026 12:00:00 +0000",
         "date_updated": "Mon, 26 May 2026 12:00:00 +0000",
-        "uri": (
-            f"/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}/Payments/{sid}.json"
-        ),
+        "uri": (f"/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}/Payments/{sid}.json"),
     }
 
 
 def test_calls_start_payment_path_and_form(httpx_mock: HTTPXMock):
     call_sid = "CA" + "a" * 32
-    expected_path = (
-        f"/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}/Payments.json"
-    )
+    expected_path = f"/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}/Payments.json"
     httpx_mock.add_response(
         method="POST",
         url=f"{BASE}{expected_path}",
@@ -420,8 +373,7 @@ def test_calls_update_payment_capture_security_code(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="POST",
         url=(
-            f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}"
-            f"/Payments/{payment_sid}.json"
+            f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}/Payments/{payment_sid}.json"
         ),
         json=_payment_payload(payment_sid, call_sid),
     )
@@ -438,8 +390,7 @@ def test_calls_update_payment_cancel(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="POST",
         url=(
-            f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}"
-            f"/Payments/{payment_sid}.json"
+            f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}/Payments/{payment_sid}.json"
         ),
         json=_payment_payload(payment_sid, call_sid),
     )
@@ -464,9 +415,7 @@ async def test_calls_start_payment_async(httpx_mock: HTTPXMock):
         status_code=201,
     )
     async with AsyncClient(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        payment = await c.calls.start_payment(
-            call_sid, charge_amount="2.00", currency="USD"
-        )
+        payment = await c.calls.start_payment(call_sid, charge_amount="2.00", currency="USD")
     assert payment.call_sid == call_sid
 
 

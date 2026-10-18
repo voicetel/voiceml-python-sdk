@@ -1,4 +1,4 @@
-"""Routes V2 — Twilio's Inbound Processing Region API.
+"""Routes V2 — Twilio-compatible Inbound Processing Region API.
 
 Sits outside the ``/2010-04-01/`` namespace at ``/v2/`` and exposes two
 resources, both keyed by their natural identifier (no Account SID in the
@@ -19,23 +19,23 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from ._base import _Base
+from ._base import _Base, _Request
 
 
 class RoutesV2SipDomain(_Base):
     """SIP-domain Inbound Processing Region binding (``QQ…``)."""
 
-    sid: str
-    sip_domain: str
-    account_sid: str
+    sid: str | None = None
+    sip_domain: str | None = None
+    account_sid: str | None = None
     friendly_name: str | None = None
     voice_region: str | None = None
     url: str | None = None
-    date_created: str
-    date_updated: str
+    date_created: str | None = None
+    date_updated: str | None = None
 
 
-class UpdateRoutesV2SipDomainRequest(_Base):
+class UpdateRoutesV2SipDomainRequest(_Request):
     """Body for ``POST /v2/SipDomains/{SipDomain}``. All fields optional."""
 
     voice_region: str | None = Field(default=None, alias="VoiceRegion")
@@ -49,17 +49,17 @@ class RoutesV2PhoneNumber(_Base):
     natural-key field is ``phone_number`` (E.164) instead of ``sip_domain``.
     """
 
-    sid: str
-    phone_number: str
-    account_sid: str
+    sid: str | None = None
+    phone_number: str | None = None
+    account_sid: str | None = None
     friendly_name: str | None = None
     voice_region: str | None = None
     url: str | None = None
-    date_created: str
-    date_updated: str
+    date_created: str | None = None
+    date_updated: str | None = None
 
 
-class UpdateRoutesV2PhoneNumberRequest(_Base):
+class UpdateRoutesV2PhoneNumberRequest(_Request):
     """Body for ``POST /v2/PhoneNumbers/{PhoneNumber}``. All fields optional."""
 
     voice_region: str | None = Field(default=None, alias="VoiceRegion")

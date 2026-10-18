@@ -5,14 +5,85 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  lint:
+    name: Lint + type-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: '3.13'
       - run: pip install -e '.[dev]'
-      - run: pytest
+      - name: ruff check
+        run: ruff check src tests
+      - name: ruff format
+        run: ruff format --check src tests
+      - name: mypy (strict)
+        run: mypy
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e '.[dev]'
+      # Includes the spec contract test (tests/contract) and the README examples.
+      - run: pytest -rs
+
+  test-minimum-deps:
+    name: Tests (minimum httpx / pydantic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.10'
+      - run: >-
+          pip install -e .
+          "httpx==0.27.0" "pydantic==2.8.0"
+          "pytest>=8,<9" "pytest-asyncio>=0.24,<1" "pytest-httpx==0.30.0"
+      - run: pytest -rs
+
+  package:
+    name: Build + check distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - run: pip install --upgrade build twine
+      - run: python -m build
+      - run: twine check --strict dist/*
+      - name: Test fixtures are not shipped
+        run: |
+          python - <<'EOF'
+          import pathlib, tarfile, zipfile
+          dist = pathlib.Path("dist")
+          names = []
+          for sdist in dist.glob("*.tar.gz"):
+              names += tarfile.open(sdist).getnames()
+          for wheel in dist.glob("*.whl"):
+              names += zipfile.ZipFile(wheel).namelist()
+          leaked = [n for n in names if "tests/" in n or n.endswith("voiceml-openapi.json")]
+          assert not leaked, leaked
+          print(f"checked {len(names)} archive members")
+          EOF
+      - name: Smoke-test the wheel in a clean environment
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/*.whl
+          cd /tmp && /tmp/smoke/bin/python -c "import voiceml, voiceml.models, voiceml.webhooks; print(voiceml.__version__)"

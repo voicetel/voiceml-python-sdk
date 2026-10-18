@@ -1,4 +1,4 @@
-"""Pricing v1/v2 resources — Twilio ``pricing.twilio.com`` REST surface (#18).
+"""Pricing v1/v2 resources — Twilio-compatible pricing REST surface.
 
 VoiceML has no dedicated pricing subdomain, so these live on the default host
 (``voiceml.voicetel.com``) under ``/v1`` and ``/v2``. All operations are
@@ -12,7 +12,7 @@ from __future__ import annotations
 from pydantic import Field
 
 from ._base import _Base
-from .voice_v1 import VoiceV1Meta
+from .common import V1Page
 
 # ---------------------------------------------------------------------------
 # Price leaves
@@ -75,9 +75,8 @@ class PricingCountryRef(_Base):
     url: str | None = None
 
 
-class PricingCountriesList(_Base):
+class PricingCountriesList(V1Page[PricingCountryRef]):
     countries: list[PricingCountryRef] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -88,9 +87,7 @@ class PricingCountriesList(_Base):
 class PricingVoiceCountry(_Base):
     country: str | None = None
     iso_country: str | None = None
-    outbound_prefix_prices: list[PricingOutboundPrefixPrice] = Field(
-        default_factory=list
-    )
+    outbound_prefix_prices: list[PricingOutboundPrefixPrice] = Field(default_factory=list)
     inbound_call_prices: list[PricingInboundCallPrice] = Field(default_factory=list)
     price_unit: str | None = None
     url: str | None = None
@@ -131,9 +128,7 @@ class PricingPhoneNumberCountry(_Base):
 class PricingVoiceCountryV2(_Base):
     country: str | None = None
     iso_country: str | None = None
-    outbound_prefix_prices: list[PricingOutboundPrefixPriceWithOrigin] = Field(
-        default_factory=list
-    )
+    outbound_prefix_prices: list[PricingOutboundPrefixPriceWithOrigin] = Field(default_factory=list)
     inbound_call_prices: list[PricingInboundCallPrice] = Field(default_factory=list)
     price_unit: str | None = None
     url: str | None = None
@@ -144,9 +139,7 @@ class PricingVoiceNumberV2(_Base):
     origination_number: str | None = None
     country: str | None = None
     iso_country: str | None = None
-    outbound_call_prices: list[PricingOutboundCallPriceWithOrigin] = Field(
-        default_factory=list
-    )
+    outbound_call_prices: list[PricingOutboundCallPriceWithOrigin] = Field(default_factory=list)
     inbound_call_price: PricingInboundCallPrice | None = None
     price_unit: str | None = None
     url: str | None = None

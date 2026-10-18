@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Iterator
 
 from ..models import (
     Conference,
     ConferenceList,
+    ConferenceStatus,
     CreateParticipantRequest,
     EndConferenceRequest,
     Participant,
     ParticipantList,
     Recording,
     RecordingList,
+    StartConferenceRecordingRequest,
+    UpdateConferenceRecordingRequest,
     UpdateParticipantRequest,
     UpdateRecordingRequest,
 )
@@ -22,7 +25,7 @@ from ._base import AsyncResource, Resource
 def _conference_list_params(
     *,
     friendly_name: str | None,
-    status: str | None,
+    status: ConferenceStatus | None,
     date_created: str | None,
     date_created_lt: str | None,
     date_created_gt: str | None,
@@ -80,7 +83,7 @@ class ConferencesResource(Resource):
         self,
         *,
         friendly_name: str | None = None,
-        status: str | None = None,
+        status: ConferenceStatus | None = None,
         date_created: str | None = None,
         date_created_lt: str | None = None,
         date_created_gt: str | None = None,
@@ -115,7 +118,7 @@ class ConferencesResource(Resource):
         self,
         *,
         friendly_name: str | None = None,
-        status: str | None = None,
+        status: ConferenceStatus | None = None,
         date_created: str | None = None,
         date_created_lt: str | None = None,
         date_created_gt: str | None = None,
@@ -123,11 +126,14 @@ class ConferencesResource(Resource):
         date_updated_lt: str | None = None,
         date_updated_gt: str | None = None,
         page_size: int | None = None,
-    ) -> Sequence[Conference]:
-        out: list[Conference] = []
-        page = 0
-        while True:
-            chunk = self.list(
+    ) -> Iterator[Conference]:
+        """Lazily yield conferences, following ``next_page_uri`` page by page.
+
+        One request per page, issued as the iterator is consumed; stopping early
+        issues no further requests.
+        """
+        yield from self._paginate(
+            self.list(
                 friendly_name=friendly_name,
                 status=status,
                 date_created=date_created,
@@ -136,27 +142,19 @@ class ConferencesResource(Resource):
                 date_updated=date_updated,
                 date_updated_lt=date_updated_lt,
                 date_updated_gt=date_updated_gt,
-                page=page,
                 page_size=page_size,
             )
-            out.extend(chunk.conferences)
-            if not chunk.next_page_uri or not chunk.conferences:
-                return out
-            page += 1
+        )
 
     def get(self, conference_sid: str) -> Conference:
         return Conference.model_validate(
             self._t.request("GET", self._path("Conferences", conference_sid))
         )
 
-    def end(
-        self, conference_sid: str, body: EndConferenceRequest | None = None
-    ) -> Conference:
-        payload = (body or EndConferenceRequest(Status="completed")).to_form()
+    def end(self, conference_sid: str, body: EndConferenceRequest | None = None) -> Conference:
+        payload = (body or EndConferenceRequest(status="completed")).to_form()
         return Conference.model_validate(
-            self._t.request(
-                "POST", self._path("Conferences", conference_sid), data=payload
-            )
+            self._t.request("POST", self._path("Conferences", conference_sid), data=payload)
         )
 
     # --- Participants ---
@@ -227,6 +225,9 @@ class ConferencesResource(Resource):
         self,
         conference_sid: str,
         *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -235,7 +236,24 @@ class ConferencesResource(Resource):
             self._t.request(
                 "GET",
                 self._path("Conferences", conference_sid, "Recordings"),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "DateCreated": date_created,
+                    "DateCreated<": date_created_lt,
+                    "DateCreated>": date_created_gt,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
+            )
+        )
+
+    def start_recording(
+        self, conference_sid: str, body: StartConferenceRecordingRequest | None = None
+    ) -> Recording:
+        """Start recording a live conference."""
+        return Recording.model_validate(
+            self._t.request(
+                "POST",
+                self._path("Conferences", conference_sid, "Recordings"),
+                data=body.to_form() if body else None,
             )
         )
 
@@ -248,13 +266,18 @@ class ConferencesResource(Resource):
         )
 
     def update_recording(
-        self, conference_sid: str, recording_sid: str, body: UpdateRecordingRequest
+        self,
+        conference_sid: str,
+        recording_sid: str,
+        body: UpdateConferenceRecordingRequest | UpdateRecordingRequest,
     ) -> Recording:
+        """Stop / pause / resume a conference recording (only ``Status`` is sent)."""
+        form = UpdateConferenceRecordingRequest(status=body.status).to_form()
         return Recording.model_validate(
             self._t.request(
                 "POST",
                 self._path("Conferences", conference_sid, "Recordings", recording_sid),
-                data=body.to_form(),
+                data=form,
             )
         )
 
@@ -270,7 +293,7 @@ class ConferencesAsyncResource(AsyncResource):
         self,
         *,
         friendly_name: str | None = None,
-        status: str | None = None,
+        status: ConferenceStatus | None = None,
         date_created: str | None = None,
         date_created_lt: str | None = None,
         date_created_gt: str | None = None,
@@ -301,6 +324,38 @@ class ConferencesAsyncResource(AsyncResource):
             )
         )
 
+    async def iter(
+        self,
+        *,
+        friendly_name: str | None = None,
+        status: ConferenceStatus | None = None,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        date_updated: str | None = None,
+        date_updated_lt: str | None = None,
+        date_updated_gt: str | None = None,
+        page_size: int | None = None,
+    ) -> AsyncIterator[Conference]:
+        """Lazily yield conferences, following ``next_page_uri`` page by page.
+
+        One request per page, issued as the iterator is consumed; stopping early
+        issues no further requests.
+        """
+        first = await self.list(
+            friendly_name=friendly_name,
+            status=status,
+            date_created=date_created,
+            date_created_lt=date_created_lt,
+            date_created_gt=date_created_gt,
+            date_updated=date_updated,
+            date_updated_lt=date_updated_lt,
+            date_updated_gt=date_updated_gt,
+            page_size=page_size,
+        )
+        async for item in self._paginate(first):
+            yield item
+
     async def get(self, conference_sid: str) -> Conference:
         return Conference.model_validate(
             await self._t.request("GET", self._path("Conferences", conference_sid))
@@ -309,11 +364,9 @@ class ConferencesAsyncResource(AsyncResource):
     async def end(
         self, conference_sid: str, body: EndConferenceRequest | None = None
     ) -> Conference:
-        payload = (body or EndConferenceRequest(Status="completed")).to_form()
+        payload = (body or EndConferenceRequest(status="completed")).to_form()
         return Conference.model_validate(
-            await self._t.request(
-                "POST", self._path("Conferences", conference_sid), data=payload
-            )
+            await self._t.request("POST", self._path("Conferences", conference_sid), data=payload)
         )
 
     async def create_participant(
@@ -380,6 +433,9 @@ class ConferencesAsyncResource(AsyncResource):
         self,
         conference_sid: str,
         *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -388,7 +444,24 @@ class ConferencesAsyncResource(AsyncResource):
             await self._t.request(
                 "GET",
                 self._path("Conferences", conference_sid, "Recordings"),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "DateCreated": date_created,
+                    "DateCreated<": date_created_lt,
+                    "DateCreated>": date_created_gt,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
+            )
+        )
+
+    async def start_recording(
+        self, conference_sid: str, body: StartConferenceRecordingRequest | None = None
+    ) -> Recording:
+        """Start recording a live conference."""
+        return Recording.model_validate(
+            await self._t.request(
+                "POST",
+                self._path("Conferences", conference_sid, "Recordings"),
+                data=body.to_form() if body else None,
             )
         )
 
@@ -401,13 +474,18 @@ class ConferencesAsyncResource(AsyncResource):
         )
 
     async def update_recording(
-        self, conference_sid: str, recording_sid: str, body: UpdateRecordingRequest
+        self,
+        conference_sid: str,
+        recording_sid: str,
+        body: UpdateConferenceRecordingRequest | UpdateRecordingRequest,
     ) -> Recording:
+        """Stop / pause / resume a conference recording (only ``Status`` is sent)."""
+        form = UpdateConferenceRecordingRequest(status=body.status).to_form()
         return Recording.model_validate(
             await self._t.request(
                 "POST",
                 self._path("Conferences", conference_sid, "Recordings", recording_sid),
-                data=body.to_form(),
+                data=form,
             )
         )
 

@@ -7,10 +7,19 @@ and delete.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Iterator
 
-from ..models import Recording, RecordingAudio, RecordingList
-from ._base import AsyncResource, Resource
+from ..models import (
+    Recording,
+    RecordingAudio,
+    RecordingList,
+    RecordingTranscription,
+    RecordingTranscriptionList,
+)
+from ._base import AsyncResource, Resource, account_path
+from .transcriptions import transcription_list_params
+
+AUDIO_ACCEPT = "audio/*, */*"
 
 
 def _list_params(
@@ -84,28 +93,25 @@ class RecordingsResource(Resource):
         conference_sid: str | None = None,
         include_soft_deleted: bool | None = None,
         page_size: int | None = None,
-    ) -> Sequence[Recording]:
-        out: list[Recording] = []
-        page = 0
-        while True:
-            chunk = self.list(
+    ) -> Iterator[Recording]:
+        """Lazily yield recordings, following ``next_page_uri`` page by page.
+
+        One request per page, issued as the iterator is consumed; stopping early
+        issues no further requests.
+        """
+        yield from self._paginate(
+            self.list(
                 date_created=date_created,
                 date_created_lt=date_created_lt,
                 date_created_gt=date_created_gt,
                 call_sid=call_sid,
                 conference_sid=conference_sid,
                 include_soft_deleted=include_soft_deleted,
-                page=page,
                 page_size=page_size,
             )
-            out.extend(chunk.recordings)
-            if not chunk.next_page_uri or not chunk.recordings:
-                return out
-            page += 1
+        )
 
-    def get(
-        self, recording_sid: str, *, include_soft_deleted: bool | None = None
-    ) -> Recording:
+    def get(self, recording_sid: str, *, include_soft_deleted: bool | None = None) -> Recording:
         """Fetch the metadata JSON for a recording."""
         return Recording.model_validate(
             self._t.request(
@@ -124,18 +130,63 @@ class RecordingsResource(Resource):
           * ``302 Found`` — archived to S3; the SDK follows the presigned URL.
           * ``410 Gone`` — local file gone AND no S3 key. Raises :class:`voiceml.GoneError`.
         """
-        status, content, headers = self._t.fetch_bytes(
-            self._path("Recordings", recording_sid + ".wav")
+        result = self._t.fetch_bytes(
+            account_path(self._acct, "Recordings", recording_sid, suffix=".wav"),
+            accept=AUDIO_ACCEPT,
         )
         return RecordingAudio(
             sid=recording_sid,
-            content=content,
-            content_type=headers.get("content-type", "application/octet-stream"),
-            via_redirect=status == 200 and "x-amz-id-2" in headers,
+            content=result.content,
+            content_type=result.headers.get("content-type", "application/octet-stream"),
+            via_redirect=result.redirected,
         )
 
     def delete(self, recording_sid: str) -> None:
         self._t.request("DELETE", self._path("Recordings", recording_sid))
+
+    # --- Transcriptions of a recording ---
+
+    def list_transcriptions(
+        self,
+        recording_sid: str,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> RecordingTranscriptionList:
+        return RecordingTranscriptionList.model_validate(
+            self._t.request(
+                "GET",
+                self._path("Recordings", recording_sid, "Transcriptions"),
+                params=transcription_list_params(
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    def get_transcription(
+        self, recording_sid: str, transcription_sid: str
+    ) -> RecordingTranscription:
+        return RecordingTranscription.model_validate(
+            self._t.request(
+                "GET",
+                self._path("Recordings", recording_sid, "Transcriptions", transcription_sid),
+            )
+        )
+
+    def delete_transcription(self, recording_sid: str, transcription_sid: str) -> None:
+        self._t.request(
+            "DELETE",
+            self._path("Recordings", recording_sid, "Transcriptions", transcription_sid),
+        )
 
 
 class RecordingsAsyncResource(AsyncResource):
@@ -170,6 +221,34 @@ class RecordingsAsyncResource(AsyncResource):
             )
         )
 
+    async def iter(
+        self,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        call_sid: str | None = None,
+        conference_sid: str | None = None,
+        include_soft_deleted: bool | None = None,
+        page_size: int | None = None,
+    ) -> AsyncIterator[Recording]:
+        """Lazily yield recordings, following ``next_page_uri`` page by page.
+
+        One request per page, issued as the iterator is consumed; stopping early
+        issues no further requests.
+        """
+        first = await self.list(
+            date_created=date_created,
+            date_created_lt=date_created_lt,
+            date_created_gt=date_created_gt,
+            call_sid=call_sid,
+            conference_sid=conference_sid,
+            include_soft_deleted=include_soft_deleted,
+            page_size=page_size,
+        )
+        async for item in self._paginate(first):
+            yield item
+
     async def get(
         self, recording_sid: str, *, include_soft_deleted: bool | None = None
     ) -> Recording:
@@ -182,15 +261,60 @@ class RecordingsAsyncResource(AsyncResource):
         )
 
     async def get_audio(self, recording_sid: str) -> RecordingAudio:
-        status, content, headers = await self._t.fetch_bytes(
-            self._path("Recordings", recording_sid + ".wav")
+        result = await self._t.fetch_bytes(
+            account_path(self._acct, "Recordings", recording_sid, suffix=".wav"),
+            accept=AUDIO_ACCEPT,
         )
         return RecordingAudio(
             sid=recording_sid,
-            content=content,
-            content_type=headers.get("content-type", "application/octet-stream"),
-            via_redirect=status == 200 and "x-amz-id-2" in headers,
+            content=result.content,
+            content_type=result.headers.get("content-type", "application/octet-stream"),
+            via_redirect=result.redirected,
         )
 
     async def delete(self, recording_sid: str) -> None:
         await self._t.request("DELETE", self._path("Recordings", recording_sid))
+
+    # --- Transcriptions of a recording ---
+
+    async def list_transcriptions(
+        self,
+        recording_sid: str,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> RecordingTranscriptionList:
+        return RecordingTranscriptionList.model_validate(
+            await self._t.request(
+                "GET",
+                self._path("Recordings", recording_sid, "Transcriptions"),
+                params=transcription_list_params(
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    async def get_transcription(
+        self, recording_sid: str, transcription_sid: str
+    ) -> RecordingTranscription:
+        return RecordingTranscription.model_validate(
+            await self._t.request(
+                "GET",
+                self._path("Recordings", recording_sid, "Transcriptions", transcription_sid),
+            )
+        )
+
+    async def delete_transcription(self, recording_sid: str, transcription_sid: str) -> None:
+        await self._t.request(
+            "DELETE",
+            self._path("Recordings", recording_sid, "Transcriptions", transcription_sid),
+        )

@@ -1,17 +1,13 @@
-"""Twilio response-shape conformance tests (#256 Phase C).
+"""Response-shape conformance against the private fixture corpus.
 
-SKIPPED unless ``VOICEML_CONFORMANCE_FIXTURES`` points at a fixture corpus
-emitted by callBroadcast's ``cmd/twilio-conformance-fixtures``. The harness
-loads each canonical Twilio response example from the corpus and validates
-it against the matching Pydantic model. If validation fails, the SDK's
-model has drifted from Twilio's documented shape — fix the SDK, not the
-fixture.
+SKIPPED (with a visible reason) unless ``VOICEML_CONFORMANCE_FIXTURES`` points at
+a fixture corpus emitted by callBroadcast's ``cmd/twilio-conformance-fixtures``.
+The harness loads each canonical response example from the corpus and validates
+it against the matching Pydantic model. If validation fails, the SDK's model has
+drifted from the documented shape — fix the SDK, not the fixture.
 
-Mirrors the Go SDK's ``conformance_test.go`` (voiceml-go-sdk@d6ac75c):
-same fixture set, same operation-id → model mapping. The Go SDK passes
-132/132; this harness should track the same denominator (modulo SDK
-feature gaps — e.g. Messages isn't yet in this SDK, so those fixtures
-are skipped rather than failed).
+The public, always-on equivalent is ``tests/contract``: it validates every SDK
+method against the vendored OpenAPI document.
 
 Run:
 
@@ -32,8 +28,10 @@ import pytest
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from voiceml.models import (
+    Account,
     Application,
     ApplicationList,
+    Balance,
     Call,
     CallList,
     CallPayment,
@@ -43,9 +41,14 @@ from voiceml.models import (
     EventsList,
     IncomingPhoneNumber,
     IncomingPhoneNumberList,
+    Media,
+    MediaList,
     Message,
     MessageList,
+    Notification,
     NotificationsList,
+    OutgoingCallerId,
+    OutgoingCallerIdList,
     Participant,
     ParticipantList,
     Queue,
@@ -54,6 +57,8 @@ from voiceml.models import (
     QueueMemberList,
     Recording,
     RecordingList,
+    RecordingTranscription,
+    RecordingTranscriptionList,
     SipAuthMappingList,
     SipCredential,
     SipCredentialList,
@@ -70,6 +75,7 @@ from voiceml.models import (
     SipIpAddressList,
     SiprecSession,
     Stream,
+    ValidationRequest,
 )
 
 
@@ -204,35 +210,34 @@ _OP_TO_MODEL: dict[str, type[BaseModel]] = {
     "CreateSipAuthRegistrationsCredentialListMapping": SipDomainMapping,
     "FetchSipAuthRegistrationsCredentialListMapping": SipDomainMapping,
     "ListSipAuthRegistrationsCredentialListMapping": SipAuthMappingList,
-    # Compat surfaces the SDK does not field-model — validate as raw JSON
-    # objects so the wire shape is at least confirmed valid, matching the
-    # Go SDK's ``map[string]any`` posture for these operations.
-    "FetchAccount": _RawJsonObject,
-    "UpdateAccount": _RawJsonObject,
-    "FetchBalance": _RawJsonObject,
-    "FetchCallNotification": _RawJsonObject,
-    "FetchNotification": _RawJsonObject,
+    "FetchAccount": Account,
+    "UpdateAccount": Account,
+    "FetchBalance": Balance,
+    "FetchCallNotification": Notification,
+    "FetchNotification": Notification,
+    # UserDefinedMessages is a 501 stub on the server; validate the error body shape.
     "CreateUserDefinedMessage": _RawJsonObject,
-    "FetchOutgoingCallerId": _RawJsonObject,
-    "ListOutgoingCallerId": _RawJsonObject,
-    "UpdateOutgoingCallerId": _RawJsonObject,
-    "CreateValidationRequest": _RawJsonObject,
-    "FetchMedia": _RawJsonObject,
-    "ListMedia": _RawJsonObject,
-    # Recording-side transcriptions are a distinct resource from the live
-    # CallTranscription (REST companion to ``<Start><Transcription>``)
-    # the SDK exposes; the recording-transcription wire shape carries
-    # ``duration``, ``transcription_text``, ``type`` and friends.
-    "FetchRecordingTranscription": _RawJsonObject,
-    "ListRecordingTranscription": _RawJsonObject,
-    "FetchTranscription": _RawJsonObject,
-    "ListTranscription": _RawJsonObject,
+    "FetchOutgoingCallerId": OutgoingCallerId,
+    "ListOutgoingCallerId": OutgoingCallerIdList,
+    "UpdateOutgoingCallerId": OutgoingCallerId,
+    "CreateValidationRequest": ValidationRequest,
+    "FetchMedia": Media,
+    "ListMedia": MediaList,
+    # Recording transcriptions (``TR…``) are distinct from the live CallTranscription
+    # resource started with ``calls.start_transcription``.
+    "FetchRecordingTranscription": RecordingTranscription,
+    "ListRecordingTranscription": RecordingTranscriptionList,
+    "FetchTranscription": RecordingTranscription,
+    "ListTranscription": RecordingTranscriptionList,
 }
 
 
 pytestmark = pytest.mark.skipif(
     _index_path() is None,
-    reason=f"{FIXTURES_ENV} not set or fixture index missing",
+    reason=(
+        f"private conformance corpus not available: set {FIXTURES_ENV} to the "
+        "callBroadcast cmd/twilio-conformance-fixtures/fixtures directory"
+    ),
 )
 
 

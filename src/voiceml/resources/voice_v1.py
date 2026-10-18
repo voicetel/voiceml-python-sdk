@@ -1,4 +1,4 @@
-"""``/v1/*`` REST surface — Twilio Voice v1 (voice.twilio.com/v1).
+"""``/v1/*`` REST surface — Twilio-compatible Voice v1.
 
 Six sub-resources live under ``client.voice_v1``:
 
@@ -17,6 +17,7 @@ prepends the AccountSid namespace.
 
 from __future__ import annotations
 
+from .._http import AsyncTransport, Transport
 from ..models import (
     CreateVoiceV1ByocTrunkRequest,
     CreateVoiceV1ConnectionPolicyRequest,
@@ -41,6 +42,8 @@ from ..models import (
     VoiceV1SourceIpMapping,
     VoiceV1SourceIpMappingList,
 )
+from ..models.calls import HttpMethod
+from ._base import path
 
 
 def _page_params(*, page_size: int | None) -> dict[str, object]:
@@ -55,7 +58,7 @@ def _page_params(*, page_size: int | None) -> dict[str, object]:
 class VoiceV1IpRecordsResource:
     """Operations on ``/v1/IpRecords`` (sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def create(
@@ -66,96 +69,86 @@ class VoiceV1IpRecordsResource:
         cidr_prefix_length: int | None = None,
     ) -> VoiceV1IpRecord:
         body = CreateVoiceV1IpRecordRequest(
-            IpAddress=ip_address,
-            FriendlyName=friendly_name,
-            CidrPrefixLength=cidr_prefix_length,
+            ip_address=ip_address,
+            friendly_name=friendly_name,
+            cidr_prefix_length=cidr_prefix_length,
         ).to_form()
         return VoiceV1IpRecord.model_validate(
-            self._t.request("POST", "/v1/IpRecords", data=body)
+            self._t.request("POST", path("v1", "IpRecords"), data=body)
         )
 
     def list(self, *, page_size: int | None = None) -> VoiceV1IpRecordList:
         return VoiceV1IpRecordList.model_validate(
             self._t.request(
-                "GET", "/v1/IpRecords", params=_page_params(page_size=page_size)
+                "GET", path("v1", "IpRecords"), params=_page_params(page_size=page_size)
             )
         )
 
     def fetch(self, sid: str) -> VoiceV1IpRecord:
-        return VoiceV1IpRecord.model_validate(
-            self._t.request("GET", f"/v1/IpRecords/{sid}")
-        )
+        return VoiceV1IpRecord.model_validate(self._t.request("GET", path("v1", "IpRecords", sid)))
 
-    def update(
-        self, sid: str, *, friendly_name: str | None = None
-    ) -> VoiceV1IpRecord:
-        body = UpdateVoiceV1IpRecordRequest(FriendlyName=friendly_name).to_form()
+    def update(self, sid: str, *, friendly_name: str | None = None) -> VoiceV1IpRecord:
+        body = UpdateVoiceV1IpRecordRequest(friendly_name=friendly_name).to_form()
         return VoiceV1IpRecord.model_validate(
-            self._t.request("POST", f"/v1/IpRecords/{sid}", data=body)
+            self._t.request("POST", path("v1", "IpRecords", sid), data=body)
         )
 
     def delete(self, sid: str) -> None:
-        self._t.request("DELETE", f"/v1/IpRecords/{sid}")
+        self._t.request("DELETE", path("v1", "IpRecords", sid))
 
 
 class VoiceV1SourceIpMappingsResource:
     """Operations on ``/v1/SourceIpMappings`` (sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
-    def create(
-        self, *, ip_record_sid: str, sip_domain_sid: str
-    ) -> VoiceV1SourceIpMapping:
+    def create(self, *, ip_record_sid: str, sip_domain_sid: str) -> VoiceV1SourceIpMapping:
         body = CreateVoiceV1SourceIpMappingRequest(
-            IpRecordSid=ip_record_sid, SipDomainSid=sip_domain_sid
+            ip_record_sid=ip_record_sid, sip_domain_sid=sip_domain_sid
         ).to_form()
         return VoiceV1SourceIpMapping.model_validate(
-            self._t.request("POST", "/v1/SourceIpMappings", data=body)
+            self._t.request("POST", path("v1", "SourceIpMappings"), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> VoiceV1SourceIpMappingList:
+    def list(self, *, page_size: int | None = None) -> VoiceV1SourceIpMappingList:
         return VoiceV1SourceIpMappingList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/SourceIpMappings",
+                path("v1", "SourceIpMappings"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     def fetch(self, sid: str) -> VoiceV1SourceIpMapping:
         return VoiceV1SourceIpMapping.model_validate(
-            self._t.request("GET", f"/v1/SourceIpMappings/{sid}")
+            self._t.request("GET", path("v1", "SourceIpMappings", sid))
         )
 
     def update(self, sid: str, *, sip_domain_sid: str) -> VoiceV1SourceIpMapping:
-        body = UpdateVoiceV1SourceIpMappingRequest(
-            SipDomainSid=sip_domain_sid
-        ).to_form()
+        body = UpdateVoiceV1SourceIpMappingRequest(sip_domain_sid=sip_domain_sid).to_form()
         return VoiceV1SourceIpMapping.model_validate(
-            self._t.request("POST", f"/v1/SourceIpMappings/{sid}", data=body)
+            self._t.request("POST", path("v1", "SourceIpMappings", sid), data=body)
         )
 
     def delete(self, sid: str) -> None:
-        self._t.request("DELETE", f"/v1/SourceIpMappings/{sid}")
+        self._t.request("DELETE", path("v1", "SourceIpMappings", sid))
 
 
 def _byoc_trunk_create_form(
     **kwargs: object,
 ) -> dict[str, object]:
     return CreateVoiceV1ByocTrunkRequest(
-        FriendlyName=kwargs.get("friendly_name"),
-        VoiceUrl=kwargs.get("voice_url"),
-        VoiceMethod=kwargs.get("voice_method"),
-        VoiceFallbackUrl=kwargs.get("voice_fallback_url"),
-        VoiceFallbackMethod=kwargs.get("voice_fallback_method"),
-        StatusCallbackUrl=kwargs.get("status_callback_url"),
-        StatusCallbackMethod=kwargs.get("status_callback_method"),
-        CnamLookupEnabled=kwargs.get("cnam_lookup_enabled"),
-        ConnectionPolicySid=kwargs.get("connection_policy_sid"),
-        FromDomainSid=kwargs.get("from_domain_sid"),
+        friendly_name=kwargs.get("friendly_name"),
+        voice_url=kwargs.get("voice_url"),
+        voice_method=kwargs.get("voice_method"),
+        voice_fallback_url=kwargs.get("voice_fallback_url"),
+        voice_fallback_method=kwargs.get("voice_fallback_method"),
+        status_callback_url=kwargs.get("status_callback_url"),
+        status_callback_method=kwargs.get("status_callback_method"),
+        cnam_lookup_enabled=kwargs.get("cnam_lookup_enabled"),
+        connection_policy_sid=kwargs.get("connection_policy_sid"),
+        from_domain_sid=kwargs.get("from_domain_sid"),
     ).to_form()
 
 
@@ -163,23 +156,23 @@ def _byoc_trunk_update_form(
     **kwargs: object,
 ) -> dict[str, object]:
     return UpdateVoiceV1ByocTrunkRequest(
-        FriendlyName=kwargs.get("friendly_name"),
-        VoiceUrl=kwargs.get("voice_url"),
-        VoiceMethod=kwargs.get("voice_method"),
-        VoiceFallbackUrl=kwargs.get("voice_fallback_url"),
-        VoiceFallbackMethod=kwargs.get("voice_fallback_method"),
-        StatusCallbackUrl=kwargs.get("status_callback_url"),
-        StatusCallbackMethod=kwargs.get("status_callback_method"),
-        CnamLookupEnabled=kwargs.get("cnam_lookup_enabled"),
-        ConnectionPolicySid=kwargs.get("connection_policy_sid"),
-        FromDomainSid=kwargs.get("from_domain_sid"),
+        friendly_name=kwargs.get("friendly_name"),
+        voice_url=kwargs.get("voice_url"),
+        voice_method=kwargs.get("voice_method"),
+        voice_fallback_url=kwargs.get("voice_fallback_url"),
+        voice_fallback_method=kwargs.get("voice_fallback_method"),
+        status_callback_url=kwargs.get("status_callback_url"),
+        status_callback_method=kwargs.get("status_callback_method"),
+        cnam_lookup_enabled=kwargs.get("cnam_lookup_enabled"),
+        connection_policy_sid=kwargs.get("connection_policy_sid"),
+        from_domain_sid=kwargs.get("from_domain_sid"),
     ).to_form()
 
 
 class VoiceV1ByocTrunksResource:
     """Operations on ``/v1/ByocTrunks`` (sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def create(
@@ -187,11 +180,11 @@ class VoiceV1ByocTrunksResource:
         *,
         friendly_name: str | None = None,
         voice_url: str | None = None,
-        voice_method: str | None = None,
+        voice_method: HttpMethod | None = None,
         voice_fallback_url: str | None = None,
-        voice_fallback_method: str | None = None,
+        voice_fallback_method: HttpMethod | None = None,
         status_callback_url: str | None = None,
-        status_callback_method: str | None = None,
+        status_callback_method: HttpMethod | None = None,
         cnam_lookup_enabled: bool | None = None,
         connection_policy_sid: str | None = None,
         from_domain_sid: str | None = None,
@@ -199,7 +192,7 @@ class VoiceV1ByocTrunksResource:
         return VoiceV1ByocTrunk.model_validate(
             self._t.request(
                 "POST",
-                "/v1/ByocTrunks",
+                path("v1", "ByocTrunks"),
                 data=_byoc_trunk_create_form(
                     friendly_name=friendly_name,
                     voice_url=voice_url,
@@ -218,13 +211,13 @@ class VoiceV1ByocTrunksResource:
     def list(self, *, page_size: int | None = None) -> VoiceV1ByocTrunkList:
         return VoiceV1ByocTrunkList.model_validate(
             self._t.request(
-                "GET", "/v1/ByocTrunks", params=_page_params(page_size=page_size)
+                "GET", path("v1", "ByocTrunks"), params=_page_params(page_size=page_size)
             )
         )
 
     def fetch(self, sid: str) -> VoiceV1ByocTrunk:
         return VoiceV1ByocTrunk.model_validate(
-            self._t.request("GET", f"/v1/ByocTrunks/{sid}")
+            self._t.request("GET", path("v1", "ByocTrunks", sid))
         )
 
     def update(
@@ -233,11 +226,11 @@ class VoiceV1ByocTrunksResource:
         *,
         friendly_name: str | None = None,
         voice_url: str | None = None,
-        voice_method: str | None = None,
+        voice_method: HttpMethod | None = None,
         voice_fallback_url: str | None = None,
-        voice_fallback_method: str | None = None,
+        voice_fallback_method: HttpMethod | None = None,
         status_callback_url: str | None = None,
-        status_callback_method: str | None = None,
+        status_callback_method: HttpMethod | None = None,
         cnam_lookup_enabled: bool | None = None,
         connection_policy_sid: str | None = None,
         from_domain_sid: str | None = None,
@@ -245,7 +238,7 @@ class VoiceV1ByocTrunksResource:
         return VoiceV1ByocTrunk.model_validate(
             self._t.request(
                 "POST",
-                f"/v1/ByocTrunks/{sid}",
+                path("v1", "ByocTrunks", sid),
                 data=_byoc_trunk_update_form(
                     friendly_name=friendly_name,
                     voice_url=voice_url,
@@ -262,19 +255,19 @@ class VoiceV1ByocTrunksResource:
         )
 
     def delete(self, sid: str) -> None:
-        self._t.request("DELETE", f"/v1/ByocTrunks/{sid}")
+        self._t.request("DELETE", path("v1", "ByocTrunks", sid))
 
 
 class _VoiceV1ConnectionPolicyTargetsResource:
     """Per-policy ``/v1/ConnectionPolicies/{Sid}/Targets`` operations (sync)."""
 
-    def __init__(self, transport: object, connection_policy_sid: str) -> None:
+    def __init__(self, transport: Transport, connection_policy_sid: str) -> None:
         self._t = transport
         self._policy_sid = connection_policy_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "ConnectionPolicies", self._policy_sid, "Targets", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     def create(
         self,
@@ -286,29 +279,23 @@ class _VoiceV1ConnectionPolicyTargetsResource:
         enabled: bool | None = None,
     ) -> VoiceV1ConnectionPolicyTarget:
         body = CreateVoiceV1ConnectionPolicyTargetRequest(
-            Target=target,
-            FriendlyName=friendly_name,
-            Priority=priority,
-            Weight=weight,
-            Enabled=enabled,
+            target=target,
+            friendly_name=friendly_name,
+            priority=priority,
+            weight=weight,
+            enabled=enabled,
         ).to_form()
         return VoiceV1ConnectionPolicyTarget.model_validate(
             self._t.request("POST", self._root(), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> VoiceV1ConnectionPolicyTargetList:
+    def list(self, *, page_size: int | None = None) -> VoiceV1ConnectionPolicyTargetList:
         return VoiceV1ConnectionPolicyTargetList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def fetch(self, sid: str) -> VoiceV1ConnectionPolicyTarget:
-        return VoiceV1ConnectionPolicyTarget.model_validate(
-            self._t.request("GET", self._root(sid))
-        )
+        return VoiceV1ConnectionPolicyTarget.model_validate(self._t.request("GET", self._root(sid)))
 
     def update(
         self,
@@ -321,11 +308,11 @@ class _VoiceV1ConnectionPolicyTargetsResource:
         enabled: bool | None = None,
     ) -> VoiceV1ConnectionPolicyTarget:
         body = UpdateVoiceV1ConnectionPolicyTargetRequest(
-            FriendlyName=friendly_name,
-            Target=target,
-            Priority=priority,
-            Weight=weight,
-            Enabled=enabled,
+            friendly_name=friendly_name,
+            target=target,
+            priority=priority,
+            weight=weight,
+            enabled=enabled,
         ).to_form()
         return VoiceV1ConnectionPolicyTarget.model_validate(
             self._t.request("POST", self._root(sid), data=body)
@@ -338,83 +325,69 @@ class _VoiceV1ConnectionPolicyTargetsResource:
 class VoiceV1ConnectionPoliciesResource:
     """Operations on ``/v1/ConnectionPolicies`` (sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
-    def create(
-        self, *, friendly_name: str | None = None
-    ) -> VoiceV1ConnectionPolicy:
-        body = CreateVoiceV1ConnectionPolicyRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+    def create(self, *, friendly_name: str | None = None) -> VoiceV1ConnectionPolicy:
+        body = CreateVoiceV1ConnectionPolicyRequest(friendly_name=friendly_name).to_form()
         return VoiceV1ConnectionPolicy.model_validate(
-            self._t.request("POST", "/v1/ConnectionPolicies", data=body)
+            self._t.request("POST", path("v1", "ConnectionPolicies"), data=body)
         )
 
-    def list(
-        self, *, page_size: int | None = None
-    ) -> VoiceV1ConnectionPolicyList:
+    def list(self, *, page_size: int | None = None) -> VoiceV1ConnectionPolicyList:
         return VoiceV1ConnectionPolicyList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/ConnectionPolicies",
+                path("v1", "ConnectionPolicies"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     def fetch(self, sid: str) -> VoiceV1ConnectionPolicy:
         return VoiceV1ConnectionPolicy.model_validate(
-            self._t.request("GET", f"/v1/ConnectionPolicies/{sid}")
+            self._t.request("GET", path("v1", "ConnectionPolicies", sid))
         )
 
-    def update(
-        self, sid: str, *, friendly_name: str | None = None
-    ) -> VoiceV1ConnectionPolicy:
-        body = UpdateVoiceV1ConnectionPolicyRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+    def update(self, sid: str, *, friendly_name: str | None = None) -> VoiceV1ConnectionPolicy:
+        body = UpdateVoiceV1ConnectionPolicyRequest(friendly_name=friendly_name).to_form()
         return VoiceV1ConnectionPolicy.model_validate(
-            self._t.request("POST", f"/v1/ConnectionPolicies/{sid}", data=body)
+            self._t.request("POST", path("v1", "ConnectionPolicies", sid), data=body)
         )
 
     def delete(self, sid: str) -> None:
-        self._t.request("DELETE", f"/v1/ConnectionPolicies/{sid}")
+        self._t.request("DELETE", path("v1", "ConnectionPolicies", sid))
 
-    def targets(
-        self, connection_policy_sid: str
-    ) -> _VoiceV1ConnectionPolicyTargetsResource:
+    def targets(self, connection_policy_sid: str) -> _VoiceV1ConnectionPolicyTargetsResource:
         """Sub-resource for the policy's :class:`VoiceV1ConnectionPolicyTarget` rows."""
-        return _VoiceV1ConnectionPolicyTargetsResource(
-            self._t, connection_policy_sid
-        )
+        return _VoiceV1ConnectionPolicyTargetsResource(self._t, connection_policy_sid)
 
 
 class VoiceV1SettingsResource:
     """Operations on ``/v1/Settings`` (DialingPermissions; sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def fetch(self) -> VoiceV1DialingPermissionsSettings:
         return VoiceV1DialingPermissionsSettings.model_validate(
-            self._t.request("GET", "/v1/Settings")
+            self._t.request("GET", path("v1", "Settings"))
         )
 
     def update(
         self, *, dialing_permissions_inheritance: bool | None = None
     ) -> VoiceV1DialingPermissionsSettings:
         body = UpdateVoiceV1DialingPermissionsSettingsRequest(
-            DialingPermissionsInheritance=dialing_permissions_inheritance
+            dialing_permissions_inheritance=dialing_permissions_inheritance
         ).to_form()
         return VoiceV1DialingPermissionsSettings.model_validate(
-            self._t.request("POST", "/v1/Settings", data=body)
+            self._t.request("POST", path("v1", "Settings"), data=body)
         )
 
 
 class VoiceV1Resource:
     """Holder for ``client.voice_v1.*`` sub-resources (sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self.byoc_trunks = VoiceV1ByocTrunksResource(transport)
         self.connection_policies = VoiceV1ConnectionPoliciesResource(transport)
         self.settings = VoiceV1SettingsResource(transport)
@@ -428,7 +401,7 @@ class VoiceV1Resource:
 
 
 class VoiceV1IpRecordsAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     async def create(
@@ -439,86 +412,74 @@ class VoiceV1IpRecordsAsyncResource:
         cidr_prefix_length: int | None = None,
     ) -> VoiceV1IpRecord:
         body = CreateVoiceV1IpRecordRequest(
-            IpAddress=ip_address,
-            FriendlyName=friendly_name,
-            CidrPrefixLength=cidr_prefix_length,
+            ip_address=ip_address,
+            friendly_name=friendly_name,
+            cidr_prefix_length=cidr_prefix_length,
         ).to_form()
         return VoiceV1IpRecord.model_validate(
-            await self._t.request("POST", "/v1/IpRecords", data=body)
+            await self._t.request("POST", path("v1", "IpRecords"), data=body)
         )
 
     async def list(self, *, page_size: int | None = None) -> VoiceV1IpRecordList:
         return VoiceV1IpRecordList.model_validate(
             await self._t.request(
-                "GET", "/v1/IpRecords", params=_page_params(page_size=page_size)
+                "GET", path("v1", "IpRecords"), params=_page_params(page_size=page_size)
             )
         )
 
     async def fetch(self, sid: str) -> VoiceV1IpRecord:
         return VoiceV1IpRecord.model_validate(
-            await self._t.request("GET", f"/v1/IpRecords/{sid}")
+            await self._t.request("GET", path("v1", "IpRecords", sid))
         )
 
-    async def update(
-        self, sid: str, *, friendly_name: str | None = None
-    ) -> VoiceV1IpRecord:
-        body = UpdateVoiceV1IpRecordRequest(FriendlyName=friendly_name).to_form()
+    async def update(self, sid: str, *, friendly_name: str | None = None) -> VoiceV1IpRecord:
+        body = UpdateVoiceV1IpRecordRequest(friendly_name=friendly_name).to_form()
         return VoiceV1IpRecord.model_validate(
-            await self._t.request("POST", f"/v1/IpRecords/{sid}", data=body)
+            await self._t.request("POST", path("v1", "IpRecords", sid), data=body)
         )
 
     async def delete(self, sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/IpRecords/{sid}")
+        await self._t.request("DELETE", path("v1", "IpRecords", sid))
 
 
 class VoiceV1SourceIpMappingsAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
-    async def create(
-        self, *, ip_record_sid: str, sip_domain_sid: str
-    ) -> VoiceV1SourceIpMapping:
+    async def create(self, *, ip_record_sid: str, sip_domain_sid: str) -> VoiceV1SourceIpMapping:
         body = CreateVoiceV1SourceIpMappingRequest(
-            IpRecordSid=ip_record_sid, SipDomainSid=sip_domain_sid
+            ip_record_sid=ip_record_sid, sip_domain_sid=sip_domain_sid
         ).to_form()
         return VoiceV1SourceIpMapping.model_validate(
-            await self._t.request("POST", "/v1/SourceIpMappings", data=body)
+            await self._t.request("POST", path("v1", "SourceIpMappings"), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> VoiceV1SourceIpMappingList:
+    async def list(self, *, page_size: int | None = None) -> VoiceV1SourceIpMappingList:
         return VoiceV1SourceIpMappingList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/SourceIpMappings",
+                path("v1", "SourceIpMappings"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     async def fetch(self, sid: str) -> VoiceV1SourceIpMapping:
         return VoiceV1SourceIpMapping.model_validate(
-            await self._t.request("GET", f"/v1/SourceIpMappings/{sid}")
+            await self._t.request("GET", path("v1", "SourceIpMappings", sid))
         )
 
-    async def update(
-        self, sid: str, *, sip_domain_sid: str
-    ) -> VoiceV1SourceIpMapping:
-        body = UpdateVoiceV1SourceIpMappingRequest(
-            SipDomainSid=sip_domain_sid
-        ).to_form()
+    async def update(self, sid: str, *, sip_domain_sid: str) -> VoiceV1SourceIpMapping:
+        body = UpdateVoiceV1SourceIpMappingRequest(sip_domain_sid=sip_domain_sid).to_form()
         return VoiceV1SourceIpMapping.model_validate(
-            await self._t.request(
-                "POST", f"/v1/SourceIpMappings/{sid}", data=body
-            )
+            await self._t.request("POST", path("v1", "SourceIpMappings", sid), data=body)
         )
 
     async def delete(self, sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/SourceIpMappings/{sid}")
+        await self._t.request("DELETE", path("v1", "SourceIpMappings", sid))
 
 
 class VoiceV1ByocTrunksAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     async def create(
@@ -526,11 +487,11 @@ class VoiceV1ByocTrunksAsyncResource:
         *,
         friendly_name: str | None = None,
         voice_url: str | None = None,
-        voice_method: str | None = None,
+        voice_method: HttpMethod | None = None,
         voice_fallback_url: str | None = None,
-        voice_fallback_method: str | None = None,
+        voice_fallback_method: HttpMethod | None = None,
         status_callback_url: str | None = None,
-        status_callback_method: str | None = None,
+        status_callback_method: HttpMethod | None = None,
         cnam_lookup_enabled: bool | None = None,
         connection_policy_sid: str | None = None,
         from_domain_sid: str | None = None,
@@ -538,7 +499,7 @@ class VoiceV1ByocTrunksAsyncResource:
         return VoiceV1ByocTrunk.model_validate(
             await self._t.request(
                 "POST",
-                "/v1/ByocTrunks",
+                path("v1", "ByocTrunks"),
                 data=_byoc_trunk_create_form(
                     friendly_name=friendly_name,
                     voice_url=voice_url,
@@ -554,18 +515,16 @@ class VoiceV1ByocTrunksAsyncResource:
             )
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> VoiceV1ByocTrunkList:
+    async def list(self, *, page_size: int | None = None) -> VoiceV1ByocTrunkList:
         return VoiceV1ByocTrunkList.model_validate(
             await self._t.request(
-                "GET", "/v1/ByocTrunks", params=_page_params(page_size=page_size)
+                "GET", path("v1", "ByocTrunks"), params=_page_params(page_size=page_size)
             )
         )
 
     async def fetch(self, sid: str) -> VoiceV1ByocTrunk:
         return VoiceV1ByocTrunk.model_validate(
-            await self._t.request("GET", f"/v1/ByocTrunks/{sid}")
+            await self._t.request("GET", path("v1", "ByocTrunks", sid))
         )
 
     async def update(
@@ -574,11 +533,11 @@ class VoiceV1ByocTrunksAsyncResource:
         *,
         friendly_name: str | None = None,
         voice_url: str | None = None,
-        voice_method: str | None = None,
+        voice_method: HttpMethod | None = None,
         voice_fallback_url: str | None = None,
-        voice_fallback_method: str | None = None,
+        voice_fallback_method: HttpMethod | None = None,
         status_callback_url: str | None = None,
-        status_callback_method: str | None = None,
+        status_callback_method: HttpMethod | None = None,
         cnam_lookup_enabled: bool | None = None,
         connection_policy_sid: str | None = None,
         from_domain_sid: str | None = None,
@@ -586,7 +545,7 @@ class VoiceV1ByocTrunksAsyncResource:
         return VoiceV1ByocTrunk.model_validate(
             await self._t.request(
                 "POST",
-                f"/v1/ByocTrunks/{sid}",
+                path("v1", "ByocTrunks", sid),
                 data=_byoc_trunk_update_form(
                     friendly_name=friendly_name,
                     voice_url=voice_url,
@@ -603,17 +562,17 @@ class VoiceV1ByocTrunksAsyncResource:
         )
 
     async def delete(self, sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/ByocTrunks/{sid}")
+        await self._t.request("DELETE", path("v1", "ByocTrunks", sid))
 
 
 class _VoiceV1ConnectionPolicyTargetsAsyncResource:
-    def __init__(self, transport: object, connection_policy_sid: str) -> None:
+    def __init__(self, transport: AsyncTransport, connection_policy_sid: str) -> None:
         self._t = transport
         self._policy_sid = connection_policy_sid
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "ConnectionPolicies", self._policy_sid, "Targets", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     async def create(
         self,
@@ -625,23 +584,19 @@ class _VoiceV1ConnectionPolicyTargetsAsyncResource:
         enabled: bool | None = None,
     ) -> VoiceV1ConnectionPolicyTarget:
         body = CreateVoiceV1ConnectionPolicyTargetRequest(
-            Target=target,
-            FriendlyName=friendly_name,
-            Priority=priority,
-            Weight=weight,
-            Enabled=enabled,
+            target=target,
+            friendly_name=friendly_name,
+            priority=priority,
+            weight=weight,
+            enabled=enabled,
         ).to_form()
         return VoiceV1ConnectionPolicyTarget.model_validate(
             await self._t.request("POST", self._root(), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> VoiceV1ConnectionPolicyTargetList:
+    async def list(self, *, page_size: int | None = None) -> VoiceV1ConnectionPolicyTargetList:
         return VoiceV1ConnectionPolicyTargetList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     async def fetch(self, sid: str) -> VoiceV1ConnectionPolicyTarget:
@@ -660,11 +615,11 @@ class _VoiceV1ConnectionPolicyTargetsAsyncResource:
         enabled: bool | None = None,
     ) -> VoiceV1ConnectionPolicyTarget:
         body = UpdateVoiceV1ConnectionPolicyTargetRequest(
-            FriendlyName=friendly_name,
-            Target=target,
-            Priority=priority,
-            Weight=weight,
-            Enabled=enabled,
+            friendly_name=friendly_name,
+            target=target,
+            priority=priority,
+            weight=weight,
+            enabled=enabled,
         ).to_form()
         return VoiceV1ConnectionPolicyTarget.model_validate(
             await self._t.request("POST", self._root(sid), data=body)
@@ -675,82 +630,68 @@ class _VoiceV1ConnectionPolicyTargetsAsyncResource:
 
 
 class VoiceV1ConnectionPoliciesAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
-    async def create(
-        self, *, friendly_name: str | None = None
-    ) -> VoiceV1ConnectionPolicy:
-        body = CreateVoiceV1ConnectionPolicyRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+    async def create(self, *, friendly_name: str | None = None) -> VoiceV1ConnectionPolicy:
+        body = CreateVoiceV1ConnectionPolicyRequest(friendly_name=friendly_name).to_form()
         return VoiceV1ConnectionPolicy.model_validate(
-            await self._t.request("POST", "/v1/ConnectionPolicies", data=body)
+            await self._t.request("POST", path("v1", "ConnectionPolicies"), data=body)
         )
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> VoiceV1ConnectionPolicyList:
+    async def list(self, *, page_size: int | None = None) -> VoiceV1ConnectionPolicyList:
         return VoiceV1ConnectionPolicyList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/ConnectionPolicies",
+                path("v1", "ConnectionPolicies"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     async def fetch(self, sid: str) -> VoiceV1ConnectionPolicy:
         return VoiceV1ConnectionPolicy.model_validate(
-            await self._t.request("GET", f"/v1/ConnectionPolicies/{sid}")
+            await self._t.request("GET", path("v1", "ConnectionPolicies", sid))
         )
 
     async def update(
         self, sid: str, *, friendly_name: str | None = None
     ) -> VoiceV1ConnectionPolicy:
-        body = UpdateVoiceV1ConnectionPolicyRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+        body = UpdateVoiceV1ConnectionPolicyRequest(friendly_name=friendly_name).to_form()
         return VoiceV1ConnectionPolicy.model_validate(
-            await self._t.request(
-                "POST", f"/v1/ConnectionPolicies/{sid}", data=body
-            )
+            await self._t.request("POST", path("v1", "ConnectionPolicies", sid), data=body)
         )
 
     async def delete(self, sid: str) -> None:
-        await self._t.request("DELETE", f"/v1/ConnectionPolicies/{sid}")
+        await self._t.request("DELETE", path("v1", "ConnectionPolicies", sid))
 
-    def targets(
-        self, connection_policy_sid: str
-    ) -> _VoiceV1ConnectionPolicyTargetsAsyncResource:
-        return _VoiceV1ConnectionPolicyTargetsAsyncResource(
-            self._t, connection_policy_sid
-        )
+    def targets(self, connection_policy_sid: str) -> _VoiceV1ConnectionPolicyTargetsAsyncResource:
+        return _VoiceV1ConnectionPolicyTargetsAsyncResource(self._t, connection_policy_sid)
 
 
 class VoiceV1SettingsAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     async def fetch(self) -> VoiceV1DialingPermissionsSettings:
         return VoiceV1DialingPermissionsSettings.model_validate(
-            await self._t.request("GET", "/v1/Settings")
+            await self._t.request("GET", path("v1", "Settings"))
         )
 
     async def update(
         self, *, dialing_permissions_inheritance: bool | None = None
     ) -> VoiceV1DialingPermissionsSettings:
         body = UpdateVoiceV1DialingPermissionsSettingsRequest(
-            DialingPermissionsInheritance=dialing_permissions_inheritance
+            dialing_permissions_inheritance=dialing_permissions_inheritance
         ).to_form()
         return VoiceV1DialingPermissionsSettings.model_validate(
-            await self._t.request("POST", "/v1/Settings", data=body)
+            await self._t.request("POST", path("v1", "Settings"), data=body)
         )
 
 
 class VoiceV1AsyncResource:
     """Holder for ``client.voice_v1.*`` sub-resources (async)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self.byoc_trunks = VoiceV1ByocTrunksAsyncResource(transport)
         self.connection_policies = VoiceV1ConnectionPoliciesAsyncResource(transport)
         self.settings = VoiceV1SettingsAsyncResource(transport)

@@ -70,7 +70,6 @@ def test_auth_token_alias_works_like_api_key(httpx_mock: HTTPXMock):
             "calls": [_call_payload()],
             "page": 0,
             "page_size": 50,
-            "total": 1,
             "next_page_uri": None,
             "uri": "/x",
         },
@@ -123,7 +122,7 @@ def test_calls_create_sends_form_and_basic_auth(httpx_mock: HTTPXMock):
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         call = c.calls.create(
             CreateCallRequest(
-                To="+18005551234", From="+18005550000", Url="https://example.com/twiml"
+                To="+14155550100", From="+14155550101", Url="https://example.com/twiml"
             )
         )
     assert call.sid.startswith("CA")
@@ -139,12 +138,12 @@ def test_calls_create_sends_form_and_basic_auth(httpx_mock: HTTPXMock):
     # Form encoded
     assert sent.headers["Content-Type"].startswith("application/x-www-form-urlencoded")
     body = sent.content.decode()
-    assert "To=%2B18005551234" in body
-    assert "From=%2B18005550000" in body
+    assert "To=%2B14155550100" in body
+    assert "From=%2B14155550101" in body
     assert "Url=https%3A%2F%2Fexample.com%2Ftwiml" in body
 
 
-def test_calls_list_sends_twilio_shape_filter_params(httpx_mock: HTTPXMock):
+def test_calls_list_sends_only_spec_filter_params(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
         url=re.compile(r".*/Calls\.json(\?.*)?$"),
@@ -152,7 +151,6 @@ def test_calls_list_sends_twilio_shape_filter_params(httpx_mock: HTTPXMock):
             "calls": [_call_payload()],
             "page": 0,
             "page_size": 50,
-            "total": 1,
             "next_page_uri": None,
             "uri": "/Calls",
         },
@@ -160,8 +158,8 @@ def test_calls_list_sends_twilio_shape_filter_params(httpx_mock: HTTPXMock):
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         result = c.calls.list(
             status="completed",
-            start_time_gte="2026-01-01",
-            start_time_lte="2026-12-31",
+            start_time_gt="2026-01-01",
+            start_time_lt="2026-12-31",
             page_size=10,
         )
     assert isinstance(result, CallList)
@@ -169,12 +167,15 @@ def test_calls_list_sends_twilio_shape_filter_params(httpx_mock: HTTPXMock):
 
     sent = httpx_mock.get_request()
     assert sent is not None
-    query = sent.url.query.decode()
-    # Twilio uses literal `StartTime>=` / `StartTime<=` query names — they should round-trip.
-    assert "Status=completed" in query
-    assert "StartTime%3E%3D=2026-01-01" in query
-    assert "StartTime%3C%3D=2026-12-31" in query
-    assert "PageSize=10" in query
+    # Exact wire bytes: the spec defines StartTime, StartTime< and StartTime> only.
+    assert sent.url.query == (
+        b"Status=completed&StartTime%3C=2026-12-31&StartTime%3E=2026-01-01&PageSize=10"
+    )
+
+
+def test_calls_list_rejects_removed_filters():
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c, pytest.raises(TypeError):
+        c.calls.list(start_time_gte="2026-01-01")
 
 
 def test_calls_list_sends_page_token(httpx_mock: HTTPXMock):
@@ -185,7 +186,6 @@ def test_calls_list_sends_page_token(httpx_mock: HTTPXMock):
             "calls": [],
             "page": 0,
             "page_size": 50,
-            "total": 0,
             "next_page_uri": None,
             "uri": "/Calls",
         },
@@ -390,7 +390,7 @@ def test_501_user_defined_messages(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         with pytest.raises(NotImplementedAPIError):
-            c.calls.send_user_defined_message(sid, {"hello": "world"})
+            c.calls.send_user_defined_message(sid)
 
 
 def test_api_error_base_catches_all(httpx_mock: HTTPXMock):
@@ -415,7 +415,6 @@ async def test_async_client_works(httpx_mock: HTTPXMock):
             "calls": [_call_payload()],
             "page": 0,
             "page_size": 50,
-            "total": 1,
             "next_page_uri": None,
             "uri": "/x",
         },
@@ -431,7 +430,7 @@ async def test_async_client_works(httpx_mock: HTTPXMock):
 PN_SID = "PN" + "0" * 32
 
 
-def _ipn_payload(sid: str = PN_SID, phone_number: str = "+18005551234") -> dict:
+def _ipn_payload(sid: str = PN_SID, phone_number: str = "+14155550100") -> dict:
     return {
         "sid": sid,
         "account_sid": ACCOUNT_SID,
@@ -457,22 +456,21 @@ def test_incoming_phone_numbers_list_path_has_json(httpx_mock: HTTPXMock):
             "incoming_phone_numbers": [_ipn_payload()],
             "page": 0,
             "page_size": 50,
-            "total": 1,
             "next_page_uri": None,
             "uri": "/x",
         },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        result = c.incoming_phone_numbers.list(phone_number="+18005551234", page_size=10)
+        result = c.incoming_phone_numbers.list(phone_number="+14155550100", page_size=10)
     assert isinstance(result, IncomingPhoneNumberList)
     assert len(result.incoming_phone_numbers) == 1
     assert result.incoming_phone_numbers[0].sid == PN_SID
-    assert result.incoming_phone_numbers[0].phone_number == "+18005551234"
+    assert result.incoming_phone_numbers[0].phone_number == "+14155550100"
     sent = httpx_mock.get_request()
     assert sent is not None
     assert sent.url.path.endswith("/IncomingPhoneNumbers.json")
     query = sent.url.query.decode()
-    assert "PhoneNumber=%2B18005551234" in query
+    assert "PhoneNumber=%2B14155550100" in query
     assert "PageSize=10" in query
 
 
@@ -485,17 +483,17 @@ def test_incoming_phone_numbers_create_form_body(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         ipn = c.incoming_phone_numbers.create(
-            phone_number="+18005551234",
+            phone_number="+14155550100",
             voice_url="https://example.com/twiml",
             voice_method="POST",
         )
     assert isinstance(ipn, IncomingPhoneNumber)
     assert ipn.sid.startswith("PN")
-    assert ipn.phone_number == "+18005551234"
+    assert ipn.phone_number == "+14155550100"
     assert ipn.capabilities is not None and ipn.capabilities.voice is True
     sent = httpx_mock.get_request()
     body = sent.content.decode()
-    assert "PhoneNumber=%2B18005551234" in body
+    assert "PhoneNumber=%2B14155550100" in body
     assert "VoiceUrl=https%3A%2F%2Fexample.com%2Ftwiml" in body
     assert "VoiceMethod=POST" in body
 
@@ -515,11 +513,11 @@ def test_incoming_phone_numbers_get_by_e164_passthrough(httpx_mock: HTTPXMock):
     """Legacy E.164 sid is URL-encoded and forwarded — the server resolves it."""
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/IncomingPhoneNumbers/%2B18005551234.json",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/IncomingPhoneNumbers/%2B14155550100.json",
         json=_ipn_payload(),
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        ipn = c.incoming_phone_numbers.get("+18005551234")
+        ipn = c.incoming_phone_numbers.get("+14155550100")
     # Response still carries the canonical PN-sid, regardless of how we looked it up.
     assert ipn.sid == PN_SID
 
@@ -531,9 +529,7 @@ def test_incoming_phone_numbers_update(httpx_mock: HTTPXMock):
         json={**_ipn_payload(), "voice_url": "https://example.com/new"},
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        ipn = c.incoming_phone_numbers.update(
-            PN_SID, voice_url="https://example.com/new"
-        )
+        ipn = c.incoming_phone_numbers.update(PN_SID, voice_url="https://example.com/new")
     assert ipn.voice_url == "https://example.com/new"
     sent = httpx_mock.get_request()
     body = sent.content.decode()
@@ -560,7 +556,6 @@ async def test_incoming_phone_numbers_async(httpx_mock: HTTPXMock):
             "incoming_phone_numbers": [_ipn_payload()],
             "page": 0,
             "page_size": 50,
-            "total": 1,
             "next_page_uri": None,
             "uri": "/x",
         },
@@ -673,7 +668,7 @@ def test_calls_list_emits_v063_start_time_filters(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
         url=re.compile(r".*/Calls\.json(\?.*)?$"),
-        json={"calls": [], "page": 0, "page_size": 50, "total": 0, "uri": "/x"},
+        json={"calls": [], "page": 0, "page_size": 50, "uri": "/x"},
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         c.calls.list(start_time="2026-05-21", start_time_gt="2026-05-20", end_time_lt="2026-05-22")
@@ -736,27 +731,24 @@ def test_conferences_create_participant_sends_from_to(httpx_mock: HTTPXMock):
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         p = c.conferences.create_participant(
             cf_sid,
-            CreateParticipantRequest(From="+18005550000", To="+18005551234"),
+            CreateParticipantRequest(From="+14155550101", To="+14155550100"),
         )
     assert isinstance(p, Participant)
     sent = httpx_mock.get_request()
     body = sent.content.decode()
-    assert "From=%2B18005550000" in body
-    assert "To=%2B18005551234" in body
+    assert "From=%2B14155550101" in body
+    assert "To=%2B14155550100" in body
 
 
 def test_calls_list_notifications_sends_filter_params(httpx_mock: HTTPXMock):
     call_sid = "CA" + "f" * 32
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf".*/Calls/{call_sid}/Notifications\.json(\?.*)?$"
-        ),
+        url=re.compile(rf".*/Calls/{call_sid}/Notifications\.json(\?.*)?$"),
         json={
             "notifications": [],
             "page": 0,
             "page_size": 50,
-            "total": 0,
             "uri": "/x",
         },
     )
@@ -785,7 +777,6 @@ def test_recordings_list_sends_include_soft_deleted(httpx_mock: HTTPXMock):
             "recordings": [],
             "page": 0,
             "page_size": 50,
-            "total": 0,
             "uri": "/x",
         },
     )
@@ -813,211 +804,3 @@ def test_recordings_get_sends_include_soft_deleted(httpx_mock: HTTPXMock):
     sent = httpx_mock.get_request()
     assert sent is not None
     assert "IncludeSoftDeleted=true" in sent.url.query.decode()
-
-
-# --- iter() auto-pagination ---
-
-
-def _conference_payload(sid: str) -> dict:
-    return {
-        "sid": sid,
-        "account_sid": ACCOUNT_SID,
-        "friendly_name": "room-1",
-        "status": "in-progress",
-        "api_version": "2010-04-01",
-        "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences/{sid}.json",
-    }
-
-
-def _recording_payload(sid: str) -> dict:
-    return {
-        "sid": sid,
-        "account_sid": ACCOUNT_SID,
-        "call_sid": "CA" + "0" * 32,
-        "status": "completed",
-    }
-
-
-def _queue_payload(sid: str) -> dict:
-    return {
-        "sid": sid,
-        "account_sid": ACCOUNT_SID,
-        "friendly_name": "support",
-        "current_size": 0,
-        "max_size": 100,
-        "average_wait_time": 0,
-        "date_created": "Mon, 26 May 2026 00:00:00 +0000",
-        "date_updated": "Mon, 26 May 2026 00:00:00 +0000",
-        "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Queues/{sid}.json",
-    }
-
-
-def test_calls_iter_two_pages(httpx_mock: HTTPXMock):
-    """iter() follows next_page_uri across 2 pages and returns all items."""
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Calls\.json(\?.*)?$"),
-        json={
-            "calls": [_call_payload("CA" + "1" * 32), _call_payload("CA" + "2" * 32)],
-            "page": 0,
-            "page_size": 2,
-            "next_page_uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Calls.json?Page=1&PageSize=2",
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Calls.json",
-        },
-    )
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Calls\.json(\?.*)?$"),
-        json={
-            "calls": [_call_payload("CA" + "3" * 32)],
-            "page": 1,
-            "page_size": 2,
-            "next_page_uri": None,
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Calls.json?Page=1",
-        },
-    )
-    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        results = c.calls.iter(page_size=2)
-    assert len(results) == 3
-    assert results[0].sid == "CA" + "1" * 32
-    assert results[1].sid == "CA" + "2" * 32
-    assert results[2].sid == "CA" + "3" * 32
-    requests = httpx_mock.get_requests()
-    assert len(requests) == 2
-
-
-def test_conferences_iter_two_pages(httpx_mock: HTTPXMock):
-    """iter() follows next_page_uri across 2 pages for conferences."""
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Conferences\.json(\?.*)?$"),
-        json={
-            "conferences": [
-                _conference_payload("CF" + "1" * 32),
-                _conference_payload("CF" + "2" * 32),
-            ],
-            "page": 0,
-            "page_size": 2,
-            "next_page_uri": (
-                f"/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences.json?Page=1&PageSize=2"
-            ),
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences.json",
-        },
-    )
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Conferences\.json(\?.*)?$"),
-        json={
-            "conferences": [_conference_payload("CF" + "3" * 32)],
-            "page": 1,
-            "page_size": 2,
-            "next_page_uri": None,
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences.json?Page=1",
-        },
-    )
-    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        results = c.conferences.iter(page_size=2)
-    assert len(results) == 3
-    assert results[0].sid == "CF" + "1" * 32
-    assert results[1].sid == "CF" + "2" * 32
-    assert results[2].sid == "CF" + "3" * 32
-    requests = httpx_mock.get_requests()
-    assert len(requests) == 2
-
-
-def test_recordings_iter_two_pages(httpx_mock: HTTPXMock):
-    """iter() follows next_page_uri across 2 pages for recordings."""
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Recordings\.json(\?.*)?$"),
-        json={
-            "recordings": [
-                _recording_payload("RE" + "1" * 32),
-                _recording_payload("RE" + "2" * 32),
-            ],
-            "page": 0,
-            "page_size": 2,
-            "next_page_uri": (
-                f"/2010-04-01/Accounts/{ACCOUNT_SID}/Recordings.json?Page=1&PageSize=2"
-            ),
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Recordings.json",
-        },
-    )
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Recordings\.json(\?.*)?$"),
-        json={
-            "recordings": [_recording_payload("RE" + "3" * 32)],
-            "page": 1,
-            "page_size": 2,
-            "next_page_uri": None,
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Recordings.json?Page=1",
-        },
-    )
-    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        results = c.recordings.iter(page_size=2)
-    assert len(results) == 3
-    assert results[0].sid == "RE" + "1" * 32
-    assert results[1].sid == "RE" + "2" * 32
-    assert results[2].sid == "RE" + "3" * 32
-    requests = httpx_mock.get_requests()
-    assert len(requests) == 2
-
-
-def test_queues_iter_two_pages(httpx_mock: HTTPXMock):
-    """iter() follows next_page_uri across 2 pages for queues."""
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Queues\.json(\?.*)?$"),
-        json={
-            "queues": [
-                _queue_payload("QU" + "1" * 32),
-                _queue_payload("QU" + "2" * 32),
-            ],
-            "page": 0,
-            "page_size": 2,
-            "next_page_uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Queues.json?Page=1&PageSize=2",
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Queues.json",
-        },
-    )
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Queues\.json(\?.*)?$"),
-        json={
-            "queues": [_queue_payload("QU" + "3" * 32)],
-            "page": 1,
-            "page_size": 2,
-            "next_page_uri": None,
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Queues.json?Page=1",
-        },
-    )
-    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        results = c.queues.iter(page_size=2)
-    assert len(results) == 3
-    assert results[0].sid == "QU" + "1" * 32
-    assert results[1].sid == "QU" + "2" * 32
-    assert results[2].sid == "QU" + "3" * 32
-    requests = httpx_mock.get_requests()
-    assert len(requests) == 2
-
-
-def test_calls_iter_single_page(httpx_mock: HTTPXMock):
-    """iter() with only 1 page makes exactly 1 HTTP request."""
-    httpx_mock.add_response(
-        method="GET",
-        url=re.compile(r".*/Calls\.json(\?.*)?$"),
-        json={
-            "calls": [_call_payload("CA" + "a" * 32), _call_payload("CA" + "b" * 32)],
-            "page": 0,
-            "page_size": 50,
-            "next_page_uri": None,
-            "uri": f"/2010-04-01/Accounts/{ACCOUNT_SID}/Calls.json",
-        },
-    )
-    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        results = c.calls.iter()
-    assert len(results) == 2
-    assert results[0].sid == "CA" + "a" * 32
-    assert results[1].sid == "CA" + "b" * 32
-    requests = httpx_mock.get_requests()
-    assert len(requests) == 1

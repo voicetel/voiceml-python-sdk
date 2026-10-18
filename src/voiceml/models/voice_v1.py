@@ -1,4 +1,4 @@
-"""Voice v1 resources — Twilio ``voice.twilio.com/v1`` REST surface.
+"""Voice v1 resources — Twilio-compatible Voice v1 REST surface.
 
 Sits outside the ``/2010-04-01/`` Twilio-API-classic namespace at ``/v1/`` paths.
 The account is resolved from HTTP Basic auth — no ``AccountSid`` segment in
@@ -17,32 +17,13 @@ Six resources live under ``client.voice_v1.*``:
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 
-from ._base import _Base
-
-
-# ---------------------------------------------------------------------------
-# Shared list envelope
-# ---------------------------------------------------------------------------
-
-
-class VoiceV1Meta(_Base):
-    """Voice/Conversations v1 list envelope.
-
-    Used by every paginated ``/v1/`` list response (Voice and Conversations).
-    Fields mirror the wire shape exactly; ``next_page_url`` drives
-    auto-pagination if any caller chooses to follow it.
-    """
-
-    first_page_url: str | None = None
-    next_page_url: str | None = None
-    previous_page_url: str | None = None
-    url: str | None = None
-    page: int | None = None
-    page_size: int | None = None
-    key: str | None = None
-
+from ._base import _Base, _Request
+from .common import V1Page
+from .common import VoiceV1Meta as VoiceV1Meta
 
 # ---------------------------------------------------------------------------
 # Response models
@@ -50,7 +31,7 @@ class VoiceV1Meta(_Base):
 
 
 class VoiceV1IpRecord(_Base):
-    """A standalone allowed source IPv4 — Twilio ``IL…`` resource.
+    """A standalone allowed source IPv4 (``IL…``).
 
     Attach to a SipDomain via :class:`VoiceV1SourceIpMapping` to make
     inbound calls from this CIDR route into the domain.
@@ -66,9 +47,8 @@ class VoiceV1IpRecord(_Base):
     url: str | None = None
 
 
-class VoiceV1IpRecordList(_Base):
+class VoiceV1IpRecordList(V1Page[VoiceV1IpRecord]):
     ip_records: list[VoiceV1IpRecord] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class VoiceV1SourceIpMapping(_Base):
@@ -86,13 +66,12 @@ class VoiceV1SourceIpMapping(_Base):
     url: str | None = None
 
 
-class VoiceV1SourceIpMappingList(_Base):
+class VoiceV1SourceIpMappingList(V1Page[VoiceV1SourceIpMapping]):
     source_ip_mappings: list[VoiceV1SourceIpMapping] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class VoiceV1ByocTrunk(_Base):
-    """A bring-your-own-carrier trunk — Twilio ``BY…`` resource."""
+    """A bring-your-own-carrier trunk (``BY…``)."""
 
     account_sid: str | None = None
     sid: str | None = None
@@ -111,13 +90,12 @@ class VoiceV1ByocTrunk(_Base):
     url: str | None = None
 
 
-class VoiceV1ByocTrunkList(_Base):
+class VoiceV1ByocTrunkList(V1Page[VoiceV1ByocTrunk]):
     byoc_trunks: list[VoiceV1ByocTrunk] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class VoiceV1ConnectionPolicy(_Base):
-    """An origination ConnectionPolicy — Twilio ``NY…`` resource.
+    """An origination ConnectionPolicy (``NY…``).
 
     Groups one or more :class:`VoiceV1ConnectionPolicyTarget` rows under a
     single named policy for outbound SIP egress routing.
@@ -132,9 +110,8 @@ class VoiceV1ConnectionPolicy(_Base):
     links: dict[str, str] | None = None
 
 
-class VoiceV1ConnectionPolicyList(_Base):
+class VoiceV1ConnectionPolicyList(V1Page[VoiceV1ConnectionPolicy]):
     connection_policies: list[VoiceV1ConnectionPolicy] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class VoiceV1ConnectionPolicyTarget(_Base):
@@ -157,15 +134,14 @@ class VoiceV1ConnectionPolicyTarget(_Base):
     url: str | None = None
 
 
-class VoiceV1ConnectionPolicyTargetList(_Base):
+class VoiceV1ConnectionPolicyTargetList(V1Page[VoiceV1ConnectionPolicyTarget]):
     targets: list[VoiceV1ConnectionPolicyTarget] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class VoiceV1DialingPermissionsSettings(_Base):
     """The account-wide DialingPermissions inheritance toggle.
 
-    Twilio exposes only ``dialing_permissions_inheritance`` here; defaults
+    Only ``dialing_permissions_inheritance`` is exposed here; defaults
     to ``False`` when never set.
     """
 
@@ -178,7 +154,7 @@ class VoiceV1DialingPermissionsSettings(_Base):
 # ---------------------------------------------------------------------------
 
 
-class CreateVoiceV1IpRecordRequest(_Base):
+class CreateVoiceV1IpRecordRequest(_Request):
     """Body for ``POST /v1/IpRecords``. ``IpAddress`` is required."""
 
     ip_address: str = Field(alias="IpAddress")
@@ -186,68 +162,76 @@ class CreateVoiceV1IpRecordRequest(_Base):
     cidr_prefix_length: int | None = Field(default=None, alias="CidrPrefixLength")
 
 
-class UpdateVoiceV1IpRecordRequest(_Base):
+class UpdateVoiceV1IpRecordRequest(_Request):
     """Body for ``POST /v1/IpRecords/{Sid}``. Only ``FriendlyName`` is mutable."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
 
 
-class CreateVoiceV1SourceIpMappingRequest(_Base):
+class CreateVoiceV1SourceIpMappingRequest(_Request):
     """Body for ``POST /v1/SourceIpMappings``. Both fields required."""
 
     ip_record_sid: str = Field(alias="IpRecordSid")
     sip_domain_sid: str = Field(alias="SipDomainSid")
 
 
-class UpdateVoiceV1SourceIpMappingRequest(_Base):
+class UpdateVoiceV1SourceIpMappingRequest(_Request):
     """Body for ``POST /v1/SourceIpMappings/{Sid}``. Only ``SipDomainSid`` is mutable."""
 
     sip_domain_sid: str = Field(alias="SipDomainSid")
 
 
-class CreateVoiceV1ByocTrunkRequest(_Base):
+class CreateVoiceV1ByocTrunkRequest(_Request):
     """Body for ``POST /v1/ByocTrunks``. All fields optional."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     voice_url: str | None = Field(default=None, alias="VoiceUrl")
-    voice_method: str | None = Field(default=None, alias="VoiceMethod")
+    voice_method: Literal["GET", "POST"] | None = Field(default=None, alias="VoiceMethod")
     voice_fallback_url: str | None = Field(default=None, alias="VoiceFallbackUrl")
-    voice_fallback_method: str | None = Field(default=None, alias="VoiceFallbackMethod")
+    voice_fallback_method: Literal["GET", "POST"] | None = Field(
+        default=None, alias="VoiceFallbackMethod"
+    )
     status_callback_url: str | None = Field(default=None, alias="StatusCallbackUrl")
-    status_callback_method: str | None = Field(default=None, alias="StatusCallbackMethod")
+    status_callback_method: Literal["GET", "POST"] | None = Field(
+        default=None, alias="StatusCallbackMethod"
+    )
     cnam_lookup_enabled: bool | None = Field(default=None, alias="CnamLookupEnabled")
     connection_policy_sid: str | None = Field(default=None, alias="ConnectionPolicySid")
     from_domain_sid: str | None = Field(default=None, alias="FromDomainSid")
 
 
-class UpdateVoiceV1ByocTrunkRequest(_Base):
+class UpdateVoiceV1ByocTrunkRequest(_Request):
     """Body for ``POST /v1/ByocTrunks/{Sid}``. All fields optional."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     voice_url: str | None = Field(default=None, alias="VoiceUrl")
-    voice_method: str | None = Field(default=None, alias="VoiceMethod")
+    voice_method: Literal["GET", "POST"] | None = Field(default=None, alias="VoiceMethod")
     voice_fallback_url: str | None = Field(default=None, alias="VoiceFallbackUrl")
-    voice_fallback_method: str | None = Field(default=None, alias="VoiceFallbackMethod")
+    voice_fallback_method: Literal["GET", "POST"] | None = Field(
+        default=None, alias="VoiceFallbackMethod"
+    )
     status_callback_url: str | None = Field(default=None, alias="StatusCallbackUrl")
-    status_callback_method: str | None = Field(default=None, alias="StatusCallbackMethod")
+    status_callback_method: Literal["GET", "POST"] | None = Field(
+        default=None, alias="StatusCallbackMethod"
+    )
     cnam_lookup_enabled: bool | None = Field(default=None, alias="CnamLookupEnabled")
     connection_policy_sid: str | None = Field(default=None, alias="ConnectionPolicySid")
     from_domain_sid: str | None = Field(default=None, alias="FromDomainSid")
 
 
-class CreateVoiceV1ConnectionPolicyRequest(_Base):
+class CreateVoiceV1ConnectionPolicyRequest(_Request):
     """Body for ``POST /v1/ConnectionPolicies``. All fields optional."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
 
 
-class UpdateVoiceV1ConnectionPolicyRequest(_Base):
+class UpdateVoiceV1ConnectionPolicyRequest(_Request):
     """Body for ``POST /v1/ConnectionPolicies/{Sid}``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
 
 
-class CreateVoiceV1ConnectionPolicyTargetRequest(_Base):
+class CreateVoiceV1ConnectionPolicyTargetRequest(_Request):
     """Body for ``POST /v1/ConnectionPolicies/{Sid}/Targets``. ``Target`` is required."""
 
     target: str = Field(alias="Target")
@@ -257,7 +241,7 @@ class CreateVoiceV1ConnectionPolicyTargetRequest(_Base):
     enabled: bool | None = Field(default=None, alias="Enabled")
 
 
-class UpdateVoiceV1ConnectionPolicyTargetRequest(_Base):
+class UpdateVoiceV1ConnectionPolicyTargetRequest(_Request):
     """Body for ``POST /v1/ConnectionPolicies/{Sid}/Targets/{Sid}``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
@@ -267,7 +251,7 @@ class UpdateVoiceV1ConnectionPolicyTargetRequest(_Base):
     enabled: bool | None = Field(default=None, alias="Enabled")
 
 
-class UpdateVoiceV1DialingPermissionsSettingsRequest(_Base):
+class UpdateVoiceV1DialingPermissionsSettingsRequest(_Request):
     """Body for ``POST /v1/Settings``."""
 
     dialing_permissions_inheritance: bool | None = Field(

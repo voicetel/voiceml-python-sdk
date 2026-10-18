@@ -1,10 +1,11 @@
 """``/Calls`` and call-scoped sub-resources (Recordings, Streams, Siprec, Transcriptions,
-Notifications, Events, UserDefinedMessages)."""
+Notifications, Events, UserDefinedMessages, Payments)."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import AsyncIterator, Iterator
+from datetime import datetime
+from typing import Literal
 
 from ..models import (
     Call,
@@ -13,10 +14,10 @@ from ..models import (
     CallTranscription,
     CreateCallRequest,
     EventsList,
+    Notification,
     NotificationsList,
     Recording,
     RecordingList,
-    SiprecList,
     SiprecSession,
     StartPaymentRequest,
     StartRecordingRequest,
@@ -27,8 +28,6 @@ from ..models import (
     StopStreamRequest,
     StopTranscriptionRequest,
     Stream,
-    StreamList,
-    TranscriptionList,
     UpdateCallRequest,
     UpdatePaymentRequest,
     UpdateRecordingRequest,
@@ -43,6 +42,9 @@ from ..models.payments import (
 )
 from ._base import AsyncResource, Resource
 
+DateTimeFilter = str | datetime
+NotificationLog = Literal[0, 1]
+
 
 def _list_params(
     *,
@@ -50,14 +52,12 @@ def _list_params(
     from_: str | None,
     status: str | None,
     parent_call_sid: str | None,
-    start_time: str | None,
-    start_time_lt: str | None,
-    start_time_gt: str | None,
-    end_time: str | None,
-    end_time_lt: str | None,
-    end_time_gt: str | None,
-    start_time_gte: str | None,
-    start_time_lte: str | None,
+    start_time: DateTimeFilter | None,
+    start_time_lt: DateTimeFilter | None,
+    start_time_gt: DateTimeFilter | None,
+    end_time: DateTimeFilter | None,
+    end_time_lt: DateTimeFilter | None,
+    end_time_gt: DateTimeFilter | None,
     page: int | None,
     page_size: int | None,
     page_token: str | None,
@@ -73,8 +73,6 @@ def _list_params(
         "EndTime": end_time,
         "EndTime<": end_time_lt,
         "EndTime>": end_time_gt,
-        "StartTime>=": start_time_gte,
-        "StartTime<=": start_time_lte,
         "Page": page,
         "PageSize": page_size,
         "PageToken": page_token,
@@ -105,7 +103,7 @@ def _notification_list_params(
     page: int | None,
     page_size: int | None,
     page_token: str | None,
-    log: int | None,
+    log: NotificationLog | None,
     message_date: str | None,
     message_date_lt: str | None,
     message_date_gt: str | None,
@@ -127,6 +125,64 @@ def _page_params(
     return {"Page": page, "PageSize": page_size, "PageToken": page_token}
 
 
+def _start_payment_form(
+    *,
+    idempotency_key: str | None,
+    status_callback: str | None,
+    bank_account_type: PaymentBankAccountType | None,
+    charge_amount: str | None,
+    currency: str | None,
+    description: str | None,
+    input: PaymentInput | None,
+    min_postal_code_length: int | None,
+    parameter: str | None,
+    payment_connector: str | None,
+    payment_method: PaymentMethod | None,
+    postal_code: bool | None,
+    security_code: bool | None,
+    timeout: int | None,
+    token_type: PaymentTokenType | None,
+    valid_card_types: str | None,
+    require_matching_inputs: str | None,
+    confirmation: bool | None,
+) -> dict[str, object]:
+    return StartPaymentRequest(
+        idempotency_key=idempotency_key,
+        status_callback=status_callback,
+        bank_account_type=bank_account_type,
+        charge_amount=charge_amount,
+        currency=currency,
+        description=description,
+        input=input,
+        min_postal_code_length=min_postal_code_length,
+        parameter=parameter,
+        payment_connector=payment_connector,
+        payment_method=payment_method,
+        postal_code=postal_code,
+        security_code=security_code,
+        timeout=timeout,
+        token_type=token_type,
+        valid_card_types=valid_card_types,
+        require_matching_inputs=require_matching_inputs,
+        confirmation=confirmation,
+    ).to_form()
+
+
+def _update_payment_form(
+    *,
+    idempotency_key: str | None,
+    status_callback: str | None,
+    capture: PaymentCapture | None,
+    status: PaymentSessionStatus | None,
+) -> dict[str, object]:
+    return UpdatePaymentRequest(
+        idempotency_key=idempotency_key,
+        status_callback=status_callback,
+        capture=capture,
+        status=status,
+    ).to_form()
+
+
 class CallsResource(Resource):
     """Operations on calls and call-scoped sub-resources."""
 
@@ -137,18 +193,17 @@ class CallsResource(Resource):
         from_: str | None = None,
         status: str | None = None,
         parent_call_sid: str | None = None,
-        start_time: str | None = None,
-        start_time_lt: str | None = None,
-        start_time_gt: str | None = None,
-        end_time: str | None = None,
-        end_time_lt: str | None = None,
-        end_time_gt: str | None = None,
-        start_time_gte: str | None = None,
-        start_time_lte: str | None = None,
+        start_time: DateTimeFilter | None = None,
+        start_time_lt: DateTimeFilter | None = None,
+        start_time_gt: DateTimeFilter | None = None,
+        end_time: DateTimeFilter | None = None,
+        end_time_lt: DateTimeFilter | None = None,
+        end_time_gt: DateTimeFilter | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
     ) -> CallList:
+        """One page of calls. ``datetime`` filters are sent as ISO-8601 UTC."""
         return CallList.model_validate(
             self._t.request(
                 "GET",
@@ -164,8 +219,6 @@ class CallsResource(Resource):
                     end_time=end_time,
                     end_time_lt=end_time_lt,
                     end_time_gt=end_time_gt,
-                    start_time_gte=start_time_gte,
-                    start_time_lte=start_time_lte,
                     page=page,
                     page_size=page_size,
                     page_token=page_token,
@@ -173,7 +226,44 @@ class CallsResource(Resource):
             )
         )
 
+    def iter(
+        self,
+        *,
+        to: str | None = None,
+        from_: str | None = None,
+        status: str | None = None,
+        parent_call_sid: str | None = None,
+        start_time: DateTimeFilter | None = None,
+        start_time_lt: DateTimeFilter | None = None,
+        start_time_gt: DateTimeFilter | None = None,
+        end_time: DateTimeFilter | None = None,
+        end_time_lt: DateTimeFilter | None = None,
+        end_time_gt: DateTimeFilter | None = None,
+        page_size: int | None = None,
+    ) -> Iterator[Call]:
+        """Lazily yield calls, following ``next_page_uri`` page by page.
+
+        One request per page, issued as the iterator is consumed; stopping early
+        issues no further requests.
+        """
+        yield from self._paginate(
+            self.list(
+                to=to,
+                from_=from_,
+                status=status,
+                parent_call_sid=parent_call_sid,
+                start_time=start_time,
+                start_time_lt=start_time_lt,
+                start_time_gt=start_time_gt,
+                end_time=end_time,
+                end_time_lt=end_time_lt,
+                end_time_gt=end_time_gt,
+                page_size=page_size,
+            )
+        )
+
     def create(self, body: CreateCallRequest) -> Call:
+        """Originate a call. Never retried on 5xx or read timeouts (see README)."""
         return Call.model_validate(
             self._t.request("POST", self._path("Calls"), data=body.to_form())
         )
@@ -236,6 +326,11 @@ class CallsResource(Resource):
     def update_recording(
         self, call_sid: str, recording_sid: str, body: UpdateRecordingRequest
     ) -> Recording:
+        """Stop / pause / resume a call recording.
+
+        ``recording_sid`` may be ``"Twilio.CURRENT"`` to address the call's active
+        recording.
+        """
         return Recording.model_validate(
             self._t.request(
                 "POST",
@@ -247,29 +342,17 @@ class CallsResource(Resource):
     def delete_recording(self, call_sid: str, recording_sid: str) -> None:
         self._t.request("DELETE", self._path("Calls", call_sid, "Recordings", recording_sid))
 
-    # --- Streams ---
-
-    def list_streams(self, call_sid: str) -> StreamList:
-        return StreamList.model_validate(
-            self._t.request("GET", self._path("Calls", call_sid, "Streams"))
-        )
+    # --- Streams / SIPREC / Transcriptions (start + stop only) ---
 
     def start_stream(self, call_sid: str, body: StartStreamRequest) -> Stream:
         return Stream.model_validate(
-            self._t.request(
-                "POST", self._path("Calls", call_sid, "Streams"), data=body.to_form()
-            )
-        )
-
-    def get_stream(self, call_sid: str, stream_sid: str) -> Stream:
-        return Stream.model_validate(
-            self._t.request("GET", self._path("Calls", call_sid, "Streams", stream_sid))
+            self._t.request("POST", self._path("Calls", call_sid, "Streams"), data=body.to_form())
         )
 
     def stop_stream(
         self, call_sid: str, stream_sid: str, body: StopStreamRequest | None = None
     ) -> Stream:
-        payload = (body or StopStreamRequest(Status="stopped")).to_form()
+        payload = (body or StopStreamRequest(status="stopped")).to_form()
         return Stream.model_validate(
             self._t.request(
                 "POST",
@@ -278,16 +361,7 @@ class CallsResource(Resource):
             )
         )
 
-    # --- SIPREC ---
-
-    def list_siprec(self, call_sid: str) -> SiprecList:
-        return SiprecList.model_validate(
-            self._t.request("GET", self._path("Calls", call_sid, "Siprec"))
-        )
-
-    def start_siprec(
-        self, call_sid: str, body: StartSiprecRequest | None = None
-    ) -> SiprecSession:
+    def start_siprec(self, call_sid: str, body: StartSiprecRequest | None = None) -> SiprecSession:
         return SiprecSession.model_validate(
             self._t.request(
                 "POST",
@@ -296,26 +370,14 @@ class CallsResource(Resource):
             )
         )
 
-    def get_siprec(self, call_sid: str, siprec_sid: str) -> SiprecSession:
-        return SiprecSession.model_validate(
-            self._t.request("GET", self._path("Calls", call_sid, "Siprec", siprec_sid))
-        )
-
     def stop_siprec(
         self, call_sid: str, siprec_sid: str, body: StopSiprecRequest | None = None
     ) -> SiprecSession:
-        payload = (body or StopSiprecRequest(Status="stopped")).to_form()
+        payload = (body or StopSiprecRequest(status="stopped")).to_form()
         return SiprecSession.model_validate(
             self._t.request(
                 "POST", self._path("Calls", call_sid, "Siprec", siprec_sid), data=payload
             )
-        )
-
-    # --- Transcriptions ---
-
-    def list_transcriptions(self, call_sid: str) -> TranscriptionList:
-        return TranscriptionList.model_validate(
-            self._t.request("GET", self._path("Calls", call_sid, "Transcriptions"))
         )
 
     def start_transcription(
@@ -329,20 +391,13 @@ class CallsResource(Resource):
             )
         )
 
-    def get_transcription(self, call_sid: str, transcription_sid: str) -> CallTranscription:
-        return CallTranscription.model_validate(
-            self._t.request(
-                "GET", self._path("Calls", call_sid, "Transcriptions", transcription_sid)
-            )
-        )
-
     def stop_transcription(
         self,
         call_sid: str,
         transcription_sid: str,
         body: StopTranscriptionRequest | None = None,
     ) -> CallTranscription:
-        payload = (body or StopTranscriptionRequest(Status="stopped")).to_form()
+        payload = (body or StopTranscriptionRequest(status="stopped")).to_form()
         return CallTranscription.model_validate(
             self._t.request(
                 "POST",
@@ -351,7 +406,7 @@ class CallsResource(Resource):
             )
         )
 
-    # --- Notifications / Events (compat stubs) ---
+    # --- Notifications / Events ---
 
     def list_notifications(
         self,
@@ -360,7 +415,7 @@ class CallsResource(Resource):
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
-        log: int | None = None,
+        log: NotificationLog | None = None,
         message_date: str | None = None,
         message_date_lt: str | None = None,
         message_date_gt: str | None = None,
@@ -381,14 +436,10 @@ class CallsResource(Resource):
             )
         )
 
-    def get_notification(self, call_sid: str, notification_sid: str) -> dict[str, Any]:
-        result = self._t.request(
-            "GET",
-            self._path("Calls", call_sid, "Notifications", notification_sid),
+    def get_notification(self, call_sid: str, notification_sid: str) -> Notification:
+        return Notification.model_validate(
+            self._t.request("GET", self._path("Calls", call_sid, "Notifications", notification_sid))
         )
-        if not isinstance(result, dict):
-            raise TypeError("expected JSON object from Calls.get_notification")
-        return result
 
     def list_events(
         self,
@@ -408,19 +459,13 @@ class CallsResource(Resource):
 
     # --- UserDefinedMessages — server returns 501. Kept for API completeness. ---
 
-    def send_user_defined_message(
-        self, call_sid: str, payload: dict[str, object] | None = None
-    ) -> None:
+    def send_user_defined_message(self, call_sid: str) -> None:
         """``POST /Calls/{sid}/UserDefinedMessages`` — always raises ``NotImplementedAPIError``.
 
         Mounted on the server only as a 501 stub. The SDK forwards the call so callers get a
         clean exception rather than discovering at runtime that the endpoint doesn't exist.
         """
-        self._t.request(
-            "POST",
-            self._path("Calls", call_sid, "UserDefinedMessages"),
-            data=payload,
-        )
+        self._t.request("POST", self._path("Calls", call_sid, "UserDefinedMessages"))
 
     # --- Payments — REST companion to the ``<Pay>`` TwiML verb. ---
 
@@ -453,31 +498,30 @@ class CallsResource(Resource):
         the tenant is not ``pay_enabled`` or has no ``stripe_secret_key``
         configured.
         """
-        body = StartPaymentRequest(
-            IdempotencyKey=idempotency_key,
-            StatusCallback=status_callback,
-            BankAccountType=bank_account_type,
-            ChargeAmount=charge_amount,
-            Currency=currency,
-            Description=description,
-            Input=input,
-            MinPostalCodeLength=min_postal_code_length,
-            Parameter=parameter,
-            PaymentConnector=payment_connector,
-            PaymentMethod=payment_method,
-            PostalCode=postal_code,
-            SecurityCode=security_code,
-            Timeout=timeout,
-            TokenType=token_type,
-            ValidCardTypes=valid_card_types,
-            RequireMatchingInputs=require_matching_inputs,
-            Confirmation=confirmation,
-        )
         return CallPayment.model_validate(
             self._t.request(
                 "POST",
                 self._path("Calls", call_sid, "Payments"),
-                data=body.to_form(),
+                data=_start_payment_form(
+                    idempotency_key=idempotency_key,
+                    status_callback=status_callback,
+                    bank_account_type=bank_account_type,
+                    charge_amount=charge_amount,
+                    currency=currency,
+                    description=description,
+                    input=input,
+                    min_postal_code_length=min_postal_code_length,
+                    parameter=parameter,
+                    payment_connector=payment_connector,
+                    payment_method=payment_method,
+                    postal_code=postal_code,
+                    security_code=security_code,
+                    timeout=timeout,
+                    token_type=token_type,
+                    valid_card_types=valid_card_types,
+                    require_matching_inputs=require_matching_inputs,
+                    confirmation=confirmation,
+                ),
             )
         )
 
@@ -497,65 +541,18 @@ class CallsResource(Resource):
         ``status="cancel"`` aborts the session. ``capture=...`` tells the
         runtime which input the user is about to type next.
         """
-        body = UpdatePaymentRequest(
-            IdempotencyKey=idempotency_key,
-            StatusCallback=status_callback,
-            Capture=capture,
-            Status=status,
-        )
         return CallPayment.model_validate(
             self._t.request(
                 "POST",
                 self._path("Calls", call_sid, "Payments", payment_sid),
-                data=body.to_form(),
+                data=_update_payment_form(
+                    idempotency_key=idempotency_key,
+                    status_callback=status_callback,
+                    capture=capture,
+                    status=status,
+                ),
             )
         )
-
-    # Helper for auto-pagination
-
-    def iter(
-        self,
-        *,
-        to: str | None = None,
-        from_: str | None = None,
-        status: str | None = None,
-        parent_call_sid: str | None = None,
-        start_time: str | None = None,
-        start_time_lt: str | None = None,
-        start_time_gt: str | None = None,
-        end_time: str | None = None,
-        end_time_lt: str | None = None,
-        end_time_gt: str | None = None,
-        start_time_gte: str | None = None,
-        start_time_lte: str | None = None,
-        page_size: int | None = None,
-    ) -> Sequence[Call]:
-        """Walk all pages of ``/Calls`` and return a list. Use for small-to-medium result sets;
-        for very large pulls, iterate ``list(...).next_page_uri`` manually.
-        """
-        out: list[Call] = []
-        page = 0
-        while True:
-            chunk = self.list(
-                to=to,
-                from_=from_,
-                status=status,
-                parent_call_sid=parent_call_sid,
-                start_time=start_time,
-                start_time_lt=start_time_lt,
-                start_time_gt=start_time_gt,
-                end_time=end_time,
-                end_time_lt=end_time_lt,
-                end_time_gt=end_time_gt,
-                start_time_gte=start_time_gte,
-                start_time_lte=start_time_lte,
-                page=page,
-                page_size=page_size,
-            )
-            out.extend(chunk.calls)
-            if not chunk.next_page_uri or not chunk.calls:
-                return out
-            page += 1
 
 
 class CallsAsyncResource(AsyncResource):
@@ -568,14 +565,12 @@ class CallsAsyncResource(AsyncResource):
         from_: str | None = None,
         status: str | None = None,
         parent_call_sid: str | None = None,
-        start_time: str | None = None,
-        start_time_lt: str | None = None,
-        start_time_gt: str | None = None,
-        end_time: str | None = None,
-        end_time_lt: str | None = None,
-        end_time_gt: str | None = None,
-        start_time_gte: str | None = None,
-        start_time_lte: str | None = None,
+        start_time: DateTimeFilter | None = None,
+        start_time_lt: DateTimeFilter | None = None,
+        start_time_gt: DateTimeFilter | None = None,
+        end_time: DateTimeFilter | None = None,
+        end_time_lt: DateTimeFilter | None = None,
+        end_time_gt: DateTimeFilter | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -595,14 +590,44 @@ class CallsAsyncResource(AsyncResource):
                     end_time=end_time,
                     end_time_lt=end_time_lt,
                     end_time_gt=end_time_gt,
-                    start_time_gte=start_time_gte,
-                    start_time_lte=start_time_lte,
                     page=page,
                     page_size=page_size,
                     page_token=page_token,
                 ),
             )
         )
+
+    async def iter(
+        self,
+        *,
+        to: str | None = None,
+        from_: str | None = None,
+        status: str | None = None,
+        parent_call_sid: str | None = None,
+        start_time: DateTimeFilter | None = None,
+        start_time_lt: DateTimeFilter | None = None,
+        start_time_gt: DateTimeFilter | None = None,
+        end_time: DateTimeFilter | None = None,
+        end_time_lt: DateTimeFilter | None = None,
+        end_time_gt: DateTimeFilter | None = None,
+        page_size: int | None = None,
+    ) -> AsyncIterator[Call]:
+        """Lazily yield calls, following ``next_page_uri`` page by page."""
+        first = await self.list(
+            to=to,
+            from_=from_,
+            status=status,
+            parent_call_sid=parent_call_sid,
+            start_time=start_time,
+            start_time_lt=start_time_lt,
+            start_time_gt=start_time_gt,
+            end_time=end_time,
+            end_time_lt=end_time_lt,
+            end_time_gt=end_time_gt,
+            page_size=page_size,
+        )
+        async for item in self._paginate(first):
+            yield item
 
     async def create(self, body: CreateCallRequest) -> Call:
         return Call.model_validate(
@@ -659,9 +684,7 @@ class CallsAsyncResource(AsyncResource):
 
     async def get_recording(self, call_sid: str, recording_sid: str) -> Recording:
         return Recording.model_validate(
-            await self._t.request(
-                "GET", self._path("Calls", call_sid, "Recordings", recording_sid)
-            )
+            await self._t.request("GET", self._path("Calls", call_sid, "Recordings", recording_sid))
         )
 
     async def update_recording(
@@ -676,14 +699,7 @@ class CallsAsyncResource(AsyncResource):
         )
 
     async def delete_recording(self, call_sid: str, recording_sid: str) -> None:
-        await self._t.request(
-            "DELETE", self._path("Calls", call_sid, "Recordings", recording_sid)
-        )
-
-    async def list_streams(self, call_sid: str) -> StreamList:
-        return StreamList.model_validate(
-            await self._t.request("GET", self._path("Calls", call_sid, "Streams"))
-        )
+        await self._t.request("DELETE", self._path("Calls", call_sid, "Recordings", recording_sid))
 
     async def start_stream(self, call_sid: str, body: StartStreamRequest) -> Stream:
         return Stream.model_validate(
@@ -692,26 +708,16 @@ class CallsAsyncResource(AsyncResource):
             )
         )
 
-    async def get_stream(self, call_sid: str, stream_sid: str) -> Stream:
-        return Stream.model_validate(
-            await self._t.request("GET", self._path("Calls", call_sid, "Streams", stream_sid))
-        )
-
     async def stop_stream(
         self, call_sid: str, stream_sid: str, body: StopStreamRequest | None = None
     ) -> Stream:
-        payload = (body or StopStreamRequest(Status="stopped")).to_form()
+        payload = (body or StopStreamRequest(status="stopped")).to_form()
         return Stream.model_validate(
             await self._t.request(
                 "POST",
                 self._path("Calls", call_sid, "Streams", stream_sid),
                 data=payload,
             )
-        )
-
-    async def list_siprec(self, call_sid: str) -> SiprecList:
-        return SiprecList.model_validate(
-            await self._t.request("GET", self._path("Calls", call_sid, "Siprec"))
         )
 
     async def start_siprec(
@@ -725,24 +731,14 @@ class CallsAsyncResource(AsyncResource):
             )
         )
 
-    async def get_siprec(self, call_sid: str, siprec_sid: str) -> SiprecSession:
-        return SiprecSession.model_validate(
-            await self._t.request("GET", self._path("Calls", call_sid, "Siprec", siprec_sid))
-        )
-
     async def stop_siprec(
         self, call_sid: str, siprec_sid: str, body: StopSiprecRequest | None = None
     ) -> SiprecSession:
-        payload = (body or StopSiprecRequest(Status="stopped")).to_form()
+        payload = (body or StopSiprecRequest(status="stopped")).to_form()
         return SiprecSession.model_validate(
             await self._t.request(
                 "POST", self._path("Calls", call_sid, "Siprec", siprec_sid), data=payload
             )
-        )
-
-    async def list_transcriptions(self, call_sid: str) -> TranscriptionList:
-        return TranscriptionList.model_validate(
-            await self._t.request("GET", self._path("Calls", call_sid, "Transcriptions"))
         )
 
     async def start_transcription(
@@ -756,22 +752,13 @@ class CallsAsyncResource(AsyncResource):
             )
         )
 
-    async def get_transcription(
-        self, call_sid: str, transcription_sid: str
-    ) -> CallTranscription:
-        return CallTranscription.model_validate(
-            await self._t.request(
-                "GET", self._path("Calls", call_sid, "Transcriptions", transcription_sid)
-            )
-        )
-
     async def stop_transcription(
         self,
         call_sid: str,
         transcription_sid: str,
         body: StopTranscriptionRequest | None = None,
     ) -> CallTranscription:
-        payload = (body or StopTranscriptionRequest(Status="stopped")).to_form()
+        payload = (body or StopTranscriptionRequest(status="stopped")).to_form()
         return CallTranscription.model_validate(
             await self._t.request(
                 "POST",
@@ -787,7 +774,7 @@ class CallsAsyncResource(AsyncResource):
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
-        log: int | None = None,
+        log: NotificationLog | None = None,
         message_date: str | None = None,
         message_date_lt: str | None = None,
         message_date_gt: str | None = None,
@@ -808,16 +795,12 @@ class CallsAsyncResource(AsyncResource):
             )
         )
 
-    async def get_notification(
-        self, call_sid: str, notification_sid: str
-    ) -> dict[str, Any]:
-        result = await self._t.request(
-            "GET",
-            self._path("Calls", call_sid, "Notifications", notification_sid),
+    async def get_notification(self, call_sid: str, notification_sid: str) -> Notification:
+        return Notification.model_validate(
+            await self._t.request(
+                "GET", self._path("Calls", call_sid, "Notifications", notification_sid)
+            )
         )
-        if not isinstance(result, dict):
-            raise TypeError("expected JSON object from Calls.get_notification")
-        return result
 
     async def list_events(
         self,
@@ -835,14 +818,8 @@ class CallsAsyncResource(AsyncResource):
             )
         )
 
-    async def send_user_defined_message(
-        self, call_sid: str, payload: dict[str, object] | None = None
-    ) -> None:
-        await self._t.request(
-            "POST",
-            self._path("Calls", call_sid, "UserDefinedMessages"),
-            data=payload,
-        )
+    async def send_user_defined_message(self, call_sid: str) -> None:
+        await self._t.request("POST", self._path("Calls", call_sid, "UserDefinedMessages"))
 
     async def start_payment(
         self,
@@ -867,31 +844,30 @@ class CallsAsyncResource(AsyncResource):
         require_matching_inputs: str | None = None,
         confirmation: bool | None = None,
     ) -> CallPayment:
-        body = StartPaymentRequest(
-            IdempotencyKey=idempotency_key,
-            StatusCallback=status_callback,
-            BankAccountType=bank_account_type,
-            ChargeAmount=charge_amount,
-            Currency=currency,
-            Description=description,
-            Input=input,
-            MinPostalCodeLength=min_postal_code_length,
-            Parameter=parameter,
-            PaymentConnector=payment_connector,
-            PaymentMethod=payment_method,
-            PostalCode=postal_code,
-            SecurityCode=security_code,
-            Timeout=timeout,
-            TokenType=token_type,
-            ValidCardTypes=valid_card_types,
-            RequireMatchingInputs=require_matching_inputs,
-            Confirmation=confirmation,
-        )
         return CallPayment.model_validate(
             await self._t.request(
                 "POST",
                 self._path("Calls", call_sid, "Payments"),
-                data=body.to_form(),
+                data=_start_payment_form(
+                    idempotency_key=idempotency_key,
+                    status_callback=status_callback,
+                    bank_account_type=bank_account_type,
+                    charge_amount=charge_amount,
+                    currency=currency,
+                    description=description,
+                    input=input,
+                    min_postal_code_length=min_postal_code_length,
+                    parameter=parameter,
+                    payment_connector=payment_connector,
+                    payment_method=payment_method,
+                    postal_code=postal_code,
+                    security_code=security_code,
+                    timeout=timeout,
+                    token_type=token_type,
+                    valid_card_types=valid_card_types,
+                    require_matching_inputs=require_matching_inputs,
+                    confirmation=confirmation,
+                ),
             )
         )
 
@@ -905,16 +881,15 @@ class CallsAsyncResource(AsyncResource):
         capture: PaymentCapture | None = None,
         status: PaymentSessionStatus | None = None,
     ) -> CallPayment:
-        body = UpdatePaymentRequest(
-            IdempotencyKey=idempotency_key,
-            StatusCallback=status_callback,
-            Capture=capture,
-            Status=status,
-        )
         return CallPayment.model_validate(
             await self._t.request(
                 "POST",
                 self._path("Calls", call_sid, "Payments", payment_sid),
-                data=body.to_form(),
+                data=_update_payment_form(
+                    idempotency_key=idempotency_key,
+                    status_callback=status_callback,
+                    capture=capture,
+                    status=status,
+                ),
             )
         )

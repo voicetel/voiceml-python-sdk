@@ -1,4 +1,4 @@
-"""Conversations v1 resources — Twilio ``conversations.twilio.com/v1`` REST surface.
+"""Conversations v1 resources — Twilio-compatible Conversations v1 REST surface.
 
 Sits outside the ``/2010-04-01/`` Twilio-API-classic namespace at ``/v1/`` paths.
 Account is resolved from HTTP Basic auth (no ``AccountSid`` segment in URLs).
@@ -23,13 +23,12 @@ The Conversations namespace covers a stateful multi-party messaging surface:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar, Literal
 
 from pydantic import Field
 
-from ._base import _Base
-from .voice_v1 import VoiceV1Meta
-
+from ._base import _Base, _Request
+from .common import Product, V1Page
 
 # ---------------------------------------------------------------------------
 # Response models
@@ -37,7 +36,7 @@ from .voice_v1 import VoiceV1Meta
 
 
 class ConversationsV1Conversation(_Base):
-    """A Twilio Conversation — stateful multi-party message thread (``CH…``)."""
+    """A Conversation — stateful multi-party message thread (``CH…``)."""
 
     account_sid: str | None = None
     chat_service_sid: str | None = None
@@ -55,9 +54,9 @@ class ConversationsV1Conversation(_Base):
     bindings: dict[str, Any] | None = None
 
 
-class ConversationsV1ConversationList(_Base):
+class ConversationsV1ConversationList(V1Page[ConversationsV1Conversation]):
+    product: ClassVar[Product] = "conversations"
     conversations: list[ConversationsV1Conversation] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ConversationMessage(_Base):
@@ -83,9 +82,9 @@ class ConversationsV1ConversationMessage(_Base):
     content_sid: str | None = None
 
 
-class ConversationsV1ConversationMessageList(_Base):
+class ConversationsV1ConversationMessageList(V1Page[ConversationsV1ConversationMessage]):
+    product: ClassVar[Product] = "conversations"
     messages: list[ConversationsV1ConversationMessage] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ConversationParticipant(_Base):
@@ -109,9 +108,9 @@ class ConversationsV1ConversationParticipant(_Base):
     last_read_timestamp: str | None = None
 
 
-class ConversationsV1ConversationParticipantList(_Base):
+class ConversationsV1ConversationParticipantList(V1Page[ConversationsV1ConversationParticipant]):
+    product: ClassVar[Product] = "conversations"
     participants: list[ConversationsV1ConversationParticipant] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ConversationMessageReceipt(_Base):
@@ -130,11 +129,11 @@ class ConversationsV1ConversationMessageReceipt(_Base):
     url: str | None = None
 
 
-class ConversationsV1ConversationMessageReceiptList(_Base):
-    delivery_receipts: list[ConversationsV1ConversationMessageReceipt] = Field(
-        default_factory=list
-    )
-    meta: VoiceV1Meta | None = None
+class ConversationsV1ConversationMessageReceiptList(
+    V1Page[ConversationsV1ConversationMessageReceipt]
+):
+    product: ClassVar[Product] = "conversations"
+    delivery_receipts: list[ConversationsV1ConversationMessageReceipt] = Field(default_factory=list)
 
 
 class ConversationsV1ConversationScopedWebhook(_Base):
@@ -150,9 +149,11 @@ class ConversationsV1ConversationScopedWebhook(_Base):
     date_updated: str | None = None
 
 
-class ConversationsV1ConversationScopedWebhookList(_Base):
+class ConversationsV1ConversationScopedWebhookList(
+    V1Page[ConversationsV1ConversationScopedWebhook]
+):
+    product: ClassVar[Product] = "conversations"
     webhooks: list[ConversationsV1ConversationScopedWebhook] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1Role(_Base):
@@ -173,9 +174,9 @@ class ConversationsV1Role(_Base):
     url: str | None = None
 
 
-class ConversationsV1RoleList(_Base):
+class ConversationsV1RoleList(V1Page[ConversationsV1Role]):
+    product: ClassVar[Product] = "conversations"
     roles: list[ConversationsV1Role] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1User(_Base):
@@ -196,9 +197,9 @@ class ConversationsV1User(_Base):
     links: dict[str, Any] | None = None
 
 
-class ConversationsV1UserList(_Base):
+class ConversationsV1UserList(V1Page[ConversationsV1User]):
+    product: ClassVar[Product] = "conversations"
     users: list[ConversationsV1User] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1Credential(_Base):
@@ -214,9 +215,9 @@ class ConversationsV1Credential(_Base):
     url: str | None = None
 
 
-class ConversationsV1CredentialList(_Base):
+class ConversationsV1CredentialList(V1Page[ConversationsV1Credential]):
+    product: ClassVar[Product] = "conversations"
     credentials: list[ConversationsV1Credential] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1Configuration(_Base):
@@ -258,9 +259,9 @@ class ConversationsV1ConfigAddress(_Base):
     address_country: str | None = None
 
 
-class ConversationsV1ConfigAddressList(_Base):
+class ConversationsV1ConfigAddressList(V1Page[ConversationsV1ConfigAddress]):
+    product: ClassVar[Product] = "conversations"
     addresses: list[ConversationsV1ConfigAddress] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ParticipantConversation(_Base):
@@ -287,9 +288,9 @@ class ConversationsV1ParticipantConversation(_Base):
     links: dict[str, Any] | None = None
 
 
-class ConversationsV1ParticipantConversationList(_Base):
+class ConversationsV1ParticipantConversationList(V1Page[ConversationsV1ParticipantConversation]):
+    product: ClassVar[Product] = "conversations"
     conversations: list[ConversationsV1ParticipantConversation] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ConversationWithParticipants(_Base):
@@ -334,9 +335,9 @@ class ConversationsV1UserConversation(_Base):
     links: dict[str, Any] | None = None
 
 
-class ConversationsV1UserConversationList(_Base):
+class ConversationsV1UserConversationList(V1Page[ConversationsV1UserConversation]):
+    product: ClassVar[Product] = "conversations"
     conversations: list[ConversationsV1UserConversation] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1Service(_Base):
@@ -351,9 +352,9 @@ class ConversationsV1Service(_Base):
     links: dict[str, Any] | None = None
 
 
-class ConversationsV1ServiceList(_Base):
+class ConversationsV1ServiceList(V1Page[ConversationsV1Service]):
+    product: ClassVar[Product] = "conversations"
     services: list[ConversationsV1Service] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -366,35 +367,37 @@ class ConversationsV1ServiceList(_Base):
 # ---------------------------------------------------------------------------
 
 
-class CreateConversationsV1ConversationRequest(_Base):
+class CreateConversationsV1ConversationRequest(_Request):
     """Body for ``POST /v1/Conversations``. All fields optional."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     unique_name: str | None = Field(default=None, alias="UniqueName")
     messaging_service_sid: str | None = Field(default=None, alias="MessagingServiceSid")
     attributes: str | None = Field(default=None, alias="Attributes")
-    state: str | None = Field(default=None, alias="State")
+    state: Literal["initializing", "inactive", "active", "closed"] | None = Field(
+        default=None, alias="State"
+    )
     timers_inactive: str | None = Field(default=None, alias="Timers.Inactive")
     timers_closed: str | None = Field(default=None, alias="Timers.Closed")
-    bindings_email_address: str | None = Field(
-        default=None, alias="Bindings.Email.Address"
-    )
+    bindings_email_address: str | None = Field(default=None, alias="Bindings.Email.Address")
     bindings_email_name: str | None = Field(default=None, alias="Bindings.Email.Name")
 
 
-class UpdateConversationsV1ConversationRequest(_Base):
+class UpdateConversationsV1ConversationRequest(_Request):
     """Body for ``POST /v1/Conversations/{ConversationSid}``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     unique_name: str | None = Field(default=None, alias="UniqueName")
     messaging_service_sid: str | None = Field(default=None, alias="MessagingServiceSid")
     attributes: str | None = Field(default=None, alias="Attributes")
-    state: str | None = Field(default=None, alias="State")
+    state: Literal["initializing", "inactive", "active", "closed"] | None = Field(
+        default=None, alias="State"
+    )
     timers_inactive: str | None = Field(default=None, alias="Timers.Inactive")
     timers_closed: str | None = Field(default=None, alias="Timers.Closed")
 
 
-class CreateConversationsV1ConversationMessageRequest(_Base):
+class CreateConversationsV1ConversationMessageRequest(_Request):
     """Body for ``POST /v1/Conversations/{ConversationSid}/Messages``."""
 
     author: str | None = Field(default=None, alias="Author")
@@ -403,7 +406,7 @@ class CreateConversationsV1ConversationMessageRequest(_Base):
     content_sid: str | None = Field(default=None, alias="ContentSid")
 
 
-class UpdateConversationsV1ConversationMessageRequest(_Base):
+class UpdateConversationsV1ConversationMessageRequest(_Request):
     """Body for ``POST /v1/Conversations/{ConversationSid}/Messages/{MessageSid}``."""
 
     author: str | None = Field(default=None, alias="Author")
@@ -411,15 +414,13 @@ class UpdateConversationsV1ConversationMessageRequest(_Base):
     attributes: str | None = Field(default=None, alias="Attributes")
 
 
-class CreateConversationsV1ConversationParticipantRequest(_Base):
+class CreateConversationsV1ConversationParticipantRequest(_Request):
     """Body for ``POST /v1/Conversations/{ConversationSid}/Participants``."""
 
     identity: str | None = Field(default=None, alias="Identity")
     attributes: str | None = Field(default=None, alias="Attributes")
     role_sid: str | None = Field(default=None, alias="RoleSid")
-    messaging_binding_address: str | None = Field(
-        default=None, alias="MessagingBinding.Address"
-    )
+    messaging_binding_address: str | None = Field(default=None, alias="MessagingBinding.Address")
     messaging_binding_proxy_address: str | None = Field(
         default=None, alias="MessagingBinding.ProxyAddress"
     )
@@ -428,61 +429,53 @@ class CreateConversationsV1ConversationParticipantRequest(_Base):
     )
 
 
-class UpdateConversationsV1ConversationParticipantRequest(_Base):
+class UpdateConversationsV1ConversationParticipantRequest(_Request):
     """Body for ``POST /v1/Conversations/{ConversationSid}/Participants/{ParticipantSid}``."""
 
     identity: str | None = Field(default=None, alias="Identity")
     attributes: str | None = Field(default=None, alias="Attributes")
     role_sid: str | None = Field(default=None, alias="RoleSid")
-    last_read_message_index: int | None = Field(
-        default=None, alias="LastReadMessageIndex"
-    )
+    last_read_message_index: int | None = Field(default=None, alias="LastReadMessageIndex")
     last_read_timestamp: str | None = Field(default=None, alias="LastReadTimestamp")
 
 
-class CreateConversationsV1ConversationScopedWebhookRequest(_Base):
+class CreateConversationsV1ConversationScopedWebhookRequest(_Request):
     """Body for ``POST /v1/Conversations/{ConversationSid}/Webhooks``. ``Target`` required."""
 
-    target: str = Field(alias="Target")
+    target: Literal["webhook", "trigger", "studio"] = Field(alias="Target")
     configuration_url: str | None = Field(default=None, alias="Configuration.Url")
-    configuration_method: str | None = Field(
+    configuration_method: Literal["GET", "POST"] | None = Field(
         default=None, alias="Configuration.Method"
     )
-    configuration_flow_sid: str | None = Field(
-        default=None, alias="Configuration.FlowSid"
-    )
-    configuration_replay_after: int | None = Field(
-        default=None, alias="Configuration.ReplayAfter"
-    )
+    configuration_flow_sid: str | None = Field(default=None, alias="Configuration.FlowSid")
+    configuration_replay_after: int | None = Field(default=None, alias="Configuration.ReplayAfter")
 
 
-class UpdateConversationsV1ConversationScopedWebhookRequest(_Base):
+class UpdateConversationsV1ConversationScopedWebhookRequest(_Request):
     """Body for ``POST /v1/Conversations/{ConversationSid}/Webhooks/{WebhookSid}``."""
 
     configuration_url: str | None = Field(default=None, alias="Configuration.Url")
-    configuration_method: str | None = Field(
+    configuration_method: Literal["GET", "POST"] | None = Field(
         default=None, alias="Configuration.Method"
     )
-    configuration_flow_sid: str | None = Field(
-        default=None, alias="Configuration.FlowSid"
-    )
+    configuration_flow_sid: str | None = Field(default=None, alias="Configuration.FlowSid")
 
 
-class CreateConversationsV1RoleRequest(_Base):
+class CreateConversationsV1RoleRequest(_Request):
     """Body for ``POST /v1/Roles``. All three fields are required."""
 
     friendly_name: str = Field(alias="FriendlyName")
-    type: str = Field(alias="Type")
+    type: Literal["conversation", "service"] = Field(alias="Type")
     permission: list[str] = Field(alias="Permission")
 
 
-class UpdateConversationsV1RoleRequest(_Base):
+class UpdateConversationsV1RoleRequest(_Request):
     """Body for ``POST /v1/Roles/{Sid}``. ``Permission`` is required."""
 
     permission: list[str] = Field(alias="Permission")
 
 
-class CreateConversationsV1UserRequest(_Base):
+class CreateConversationsV1UserRequest(_Request):
     """Body for ``POST /v1/Users``. ``Identity`` is required."""
 
     identity: str = Field(alias="Identity")
@@ -491,7 +484,7 @@ class CreateConversationsV1UserRequest(_Base):
     role_sid: str | None = Field(default=None, alias="RoleSid")
 
 
-class UpdateConversationsV1UserRequest(_Base):
+class UpdateConversationsV1UserRequest(_Request):
     """Body for ``POST /v1/Users/{Sid}``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
@@ -499,20 +492,20 @@ class UpdateConversationsV1UserRequest(_Base):
     role_sid: str | None = Field(default=None, alias="RoleSid")
 
 
-class UpdateConversationsV1UserConversationRequest(_Base):
+class UpdateConversationsV1UserConversationRequest(_Request):
     """Body for ``POST /v1/Users/{Sid}/Conversations/{ConversationSid}``."""
 
-    notification_level: str | None = Field(default=None, alias="NotificationLevel")
-    last_read_message_index: int | None = Field(
-        default=None, alias="LastReadMessageIndex"
+    notification_level: Literal["default", "muted"] | None = Field(
+        default=None, alias="NotificationLevel"
     )
+    last_read_message_index: int | None = Field(default=None, alias="LastReadMessageIndex")
     last_read_timestamp: str | None = Field(default=None, alias="LastReadTimestamp")
 
 
-class CreateConversationsV1CredentialRequest(_Base):
+class CreateConversationsV1CredentialRequest(_Request):
     """Body for ``POST /v1/Credentials``. ``Type`` is required."""
 
-    type: str = Field(alias="Type")
+    type: Literal["apn", "gcm", "fcm"] = Field(alias="Type")
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     certificate: str | None = Field(default=None, alias="Certificate")
     private_key: str | None = Field(default=None, alias="PrivateKey")
@@ -521,10 +514,10 @@ class CreateConversationsV1CredentialRequest(_Base):
     secret: str | None = Field(default=None, alias="Secret")
 
 
-class UpdateConversationsV1CredentialRequest(_Base):
+class UpdateConversationsV1CredentialRequest(_Request):
     """Body for ``POST /v1/Credentials/{Sid}``."""
 
-    type: str | None = Field(default=None, alias="Type")
+    type: Literal["apn", "gcm", "fcm"] | None = Field(default=None, alias="Type")
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     certificate: str | None = Field(default=None, alias="Certificate")
     private_key: str | None = Field(default=None, alias="PrivateKey")
@@ -533,65 +526,59 @@ class UpdateConversationsV1CredentialRequest(_Base):
     secret: str | None = Field(default=None, alias="Secret")
 
 
-class UpdateConversationsV1ConfigurationRequest(_Base):
+class UpdateConversationsV1ConfigurationRequest(_Request):
     """Body for ``POST /v1/Configuration``."""
 
-    default_chat_service_sid: str | None = Field(
-        default=None, alias="DefaultChatServiceSid"
-    )
+    default_chat_service_sid: str | None = Field(default=None, alias="DefaultChatServiceSid")
     default_messaging_service_sid: str | None = Field(
         default=None, alias="DefaultMessagingServiceSid"
     )
-    default_inactive_timer: str | None = Field(
-        default=None, alias="DefaultInactiveTimer"
-    )
+    default_inactive_timer: str | None = Field(default=None, alias="DefaultInactiveTimer")
     default_closed_timer: str | None = Field(default=None, alias="DefaultClosedTimer")
 
 
-class UpdateConversationsV1ConfigurationWebhookRequest(_Base):
+class UpdateConversationsV1ConfigurationWebhookRequest(_Request):
     """Body for ``POST /v1/Configuration/Webhooks``.
 
     ``Filters`` is a repeated form param — the transport encodes the list
     as ``Filters=…&Filters=…``.
     """
 
-    method: str | None = Field(default=None, alias="Method")
+    method: Literal["GET", "POST"] | None = Field(default=None, alias="Method")
     filters: list[str] | None = Field(default=None, alias="Filters")
     pre_webhook_url: str | None = Field(default=None, alias="PreWebhookUrl")
     post_webhook_url: str | None = Field(default=None, alias="PostWebhookUrl")
-    target: str | None = Field(default=None, alias="Target")
+    target: Literal["webhook", "flex"] | None = Field(default=None, alias="Target")
 
 
-class CreateConversationsV1ConfigAddressRequest(_Base):
+class CreateConversationsV1ConfigAddressRequest(_Request):
     """Body for ``POST /v1/Configuration/Addresses``. ``Type`` + ``Address`` required."""
 
-    type: str = Field(alias="Type")
+    type: Literal["sms", "whatsapp", "messenger", "gbm", "email", "rcs", "apple", "chat"] = Field(
+        alias="Type"
+    )
     address: str = Field(alias="Address")
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
-    auto_creation_enabled: bool | None = Field(
-        default=None, alias="AutoCreation.Enabled"
+    auto_creation_enabled: bool | None = Field(default=None, alias="AutoCreation.Enabled")
+    auto_creation_type: Literal["webhook", "studio", "default"] | None = Field(
+        default=None, alias="AutoCreation.Type"
     )
-    auto_creation_type: str | None = Field(default=None, alias="AutoCreation.Type")
-    auto_creation_webhook_url: str | None = Field(
-        default=None, alias="AutoCreation.WebhookUrl"
-    )
+    auto_creation_webhook_url: str | None = Field(default=None, alias="AutoCreation.WebhookUrl")
     address_country: str | None = Field(default=None, alias="AddressCountry")
 
 
-class UpdateConversationsV1ConfigAddressRequest(_Base):
+class UpdateConversationsV1ConfigAddressRequest(_Request):
     """Body for ``POST /v1/Configuration/Addresses/{Sid}``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
-    auto_creation_enabled: bool | None = Field(
-        default=None, alias="AutoCreation.Enabled"
+    auto_creation_enabled: bool | None = Field(default=None, alias="AutoCreation.Enabled")
+    auto_creation_type: Literal["webhook", "studio", "default"] | None = Field(
+        default=None, alias="AutoCreation.Type"
     )
-    auto_creation_type: str | None = Field(default=None, alias="AutoCreation.Type")
-    auto_creation_webhook_url: str | None = Field(
-        default=None, alias="AutoCreation.WebhookUrl"
-    )
+    auto_creation_webhook_url: str | None = Field(default=None, alias="AutoCreation.WebhookUrl")
 
 
-class CreateConversationsV1ConversationWithParticipantsRequest(_Base):
+class CreateConversationsV1ConversationWithParticipantsRequest(_Request):
     """Body for ``POST /v1/ConversationWithParticipants``.
 
     ``Participant`` is repeated; each entry is a JSON string describing one
@@ -602,13 +589,15 @@ class CreateConversationsV1ConversationWithParticipantsRequest(_Base):
     unique_name: str | None = Field(default=None, alias="UniqueName")
     messaging_service_sid: str | None = Field(default=None, alias="MessagingServiceSid")
     attributes: str | None = Field(default=None, alias="Attributes")
-    state: str | None = Field(default=None, alias="State")
+    state: Literal["initializing", "inactive", "active", "closed"] | None = Field(
+        default=None, alias="State"
+    )
     timers_inactive: str | None = Field(default=None, alias="Timers.Inactive")
     timers_closed: str | None = Field(default=None, alias="Timers.Closed")
     participant: list[str] | None = Field(default=None, alias="Participant")
 
 
-class CreateConversationsV1ServiceRequest(_Base):
+class CreateConversationsV1ServiceRequest(_Request):
     """Body for ``POST /v1/Services``. ``FriendlyName`` is required."""
 
     friendly_name: str = Field(alias="FriendlyName")
@@ -641,9 +630,9 @@ class ConversationsV1ServiceConversation(_Base):
     bindings: dict[str, Any] | None = None
 
 
-class ConversationsV1ServiceConversationList(_Base):
+class ConversationsV1ServiceConversationList(V1Page[ConversationsV1ServiceConversation]):
+    product: ClassVar[Product] = "conversations"
     conversations: list[ConversationsV1ServiceConversation] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ServiceConversationMessage(_Base):
@@ -667,9 +656,11 @@ class ConversationsV1ServiceConversationMessage(_Base):
     content_sid: str | None = None
 
 
-class ConversationsV1ServiceConversationMessageList(_Base):
+class ConversationsV1ServiceConversationMessageList(
+    V1Page[ConversationsV1ServiceConversationMessage]
+):
+    product: ClassVar[Product] = "conversations"
     messages: list[ConversationsV1ServiceConversationMessage] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ServiceConversationParticipant(_Base):
@@ -690,11 +681,11 @@ class ConversationsV1ServiceConversationParticipant(_Base):
     last_read_timestamp: str | None = None
 
 
-class ConversationsV1ServiceConversationParticipantList(_Base):
-    participants: list[ConversationsV1ServiceConversationParticipant] = Field(
-        default_factory=list
-    )
-    meta: VoiceV1Meta | None = None
+class ConversationsV1ServiceConversationParticipantList(
+    V1Page[ConversationsV1ServiceConversationParticipant]
+):
+    product: ClassVar[Product] = "conversations"
+    participants: list[ConversationsV1ServiceConversationParticipant] = Field(default_factory=list)
 
 
 class ConversationsV1ServiceConversationMessageReceipt(_Base):
@@ -714,11 +705,13 @@ class ConversationsV1ServiceConversationMessageReceipt(_Base):
     url: str | None = None
 
 
-class ConversationsV1ServiceConversationMessageReceiptList(_Base):
+class ConversationsV1ServiceConversationMessageReceiptList(
+    V1Page[ConversationsV1ServiceConversationMessageReceipt]
+):
+    product: ClassVar[Product] = "conversations"
     delivery_receipts: list[ConversationsV1ServiceConversationMessageReceipt] = Field(
         default_factory=list
     )
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ServiceConversationScopedWebhook(_Base):
@@ -735,11 +728,11 @@ class ConversationsV1ServiceConversationScopedWebhook(_Base):
     date_updated: str | None = None
 
 
-class ConversationsV1ServiceConversationScopedWebhookList(_Base):
-    webhooks: list[ConversationsV1ServiceConversationScopedWebhook] = Field(
-        default_factory=list
-    )
-    meta: VoiceV1Meta | None = None
+class ConversationsV1ServiceConversationScopedWebhookList(
+    V1Page[ConversationsV1ServiceConversationScopedWebhook]
+):
+    product: ClassVar[Product] = "conversations"
+    webhooks: list[ConversationsV1ServiceConversationScopedWebhook] = Field(default_factory=list)
 
 
 class ConversationsV1ServiceRole(_Base):
@@ -756,9 +749,9 @@ class ConversationsV1ServiceRole(_Base):
     url: str | None = None
 
 
-class ConversationsV1ServiceRoleList(_Base):
+class ConversationsV1ServiceRoleList(V1Page[ConversationsV1ServiceRole]):
+    product: ClassVar[Product] = "conversations"
     roles: list[ConversationsV1ServiceRole] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ServiceUser(_Base):
@@ -779,9 +772,9 @@ class ConversationsV1ServiceUser(_Base):
     links: dict[str, Any] | None = None
 
 
-class ConversationsV1ServiceUserList(_Base):
+class ConversationsV1ServiceUserList(V1Page[ConversationsV1ServiceUser]):
+    product: ClassVar[Product] = "conversations"
     users: list[ConversationsV1ServiceUser] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ServiceConversationWithParticipants(_Base):
@@ -824,11 +817,11 @@ class ConversationsV1ServiceParticipantConversation(_Base):
     links: dict[str, Any] | None = None
 
 
-class ConversationsV1ServiceParticipantConversationList(_Base):
-    conversations: list[ConversationsV1ServiceParticipantConversation] = Field(
-        default_factory=list
-    )
-    meta: VoiceV1Meta | None = None
+class ConversationsV1ServiceParticipantConversationList(
+    V1Page[ConversationsV1ServiceParticipantConversation]
+):
+    product: ClassVar[Product] = "conversations"
+    conversations: list[ConversationsV1ServiceParticipantConversation] = Field(default_factory=list)
 
 
 class ConversationsV1ServiceUserConversation(_Base):
@@ -854,11 +847,9 @@ class ConversationsV1ServiceUserConversation(_Base):
     links: dict[str, Any] | None = None
 
 
-class ConversationsV1ServiceUserConversationList(_Base):
-    conversations: list[ConversationsV1ServiceUserConversation] = Field(
-        default_factory=list
-    )
-    meta: VoiceV1Meta | None = None
+class ConversationsV1ServiceUserConversationList(V1Page[ConversationsV1ServiceUserConversation]):
+    product: ClassVar[Product] = "conversations"
+    conversations: list[ConversationsV1ServiceUserConversation] = Field(default_factory=list)
 
 
 class ConversationsV1ServiceBinding(_Base):
@@ -880,9 +871,9 @@ class ConversationsV1ServiceBinding(_Base):
     url: str | None = None
 
 
-class ConversationsV1ServiceBindingList(_Base):
+class ConversationsV1ServiceBindingList(V1Page[ConversationsV1ServiceBinding]):
+    product: ClassVar[Product] = "conversations"
     bindings: list[ConversationsV1ServiceBinding] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
 class ConversationsV1ServiceConfiguration(_Base):
@@ -932,19 +923,21 @@ class ConversationsV1ServiceWebhookConfiguration(_Base):
 # ---------------------------------------------------------------------------
 
 
-class CreateConversationsV1ServiceConversationRequest(_Base):
+class CreateConversationsV1ServiceConversationRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Conversations``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     unique_name: str | None = Field(default=None, alias="UniqueName")
     messaging_service_sid: str | None = Field(default=None, alias="MessagingServiceSid")
     attributes: str | None = Field(default=None, alias="Attributes")
-    state: str | None = Field(default=None, alias="State")
+    state: Literal["initializing", "inactive", "active", "closed"] | None = Field(
+        default=None, alias="State"
+    )
     timers_inactive: str | None = Field(default=None, alias="Timers.Inactive")
     timers_closed: str | None = Field(default=None, alias="Timers.Closed")
 
 
-class UpdateConversationsV1ServiceConversationRequest(_Base):
+class UpdateConversationsV1ServiceConversationRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}``.
 
     No ``MessagingServiceSid`` — it's pinned at create time for service-scoped
@@ -954,12 +947,14 @@ class UpdateConversationsV1ServiceConversationRequest(_Base):
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     unique_name: str | None = Field(default=None, alias="UniqueName")
     attributes: str | None = Field(default=None, alias="Attributes")
-    state: str | None = Field(default=None, alias="State")
+    state: Literal["initializing", "inactive", "active", "closed"] | None = Field(
+        default=None, alias="State"
+    )
     timers_inactive: str | None = Field(default=None, alias="Timers.Inactive")
     timers_closed: str | None = Field(default=None, alias="Timers.Closed")
 
 
-class CreateConversationsV1ServiceConversationMessageRequest(_Base):
+class CreateConversationsV1ServiceConversationMessageRequest(_Request):
     """Body for the service-scoped Messages create endpoint."""
 
     author: str | None = Field(default=None, alias="Author")
@@ -968,7 +963,7 @@ class CreateConversationsV1ServiceConversationMessageRequest(_Base):
     content_sid: str | None = Field(default=None, alias="ContentSid")
 
 
-class UpdateConversationsV1ServiceConversationMessageRequest(_Base):
+class UpdateConversationsV1ServiceConversationMessageRequest(_Request):
     """Body for the service-scoped Messages update endpoint."""
 
     author: str | None = Field(default=None, alias="Author")
@@ -976,15 +971,13 @@ class UpdateConversationsV1ServiceConversationMessageRequest(_Base):
     attributes: str | None = Field(default=None, alias="Attributes")
 
 
-class CreateConversationsV1ServiceConversationParticipantRequest(_Base):
+class CreateConversationsV1ServiceConversationParticipantRequest(_Request):
     """Body for the service-scoped Participants create endpoint."""
 
     identity: str | None = Field(default=None, alias="Identity")
     attributes: str | None = Field(default=None, alias="Attributes")
     role_sid: str | None = Field(default=None, alias="RoleSid")
-    messaging_binding_address: str | None = Field(
-        default=None, alias="MessagingBinding.Address"
-    )
+    messaging_binding_address: str | None = Field(default=None, alias="MessagingBinding.Address")
     messaging_binding_proxy_address: str | None = Field(
         default=None, alias="MessagingBinding.ProxyAddress"
     )
@@ -993,7 +986,7 @@ class CreateConversationsV1ServiceConversationParticipantRequest(_Base):
     )
 
 
-class UpdateConversationsV1ServiceConversationParticipantRequest(_Base):
+class UpdateConversationsV1ServiceConversationParticipantRequest(_Request):
     """Body for the service-scoped Participants update endpoint.
 
     Service-scoped variant accepts only ``Attributes`` and ``RoleSid``.
@@ -1003,46 +996,42 @@ class UpdateConversationsV1ServiceConversationParticipantRequest(_Base):
     role_sid: str | None = Field(default=None, alias="RoleSid")
 
 
-class CreateConversationsV1ServiceConversationScopedWebhookRequest(_Base):
+class CreateConversationsV1ServiceConversationScopedWebhookRequest(_Request):
     """Body for the service-scoped Scoped-Webhook create endpoint."""
 
-    target: str = Field(alias="Target")
+    target: Literal["webhook", "trigger", "studio"] = Field(alias="Target")
     configuration_url: str | None = Field(default=None, alias="Configuration.Url")
-    configuration_method: str | None = Field(
+    configuration_method: Literal["GET", "POST"] | None = Field(
         default=None, alias="Configuration.Method"
     )
-    configuration_flow_sid: str | None = Field(
-        default=None, alias="Configuration.FlowSid"
-    )
+    configuration_flow_sid: str | None = Field(default=None, alias="Configuration.FlowSid")
 
 
-class UpdateConversationsV1ServiceConversationScopedWebhookRequest(_Base):
+class UpdateConversationsV1ServiceConversationScopedWebhookRequest(_Request):
     """Body for the service-scoped Scoped-Webhook update endpoint."""
 
     configuration_url: str | None = Field(default=None, alias="Configuration.Url")
-    configuration_method: str | None = Field(
+    configuration_method: Literal["GET", "POST"] | None = Field(
         default=None, alias="Configuration.Method"
     )
-    configuration_flow_sid: str | None = Field(
-        default=None, alias="Configuration.FlowSid"
-    )
+    configuration_flow_sid: str | None = Field(default=None, alias="Configuration.FlowSid")
 
 
-class CreateConversationsV1ServiceRoleRequest(_Base):
+class CreateConversationsV1ServiceRoleRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Roles``."""
 
     friendly_name: str = Field(alias="FriendlyName")
-    type: str = Field(alias="Type")
+    type: Literal["conversation", "service"] = Field(alias="Type")
     permission: list[str] = Field(alias="Permission")
 
 
-class UpdateConversationsV1ServiceRoleRequest(_Base):
+class UpdateConversationsV1ServiceRoleRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Roles/{Sid}``."""
 
     permission: list[str] = Field(alias="Permission")
 
 
-class CreateConversationsV1ServiceUserRequest(_Base):
+class CreateConversationsV1ServiceUserRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Users``."""
 
     identity: str = Field(alias="Identity")
@@ -1051,7 +1040,7 @@ class CreateConversationsV1ServiceUserRequest(_Base):
     role_sid: str | None = Field(default=None, alias="RoleSid")
 
 
-class UpdateConversationsV1ServiceUserRequest(_Base):
+class UpdateConversationsV1ServiceUserRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Users/{Sid}``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
@@ -1059,7 +1048,7 @@ class UpdateConversationsV1ServiceUserRequest(_Base):
     role_sid: str | None = Field(default=None, alias="RoleSid")
 
 
-class CreateConversationsV1ServiceConversationWithParticipantsRequest(_Base):
+class CreateConversationsV1ServiceConversationWithParticipantsRequest(_Request):
     """Body for the service-scoped ConversationWithParticipants endpoint.
 
     ``Participant`` is repeated; each entry is a JSON string. The transport
@@ -1070,13 +1059,15 @@ class CreateConversationsV1ServiceConversationWithParticipantsRequest(_Base):
     unique_name: str | None = Field(default=None, alias="UniqueName")
     messaging_service_sid: str | None = Field(default=None, alias="MessagingServiceSid")
     attributes: str | None = Field(default=None, alias="Attributes")
-    state: str | None = Field(default=None, alias="State")
+    state: Literal["initializing", "inactive", "active", "closed"] | None = Field(
+        default=None, alias="State"
+    )
     timers_inactive: str | None = Field(default=None, alias="Timers.Inactive")
     timers_closed: str | None = Field(default=None, alias="Timers.Closed")
     participant: list[str] | None = Field(default=None, alias="Participant")
 
 
-class UpdateConversationsV1ServiceConfigurationRequest(_Base):
+class UpdateConversationsV1ServiceConfigurationRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Configuration``."""
 
     default_chat_service_role_sid: str | None = Field(
@@ -1091,7 +1082,7 @@ class UpdateConversationsV1ServiceConfigurationRequest(_Base):
     reachability_enabled: bool | None = Field(default=None, alias="ReachabilityEnabled")
 
 
-class UpdateConversationsV1ServiceNotificationRequest(_Base):
+class UpdateConversationsV1ServiceNotificationRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Configuration/Notifications``.
 
     Push notification settings keyed by event name; fields whose wire names
@@ -1100,12 +1091,8 @@ class UpdateConversationsV1ServiceNotificationRequest(_Base):
     """
 
     log_enabled: bool | None = Field(default=None, alias="LogEnabled")
-    new_message_enabled: bool | None = Field(
-        default=None, alias="NewMessage.Enabled"
-    )
-    new_message_template: str | None = Field(
-        default=None, alias="NewMessage.Template"
-    )
+    new_message_enabled: bool | None = Field(default=None, alias="NewMessage.Enabled")
+    new_message_template: str | None = Field(default=None, alias="NewMessage.Template")
     new_message_sound: str | None = Field(default=None, alias="NewMessage.Sound")
     new_message_badge_count_enabled: bool | None = Field(
         default=None, alias="NewMessage.BadgeCountEnabled"
@@ -1122,9 +1109,7 @@ class UpdateConversationsV1ServiceNotificationRequest(_Base):
     added_to_conversation_template: str | None = Field(
         default=None, alias="AddedToConversation.Template"
     )
-    added_to_conversation_sound: str | None = Field(
-        default=None, alias="AddedToConversation.Sound"
-    )
+    added_to_conversation_sound: str | None = Field(default=None, alias="AddedToConversation.Sound")
     removed_from_conversation_enabled: bool | None = Field(
         default=None, alias="RemovedFromConversation.Enabled"
     )
@@ -1136,7 +1121,7 @@ class UpdateConversationsV1ServiceNotificationRequest(_Base):
     )
 
 
-class UpdateConversationsV1ServiceWebhookConfigurationRequest(_Base):
+class UpdateConversationsV1ServiceWebhookConfigurationRequest(_Request):
     """Body for ``POST /v1/Services/{ChatServiceSid}/Configuration/Webhooks``.
 
     ``Filters`` is a repeated form param — the transport encodes the list
@@ -1145,5 +1130,5 @@ class UpdateConversationsV1ServiceWebhookConfigurationRequest(_Base):
 
     pre_webhook_url: str | None = Field(default=None, alias="PreWebhookUrl")
     post_webhook_url: str | None = Field(default=None, alias="PostWebhookUrl")
-    method: str | None = Field(default=None, alias="Method")
+    method: Literal["GET", "POST"] | None = Field(default=None, alias="Method")
     filters: list[str] | None = Field(default=None, alias="Filters")

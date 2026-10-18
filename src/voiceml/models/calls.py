@@ -1,4 +1,4 @@
-"""Call resource — the top-level Twilio Calls API surface."""
+"""Call resource — the Twilio-compatible Calls API surface."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from ._base import _Base
+from ._base import _Base, _Request
 from .common import Page
 
 CallStatus = Literal[
@@ -29,15 +29,16 @@ RecordingTrack = Literal["inbound", "outbound", "both"]
 TrimMode = Literal["trim-silence", "do-not-trim"]
 MachineDetectionMode = Literal["Enable", "DetectMessageEnd"]
 CallStatusCallbackEvent = Literal["initiated", "ringing", "answered", "completed"]
+RecordingStatusCallbackEvent = Literal["in-progress", "completed", "absent"]
 UpdateCallStatus = Literal["completed", "canceled"]
 
 
 class Call(_Base):
     """A Twilio-compatible Call resource."""
 
-    sid: str
-    account_sid: str
-    api_version: str
+    sid: str | None = None
+    account_sid: str | None = None
+    api_version: str | None = None
     to: str | None = Field(default=None, alias="to")
     to_formatted: str | None = None
     from_: str | None = Field(default=None, alias="from")
@@ -45,9 +46,9 @@ class Call(_Base):
     parent_call_sid: str | None = None
     caller_name: str | None = None
     forwarded_from: str | None = None
-    status: CallStatus
-    direction: CallDirection
-    answered_by: AnsweredBy | None = None
+    status: CallStatus | str
+    direction: CallDirection | str | None = None
+    answered_by: AnsweredBy | str | None = None
     start_time: str | None = None
     end_time: str | None = None
     duration: str | None = None
@@ -58,9 +59,9 @@ class Call(_Base):
     group_sid: str | None = None
     queue_time: str | None = None
     trunk_sid: str | None = None
-    date_created: str
-    date_updated: str
-    uri: str
+    date_created: str | None = None
+    date_updated: str | None = None
+    uri: str | None = None
     subresource_uris: dict[str, str] | None = None
 
 
@@ -68,11 +69,11 @@ class CallList(Page[Call]):
     calls: list[Call] = Field(default_factory=list)
 
 
-class CreateCallRequest(_Base):
+class CreateCallRequest(_Request):
     """Body for ``POST /Calls``. Sent form-encoded.
 
     Set at most one of ``url`` / ``twiml`` / ``application_sid`` (Twiml wins if multiple
-    are set — Twilio's documented precedence).
+    are set — Twilio-compatible precedence).
     """
 
     to: str = Field(alias="To")
@@ -108,7 +109,7 @@ class CreateCallRequest(_Base):
     recording_status_callback_method: str | None = Field(
         default=None, alias="RecordingStatusCallbackMethod"
     )
-    recording_status_callback_event: str | None = Field(
+    recording_status_callback_event: list[RecordingStatusCallbackEvent] | None = Field(
         default=None, alias="RecordingStatusCallbackEvent"
     )
     recording_channels: RecordingChannelsLayout | None = Field(
@@ -127,10 +128,10 @@ class CreateCallRequest(_Base):
     call_token: str | None = Field(default=None, alias="CallToken")
 
 
-class UpdateCallRequest(_Base):
+class UpdateCallRequest(_Request):
     """Body for ``POST /Calls/{sid}``.
 
-    Three flows on the same endpoint (mirrors Twilio):
+    Three flows on the same endpoint (Twilio-compatible):
       * ``status="completed"|"canceled"`` — terminate the call. Wins over any TwiML source.
       * ``twiml=<inline>`` — execute inline TwiML on the live call (wins over ``url``).
       * ``url=…`` — fetch new TwiML and execute it on the live call.

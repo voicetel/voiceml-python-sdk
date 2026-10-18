@@ -24,8 +24,9 @@ classes into a Cartesian product of all possible parent sids.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Iterator
 
+from .._http import AsyncTransport, Transport, _ScopedTransport
 from ..models import (
     CreateSipCredentialListMappingRequest,
     CreateSipCredentialListRequest,
@@ -47,14 +48,16 @@ from ..models import (
     SipIpAccessControlListMappingList,
     SipIpAddress,
     SipIpAddressList,
+    SipRegistration,
+    SipRegistrationList,
     UpdateSipCredentialListRequest,
     UpdateSipCredentialRequest,
     UpdateSipDomainRequest,
     UpdateSipIpAccessControlListRequest,
     UpdateSipIpAddressRequest,
 )
+from ..models.calls import HttpMethod
 from ._base import AsyncResource, Resource
-
 
 # ---------------------------------------------------------------------------
 # Shared param/body builders
@@ -67,38 +70,65 @@ def _page_params(
     return {"Page": page, "PageSize": page_size, "PageToken": page_token}
 
 
-def _create_domain_form(**kwargs: object) -> dict[str, object]:
+def _create_domain_form(
+    domain_name: str,
+    friendly_name: str | None = None,
+    voice_url: str | None = None,
+    voice_method: str | None = None,
+    voice_fallback_url: str | None = None,
+    voice_fallback_method: str | None = None,
+    voice_status_callback_url: str | None = None,
+    voice_status_callback_method: str | None = None,
+    sip_registration: bool | None = None,
+    secure: bool | None = None,
+    emergency_calling_enabled: bool | None = None,
+    byoc_trunk_sid: str | None = None,
+    emergency_caller_sid: str | None = None,
+) -> dict[str, object]:
     return CreateSipDomainRequest(
-        DomainName=kwargs["domain_name"],
-        FriendlyName=kwargs.get("friendly_name"),
-        VoiceUrl=kwargs.get("voice_url"),
-        VoiceMethod=kwargs.get("voice_method"),
-        VoiceFallbackUrl=kwargs.get("voice_fallback_url"),
-        VoiceFallbackMethod=kwargs.get("voice_fallback_method"),
-        VoiceStatusCallbackUrl=kwargs.get("voice_status_callback_url"),
-        VoiceStatusCallbackMethod=kwargs.get("voice_status_callback_method"),
-        SipRegistration=kwargs.get("sip_registration"),
-        Secure=kwargs.get("secure"),
-        EmergencyCallingEnabled=kwargs.get("emergency_calling_enabled"),
-        ByocTrunkSid=kwargs.get("byoc_trunk_sid"),
-        EmergencyCallerSid=kwargs.get("emergency_caller_sid"),
+        domain_name=domain_name,
+        friendly_name=friendly_name,
+        voice_url=voice_url,
+        voice_method=voice_method,
+        voice_fallback_url=voice_fallback_url,
+        voice_fallback_method=voice_fallback_method,
+        voice_status_callback_url=voice_status_callback_url,
+        voice_status_callback_method=voice_status_callback_method,
+        sip_registration=sip_registration,
+        secure=secure,
+        emergency_calling_enabled=emergency_calling_enabled,
+        byoc_trunk_sid=byoc_trunk_sid,
+        emergency_caller_sid=emergency_caller_sid,
     ).to_form()
 
 
-def _update_domain_form(**kwargs: object) -> dict[str, object]:
+def _update_domain_form(
+    friendly_name: str | None = None,
+    voice_url: str | None = None,
+    voice_method: str | None = None,
+    voice_fallback_url: str | None = None,
+    voice_fallback_method: str | None = None,
+    voice_status_callback_url: str | None = None,
+    voice_status_callback_method: str | None = None,
+    sip_registration: bool | None = None,
+    secure: bool | None = None,
+    emergency_calling_enabled: bool | None = None,
+    byoc_trunk_sid: str | None = None,
+    emergency_caller_sid: str | None = None,
+) -> dict[str, object]:
     return UpdateSipDomainRequest(
-        FriendlyName=kwargs.get("friendly_name"),
-        VoiceUrl=kwargs.get("voice_url"),
-        VoiceMethod=kwargs.get("voice_method"),
-        VoiceFallbackUrl=kwargs.get("voice_fallback_url"),
-        VoiceFallbackMethod=kwargs.get("voice_fallback_method"),
-        VoiceStatusCallbackUrl=kwargs.get("voice_status_callback_url"),
-        VoiceStatusCallbackMethod=kwargs.get("voice_status_callback_method"),
-        SipRegistration=kwargs.get("sip_registration"),
-        Secure=kwargs.get("secure"),
-        EmergencyCallingEnabled=kwargs.get("emergency_calling_enabled"),
-        ByocTrunkSid=kwargs.get("byoc_trunk_sid"),
-        EmergencyCallerSid=kwargs.get("emergency_caller_sid"),
+        friendly_name=friendly_name,
+        voice_url=voice_url,
+        voice_method=voice_method,
+        voice_fallback_url=voice_fallback_url,
+        voice_fallback_method=voice_fallback_method,
+        voice_status_callback_url=voice_status_callback_url,
+        voice_status_callback_method=voice_status_callback_method,
+        sip_registration=sip_registration,
+        secure=secure,
+        emergency_calling_enabled=emergency_calling_enabled,
+        byoc_trunk_sid=byoc_trunk_sid,
+        emergency_caller_sid=emergency_caller_sid,
     ).to_form()
 
 
@@ -110,20 +140,29 @@ def _update_domain_form(**kwargs: object) -> dict[str, object]:
 class _SipDomainCredentialListMappingsResource(Resource):
     """Per-domain CredentialList mappings under ``/SIP/Domains/{Sid}/CredentialListMappings``."""
 
-    def __init__(self, transport: object, domain_sid: str, *, auth_segment: str | None = None) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(
+        self,
+        transport: Transport | _ScopedTransport,
+        domain_sid: str,
+        *,
+        auth_segment: str | None = None,
+    ) -> None:
+        super().__init__(transport)
         self._domain_sid = domain_sid
         self._auth_segment = auth_segment
 
     def _root(self, *tail: str) -> str:
         if self._auth_segment:
             return self._path(
-                "SIP", "Domains", self._domain_sid, "Auth", self._auth_segment,
-                "CredentialListMappings", *tail,
+                "SIP",
+                "Domains",
+                self._domain_sid,
+                "Auth",
+                self._auth_segment,
+                "CredentialListMappings",
+                *tail,
             )
-        return self._path(
-            "SIP", "Domains", self._domain_sid, "CredentialListMappings", *tail
-        )
+        return self._path("SIP", "Domains", self._domain_sid, "CredentialListMappings", *tail)
 
     def list(
         self,
@@ -142,16 +181,12 @@ class _SipDomainCredentialListMappingsResource(Resource):
 
     def create(self, *, credential_list_sid: str) -> SipDomainMapping:
         body = CreateSipCredentialListMappingRequest(
-            CredentialListSid=credential_list_sid
+            credential_list_sid=credential_list_sid
         ).to_form()
-        return SipDomainMapping.model_validate(
-            self._t.request("POST", self._root(), data=body)
-        )
+        return SipDomainMapping.model_validate(self._t.request("POST", self._root(), data=body))
 
     def fetch(self, mapping_sid: str) -> SipDomainMapping:
-        return SipDomainMapping.model_validate(
-            self._t.request("GET", self._root(mapping_sid))
-        )
+        return SipDomainMapping.model_validate(self._t.request("GET", self._root(mapping_sid)))
 
     def delete(self, mapping_sid: str) -> None:
         self._t.request("DELETE", self._root(mapping_sid))
@@ -160,20 +195,29 @@ class _SipDomainCredentialListMappingsResource(Resource):
 class _SipDomainIpAccessControlListMappingsResource(Resource):
     """Per-domain IpAccessControlList mappings."""
 
-    def __init__(self, transport: object, domain_sid: str, *, auth_segment: str | None = None) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(
+        self,
+        transport: Transport | _ScopedTransport,
+        domain_sid: str,
+        *,
+        auth_segment: str | None = None,
+    ) -> None:
+        super().__init__(transport)
         self._domain_sid = domain_sid
         self._auth_segment = auth_segment
 
     def _root(self, *tail: str) -> str:
         if self._auth_segment:
             return self._path(
-                "SIP", "Domains", self._domain_sid, "Auth", self._auth_segment,
-                "IpAccessControlListMappings", *tail,
+                "SIP",
+                "Domains",
+                self._domain_sid,
+                "Auth",
+                self._auth_segment,
+                "IpAccessControlListMappings",
+                *tail,
             )
-        return self._path(
-            "SIP", "Domains", self._domain_sid, "IpAccessControlListMappings", *tail
-        )
+        return self._path("SIP", "Domains", self._domain_sid, "IpAccessControlListMappings", *tail)
 
     def list(
         self,
@@ -192,16 +236,12 @@ class _SipDomainIpAccessControlListMappingsResource(Resource):
 
     def create(self, *, ip_access_control_list_sid: str) -> SipDomainMapping:
         body = CreateSipIpAccessControlListMappingRequest(
-            IpAccessControlListSid=ip_access_control_list_sid
+            ip_access_control_list_sid=ip_access_control_list_sid
         ).to_form()
-        return SipDomainMapping.model_validate(
-            self._t.request("POST", self._root(), data=body)
-        )
+        return SipDomainMapping.model_validate(self._t.request("POST", self._root(), data=body))
 
     def fetch(self, mapping_sid: str) -> SipDomainMapping:
-        return SipDomainMapping.model_validate(
-            self._t.request("GET", self._root(mapping_sid))
-        )
+        return SipDomainMapping.model_validate(self._t.request("GET", self._root(mapping_sid)))
 
     def delete(self, mapping_sid: str) -> None:
         self._t.request("DELETE", self._root(mapping_sid))
@@ -210,15 +250,11 @@ class _SipDomainIpAccessControlListMappingsResource(Resource):
 class _SipDomainAuthCallsResource:
     """Holder for ``client.sip.domains.auth.calls.*`` sub-resources."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport | _ScopedTransport) -> None:
         self._t = transport
 
-    def credential_list_mappings(
-        self, domain_sid: str
-    ) -> _SipDomainCredentialListMappingsResource:
-        return _SipDomainCredentialListMappingsResource(
-            self._t, domain_sid, auth_segment="Calls"
-        )
+    def credential_list_mappings(self, domain_sid: str) -> _SipDomainCredentialListMappingsResource:
+        return _SipDomainCredentialListMappingsResource(self._t, domain_sid, auth_segment="Calls")
 
     def ip_access_control_list_mappings(
         self, domain_sid: str
@@ -231,16 +267,14 @@ class _SipDomainAuthCallsResource:
 class _SipDomainAuthRegistrationsResource:
     """Holder for ``client.sip.domains.auth.registrations.*`` sub-resources.
 
-    Twilio exposes only credential-list mappings on the registrations
+    Only credential-list mappings exist on the registrations
     side (no IP-ACL counterpart).
     """
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport | _ScopedTransport) -> None:
         self._t = transport
 
-    def credential_list_mappings(
-        self, domain_sid: str
-    ) -> _SipDomainCredentialListMappingsResource:
+    def credential_list_mappings(self, domain_sid: str) -> _SipDomainCredentialListMappingsResource:
         return _SipDomainCredentialListMappingsResource(
             self._t, domain_sid, auth_segment="Registrations"
         )
@@ -249,7 +283,7 @@ class _SipDomainAuthRegistrationsResource:
 class _SipDomainAuthResource:
     """Holder for ``client.sip.domains.auth.{calls,registrations}``."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport | _ScopedTransport) -> None:
         self.calls = _SipDomainAuthCallsResource(transport)
         self.registrations = _SipDomainAuthRegistrationsResource(transport)
 
@@ -257,13 +291,14 @@ class _SipDomainAuthResource:
 class SipDomainsResource(Resource):
     """Operations on ``/SIP/Domains``."""
 
-    def __init__(self, transport: object) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(self, transport: Transport | _ScopedTransport) -> None:
+        super().__init__(transport)
         self.auth = _SipDomainAuthResource(transport)
 
     def list(
         self,
         *,
+        friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -272,7 +307,10 @@ class SipDomainsResource(Resource):
             self._t.request(
                 "GET",
                 self._path("SIP", "Domains"),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "FriendlyName": friendly_name,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
             )
         )
 
@@ -282,11 +320,11 @@ class SipDomainsResource(Resource):
         domain_name: str,
         friendly_name: str | None = None,
         voice_url: str | None = None,
-        voice_method: str | None = None,
+        voice_method: HttpMethod | None = None,
         voice_fallback_url: str | None = None,
-        voice_fallback_method: str | None = None,
+        voice_fallback_method: HttpMethod | None = None,
         voice_status_callback_url: str | None = None,
-        voice_status_callback_method: str | None = None,
+        voice_status_callback_method: HttpMethod | None = None,
         sip_registration: bool | None = None,
         secure: bool | None = None,
         emergency_calling_enabled: bool | None = None,
@@ -326,11 +364,11 @@ class SipDomainsResource(Resource):
         *,
         friendly_name: str | None = None,
         voice_url: str | None = None,
-        voice_method: str | None = None,
+        voice_method: HttpMethod | None = None,
         voice_fallback_url: str | None = None,
-        voice_fallback_method: str | None = None,
+        voice_fallback_method: HttpMethod | None = None,
         voice_status_callback_url: str | None = None,
-        voice_status_callback_method: str | None = None,
+        voice_status_callback_method: HttpMethod | None = None,
         sip_registration: bool | None = None,
         secure: bool | None = None,
         emergency_calling_enabled: bool | None = None,
@@ -362,20 +400,19 @@ class SipDomainsResource(Resource):
         self._t.request("DELETE", self._path("SIP", "Domains", domain_sid))
 
     def iter(
-        self, *, page_size: int | None = None
-    ) -> Sequence[SipDomain]:
-        out: list[SipDomain] = []
-        page = 0
-        while True:
-            chunk = self.list(page=page, page_size=page_size)
-            out.extend(chunk.domains)
-            if not chunk.next_page_uri or not chunk.domains:
-                return out
-            page += 1
+        self,
+        *,
+        friendly_name: str | None = None,
+        page_size: int | None = None,
+    ) -> Iterator[SipDomain]:
+        """Lazily yield SIP domains, following ``next_page_uri`` page by page.
 
-    def credential_list_mappings(
-        self, domain_sid: str
-    ) -> _SipDomainCredentialListMappingsResource:
+        One request per page, issued as the iterator is consumed; stopping early
+        issues no further requests.
+        """
+        yield from self._paginate(self.list(friendly_name=friendly_name, page_size=page_size))
+
+    def credential_list_mappings(self, domain_sid: str) -> _SipDomainCredentialListMappingsResource:
         return _SipDomainCredentialListMappingsResource(self._t, domain_sid)
 
     def ip_access_control_list_mappings(
@@ -387,14 +424,12 @@ class SipDomainsResource(Resource):
 class _SipCredentialsResource(Resource):
     """Per-CredentialList credentials under ``/SIP/CredentialLists/{Sid}/Credentials``."""
 
-    def __init__(self, transport: object, credential_list_sid: str) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(self, transport: Transport | _ScopedTransport, credential_list_sid: str) -> None:
+        super().__init__(transport)
         self._cl_sid = credential_list_sid
 
     def _root(self, *tail: str) -> str:
-        return self._path(
-            "SIP", "CredentialLists", self._cl_sid, "Credentials", *tail
-        )
+        return self._path("SIP", "CredentialLists", self._cl_sid, "Credentials", *tail)
 
     def list(
         self,
@@ -412,20 +447,14 @@ class _SipCredentialsResource(Resource):
         )
 
     def create(self, *, username: str, password: str) -> SipCredential:
-        body = CreateSipCredentialRequest(
-            Username=username, Password=password
-        ).to_form()
-        return SipCredential.model_validate(
-            self._t.request("POST", self._root(), data=body)
-        )
+        body = CreateSipCredentialRequest(username=username, password=password).to_form()
+        return SipCredential.model_validate(self._t.request("POST", self._root(), data=body))
 
     def fetch(self, credential_sid: str) -> SipCredential:
-        return SipCredential.model_validate(
-            self._t.request("GET", self._root(credential_sid))
-        )
+        return SipCredential.model_validate(self._t.request("GET", self._root(credential_sid)))
 
     def update(self, credential_sid: str, *, password: str) -> SipCredential:
-        body = UpdateSipCredentialRequest(Password=password).to_form()
+        body = UpdateSipCredentialRequest(password=password).to_form()
         return SipCredential.model_validate(
             self._t.request("POST", self._root(credential_sid), data=body)
         )
@@ -440,6 +469,7 @@ class SipCredentialListsResource(Resource):
     def list(
         self,
         *,
+        friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -448,27 +478,28 @@ class SipCredentialListsResource(Resource):
             self._t.request(
                 "GET",
                 self._path("SIP", "CredentialLists"),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "FriendlyName": friendly_name,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
             )
         )
 
     def create(self, *, friendly_name: str) -> SipCredentialList:
-        body = CreateSipCredentialListRequest(FriendlyName=friendly_name).to_form()
+        body = CreateSipCredentialListRequest(friendly_name=friendly_name).to_form()
         return SipCredentialList.model_validate(
             self._t.request("POST", self._path("SIP", "CredentialLists"), data=body)
         )
 
     def fetch(self, credential_list_sid: str) -> SipCredentialList:
         return SipCredentialList.model_validate(
-            self._t.request(
-                "GET", self._path("SIP", "CredentialLists", credential_list_sid)
-            )
+            self._t.request("GET", self._path("SIP", "CredentialLists", credential_list_sid))
         )
 
     def update(
         self, credential_list_sid: str, *, friendly_name: str | None = None
     ) -> SipCredentialList:
-        body = UpdateSipCredentialListRequest(FriendlyName=friendly_name).to_form()
+        body = UpdateSipCredentialListRequest(friendly_name=friendly_name).to_form()
         return SipCredentialList.model_validate(
             self._t.request(
                 "POST",
@@ -478,9 +509,7 @@ class SipCredentialListsResource(Resource):
         )
 
     def delete(self, credential_list_sid: str) -> None:
-        self._t.request(
-            "DELETE", self._path("SIP", "CredentialLists", credential_list_sid)
-        )
+        self._t.request("DELETE", self._path("SIP", "CredentialLists", credential_list_sid))
 
     def credentials(self, credential_list_sid: str) -> _SipCredentialsResource:
         return _SipCredentialsResource(self._t, credential_list_sid)
@@ -489,18 +518,17 @@ class SipCredentialListsResource(Resource):
 class _SipIpAddressesResource(Resource):
     """Per-IpAccessControlList addresses under ``/SIP/IpAccessControlLists/{Sid}/IpAddresses``."""
 
-    def __init__(self, transport: object, ipacl_sid: str) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(self, transport: Transport | _ScopedTransport, ipacl_sid: str) -> None:
+        super().__init__(transport)
         self._ipacl_sid = ipacl_sid
 
     def _root(self, *tail: str) -> str:
-        return self._path(
-            "SIP", "IpAccessControlLists", self._ipacl_sid, "IpAddresses", *tail
-        )
+        return self._path("SIP", "IpAccessControlLists", self._ipacl_sid, "IpAddresses", *tail)
 
     def list(
         self,
         *,
+        friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -509,7 +537,10 @@ class _SipIpAddressesResource(Resource):
             self._t.request(
                 "GET",
                 self._root(),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "FriendlyName": friendly_name,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
             )
         )
 
@@ -521,18 +552,14 @@ class _SipIpAddressesResource(Resource):
         cidr_prefix_length: int | None = None,
     ) -> SipIpAddress:
         body = CreateSipIpAddressRequest(
-            FriendlyName=friendly_name,
-            IpAddress=ip_address,
-            CidrPrefixLength=cidr_prefix_length,
+            friendly_name=friendly_name,
+            ip_address=ip_address,
+            cidr_prefix_length=cidr_prefix_length,
         ).to_form()
-        return SipIpAddress.model_validate(
-            self._t.request("POST", self._root(), data=body)
-        )
+        return SipIpAddress.model_validate(self._t.request("POST", self._root(), data=body))
 
     def fetch(self, ip_address_sid: str) -> SipIpAddress:
-        return SipIpAddress.model_validate(
-            self._t.request("GET", self._root(ip_address_sid))
-        )
+        return SipIpAddress.model_validate(self._t.request("GET", self._root(ip_address_sid)))
 
     def update(
         self,
@@ -543,9 +570,9 @@ class _SipIpAddressesResource(Resource):
         cidr_prefix_length: int | None = None,
     ) -> SipIpAddress:
         body = UpdateSipIpAddressRequest(
-            FriendlyName=friendly_name,
-            IpAddress=ip_address,
-            CidrPrefixLength=cidr_prefix_length,
+            friendly_name=friendly_name,
+            ip_address=ip_address,
+            cidr_prefix_length=cidr_prefix_length,
         ).to_form()
         return SipIpAddress.model_validate(
             self._t.request("POST", self._root(ip_address_sid), data=body)
@@ -561,6 +588,7 @@ class SipIpAccessControlListsResource(Resource):
     def list(
         self,
         *,
+        friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -569,33 +597,26 @@ class SipIpAccessControlListsResource(Resource):
             self._t.request(
                 "GET",
                 self._path("SIP", "IpAccessControlLists"),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "FriendlyName": friendly_name,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
             )
         )
 
     def create(self, *, friendly_name: str) -> SipIpAccessControlList:
-        body = CreateSipIpAccessControlListRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+        body = CreateSipIpAccessControlListRequest(friendly_name=friendly_name).to_form()
         return SipIpAccessControlList.model_validate(
-            self._t.request(
-                "POST", self._path("SIP", "IpAccessControlLists"), data=body
-            )
+            self._t.request("POST", self._path("SIP", "IpAccessControlLists"), data=body)
         )
 
     def fetch(self, ipacl_sid: str) -> SipIpAccessControlList:
         return SipIpAccessControlList.model_validate(
-            self._t.request(
-                "GET", self._path("SIP", "IpAccessControlLists", ipacl_sid)
-            )
+            self._t.request("GET", self._path("SIP", "IpAccessControlLists", ipacl_sid))
         )
 
-    def update(
-        self, ipacl_sid: str, *, friendly_name: str | None = None
-    ) -> SipIpAccessControlList:
-        body = UpdateSipIpAccessControlListRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+    def update(self, ipacl_sid: str, *, friendly_name: str | None = None) -> SipIpAccessControlList:
+        body = UpdateSipIpAccessControlListRequest(friendly_name=friendly_name).to_form()
         return SipIpAccessControlList.model_validate(
             self._t.request(
                 "POST",
@@ -605,21 +626,44 @@ class SipIpAccessControlListsResource(Resource):
         )
 
     def delete(self, ipacl_sid: str) -> None:
-        self._t.request(
-            "DELETE", self._path("SIP", "IpAccessControlLists", ipacl_sid)
-        )
+        self._t.request("DELETE", self._path("SIP", "IpAccessControlLists", ipacl_sid))
 
     def ip_addresses(self, ipacl_sid: str) -> _SipIpAddressesResource:
         return _SipIpAddressesResource(self._t, ipacl_sid)
 
 
-class SipResource:
-    """Top-level holder for ``client.sip.{domains,credential_lists,ip_access_control_lists}``."""
+class SipRegistrationsResource(Resource):
+    """``client.sip.registrations`` — ``GET /SIP/Registrations`` (current SIP registrations)."""
 
-    def __init__(self, transport: object) -> None:
+    def list(
+        self,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> SipRegistrationList:
+        return SipRegistrationList.model_validate(
+            self._t.request(
+                "GET",
+                self._path("SIP", "Registrations"),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+            )
+        )
+
+    def iter(self, *, page_size: int | None = None) -> Iterator[SipRegistration]:
+        """Lazily yield registrations, following ``next_page_uri`` page by page."""
+        yield from self._paginate(self.list(page_size=page_size))
+
+
+class SipResource:
+    """Top-level holder for ``client.sip.{domains,credential_lists,ip_access_control_lists,
+    registrations}``."""
+
+    def __init__(self, transport: Transport | _ScopedTransport) -> None:
         self.domains = SipDomainsResource(transport)
         self.credential_lists = SipCredentialListsResource(transport)
         self.ip_access_control_lists = SipIpAccessControlListsResource(transport)
+        self.registrations = SipRegistrationsResource(transport)
 
 
 # ===========================================================================
@@ -628,20 +672,29 @@ class SipResource:
 
 
 class _AsyncSipDomainCredentialListMappingsResource(AsyncResource):
-    def __init__(self, transport: object, domain_sid: str, *, auth_segment: str | None = None) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(
+        self,
+        transport: AsyncTransport | _ScopedTransport,
+        domain_sid: str,
+        *,
+        auth_segment: str | None = None,
+    ) -> None:
+        super().__init__(transport)
         self._domain_sid = domain_sid
         self._auth_segment = auth_segment
 
     def _root(self, *tail: str) -> str:
         if self._auth_segment:
             return self._path(
-                "SIP", "Domains", self._domain_sid, "Auth", self._auth_segment,
-                "CredentialListMappings", *tail,
+                "SIP",
+                "Domains",
+                self._domain_sid,
+                "Auth",
+                self._auth_segment,
+                "CredentialListMappings",
+                *tail,
             )
-        return self._path(
-            "SIP", "Domains", self._domain_sid, "CredentialListMappings", *tail
-        )
+        return self._path("SIP", "Domains", self._domain_sid, "CredentialListMappings", *tail)
 
     async def list(
         self,
@@ -660,7 +713,7 @@ class _AsyncSipDomainCredentialListMappingsResource(AsyncResource):
 
     async def create(self, *, credential_list_sid: str) -> SipDomainMapping:
         body = CreateSipCredentialListMappingRequest(
-            CredentialListSid=credential_list_sid
+            credential_list_sid=credential_list_sid
         ).to_form()
         return SipDomainMapping.model_validate(
             await self._t.request("POST", self._root(), data=body)
@@ -676,20 +729,29 @@ class _AsyncSipDomainCredentialListMappingsResource(AsyncResource):
 
 
 class _AsyncSipDomainIpAccessControlListMappingsResource(AsyncResource):
-    def __init__(self, transport: object, domain_sid: str, *, auth_segment: str | None = None) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(
+        self,
+        transport: AsyncTransport | _ScopedTransport,
+        domain_sid: str,
+        *,
+        auth_segment: str | None = None,
+    ) -> None:
+        super().__init__(transport)
         self._domain_sid = domain_sid
         self._auth_segment = auth_segment
 
     def _root(self, *tail: str) -> str:
         if self._auth_segment:
             return self._path(
-                "SIP", "Domains", self._domain_sid, "Auth", self._auth_segment,
-                "IpAccessControlListMappings", *tail,
+                "SIP",
+                "Domains",
+                self._domain_sid,
+                "Auth",
+                self._auth_segment,
+                "IpAccessControlListMappings",
+                *tail,
             )
-        return self._path(
-            "SIP", "Domains", self._domain_sid, "IpAccessControlListMappings", *tail
-        )
+        return self._path("SIP", "Domains", self._domain_sid, "IpAccessControlListMappings", *tail)
 
     async def list(
         self,
@@ -708,7 +770,7 @@ class _AsyncSipDomainIpAccessControlListMappingsResource(AsyncResource):
 
     async def create(self, *, ip_access_control_list_sid: str) -> SipDomainMapping:
         body = CreateSipIpAccessControlListMappingRequest(
-            IpAccessControlListSid=ip_access_control_list_sid
+            ip_access_control_list_sid=ip_access_control_list_sid
         ).to_form()
         return SipDomainMapping.model_validate(
             await self._t.request("POST", self._root(), data=body)
@@ -724,7 +786,7 @@ class _AsyncSipDomainIpAccessControlListMappingsResource(AsyncResource):
 
 
 class _AsyncSipDomainAuthCallsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport | _ScopedTransport) -> None:
         self._t = transport
 
     def credential_list_mappings(
@@ -743,7 +805,7 @@ class _AsyncSipDomainAuthCallsResource:
 
 
 class _AsyncSipDomainAuthRegistrationsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport | _ScopedTransport) -> None:
         self._t = transport
 
     def credential_list_mappings(
@@ -755,19 +817,20 @@ class _AsyncSipDomainAuthRegistrationsResource:
 
 
 class _AsyncSipDomainAuthResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport | _ScopedTransport) -> None:
         self.calls = _AsyncSipDomainAuthCallsResource(transport)
         self.registrations = _AsyncSipDomainAuthRegistrationsResource(transport)
 
 
 class SipDomainsAsyncResource(AsyncResource):
-    def __init__(self, transport: object) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(self, transport: AsyncTransport | _ScopedTransport) -> None:
+        super().__init__(transport)
         self.auth = _AsyncSipDomainAuthResource(transport)
 
     async def list(
         self,
         *,
+        friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -776,7 +839,10 @@ class SipDomainsAsyncResource(AsyncResource):
             await self._t.request(
                 "GET",
                 self._path("SIP", "Domains"),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "FriendlyName": friendly_name,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
             )
         )
 
@@ -786,11 +852,11 @@ class SipDomainsAsyncResource(AsyncResource):
         domain_name: str,
         friendly_name: str | None = None,
         voice_url: str | None = None,
-        voice_method: str | None = None,
+        voice_method: HttpMethod | None = None,
         voice_fallback_url: str | None = None,
-        voice_fallback_method: str | None = None,
+        voice_fallback_method: HttpMethod | None = None,
         voice_status_callback_url: str | None = None,
-        voice_status_callback_method: str | None = None,
+        voice_status_callback_method: HttpMethod | None = None,
         sip_registration: bool | None = None,
         secure: bool | None = None,
         emergency_calling_enabled: bool | None = None,
@@ -819,6 +885,21 @@ class SipDomainsAsyncResource(AsyncResource):
             )
         )
 
+    async def iter(
+        self,
+        *,
+        friendly_name: str | None = None,
+        page_size: int | None = None,
+    ) -> AsyncIterator[SipDomain]:
+        """Lazily yield SIP domains, following ``next_page_uri`` page by page.
+
+        One request per page, issued as the iterator is consumed; stopping early
+        issues no further requests.
+        """
+        first = await self.list(friendly_name=friendly_name, page_size=page_size)
+        async for item in self._paginate(first):
+            yield item
+
     async def fetch(self, domain_sid: str) -> SipDomain:
         return SipDomain.model_validate(
             await self._t.request("GET", self._path("SIP", "Domains", domain_sid))
@@ -830,11 +911,11 @@ class SipDomainsAsyncResource(AsyncResource):
         *,
         friendly_name: str | None = None,
         voice_url: str | None = None,
-        voice_method: str | None = None,
+        voice_method: HttpMethod | None = None,
         voice_fallback_url: str | None = None,
-        voice_fallback_method: str | None = None,
+        voice_fallback_method: HttpMethod | None = None,
         voice_status_callback_url: str | None = None,
-        voice_status_callback_method: str | None = None,
+        voice_status_callback_method: HttpMethod | None = None,
         sip_registration: bool | None = None,
         secure: bool | None = None,
         emergency_calling_enabled: bool | None = None,
@@ -877,14 +958,14 @@ class SipDomainsAsyncResource(AsyncResource):
 
 
 class _AsyncSipCredentialsResource(AsyncResource):
-    def __init__(self, transport: object, credential_list_sid: str) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(
+        self, transport: AsyncTransport | _ScopedTransport, credential_list_sid: str
+    ) -> None:
+        super().__init__(transport)
         self._cl_sid = credential_list_sid
 
     def _root(self, *tail: str) -> str:
-        return self._path(
-            "SIP", "CredentialLists", self._cl_sid, "Credentials", *tail
-        )
+        return self._path("SIP", "CredentialLists", self._cl_sid, "Credentials", *tail)
 
     async def list(
         self,
@@ -902,12 +983,8 @@ class _AsyncSipCredentialsResource(AsyncResource):
         )
 
     async def create(self, *, username: str, password: str) -> SipCredential:
-        body = CreateSipCredentialRequest(
-            Username=username, Password=password
-        ).to_form()
-        return SipCredential.model_validate(
-            await self._t.request("POST", self._root(), data=body)
-        )
+        body = CreateSipCredentialRequest(username=username, password=password).to_form()
+        return SipCredential.model_validate(await self._t.request("POST", self._root(), data=body))
 
     async def fetch(self, credential_sid: str) -> SipCredential:
         return SipCredential.model_validate(
@@ -915,7 +992,7 @@ class _AsyncSipCredentialsResource(AsyncResource):
         )
 
     async def update(self, credential_sid: str, *, password: str) -> SipCredential:
-        body = UpdateSipCredentialRequest(Password=password).to_form()
+        body = UpdateSipCredentialRequest(password=password).to_form()
         return SipCredential.model_validate(
             await self._t.request("POST", self._root(credential_sid), data=body)
         )
@@ -928,6 +1005,7 @@ class SipCredentialListsAsyncResource(AsyncResource):
     async def list(
         self,
         *,
+        friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -936,29 +1014,28 @@ class SipCredentialListsAsyncResource(AsyncResource):
             await self._t.request(
                 "GET",
                 self._path("SIP", "CredentialLists"),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "FriendlyName": friendly_name,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
             )
         )
 
     async def create(self, *, friendly_name: str) -> SipCredentialList:
-        body = CreateSipCredentialListRequest(FriendlyName=friendly_name).to_form()
+        body = CreateSipCredentialListRequest(friendly_name=friendly_name).to_form()
         return SipCredentialList.model_validate(
-            await self._t.request(
-                "POST", self._path("SIP", "CredentialLists"), data=body
-            )
+            await self._t.request("POST", self._path("SIP", "CredentialLists"), data=body)
         )
 
     async def fetch(self, credential_list_sid: str) -> SipCredentialList:
         return SipCredentialList.model_validate(
-            await self._t.request(
-                "GET", self._path("SIP", "CredentialLists", credential_list_sid)
-            )
+            await self._t.request("GET", self._path("SIP", "CredentialLists", credential_list_sid))
         )
 
     async def update(
         self, credential_list_sid: str, *, friendly_name: str | None = None
     ) -> SipCredentialList:
-        body = UpdateSipCredentialListRequest(FriendlyName=friendly_name).to_form()
+        body = UpdateSipCredentialListRequest(friendly_name=friendly_name).to_form()
         return SipCredentialList.model_validate(
             await self._t.request(
                 "POST",
@@ -968,29 +1045,24 @@ class SipCredentialListsAsyncResource(AsyncResource):
         )
 
     async def delete(self, credential_list_sid: str) -> None:
-        await self._t.request(
-            "DELETE", self._path("SIP", "CredentialLists", credential_list_sid)
-        )
+        await self._t.request("DELETE", self._path("SIP", "CredentialLists", credential_list_sid))
 
-    def credentials(
-        self, credential_list_sid: str
-    ) -> _AsyncSipCredentialsResource:
+    def credentials(self, credential_list_sid: str) -> _AsyncSipCredentialsResource:
         return _AsyncSipCredentialsResource(self._t, credential_list_sid)
 
 
 class _AsyncSipIpAddressesResource(AsyncResource):
-    def __init__(self, transport: object, ipacl_sid: str) -> None:
-        super().__init__(transport)  # type: ignore[arg-type]
+    def __init__(self, transport: AsyncTransport | _ScopedTransport, ipacl_sid: str) -> None:
+        super().__init__(transport)
         self._ipacl_sid = ipacl_sid
 
     def _root(self, *tail: str) -> str:
-        return self._path(
-            "SIP", "IpAccessControlLists", self._ipacl_sid, "IpAddresses", *tail
-        )
+        return self._path("SIP", "IpAccessControlLists", self._ipacl_sid, "IpAddresses", *tail)
 
     async def list(
         self,
         *,
+        friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -999,7 +1071,10 @@ class _AsyncSipIpAddressesResource(AsyncResource):
             await self._t.request(
                 "GET",
                 self._root(),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "FriendlyName": friendly_name,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
             )
         )
 
@@ -1011,18 +1086,14 @@ class _AsyncSipIpAddressesResource(AsyncResource):
         cidr_prefix_length: int | None = None,
     ) -> SipIpAddress:
         body = CreateSipIpAddressRequest(
-            FriendlyName=friendly_name,
-            IpAddress=ip_address,
-            CidrPrefixLength=cidr_prefix_length,
+            friendly_name=friendly_name,
+            ip_address=ip_address,
+            cidr_prefix_length=cidr_prefix_length,
         ).to_form()
-        return SipIpAddress.model_validate(
-            await self._t.request("POST", self._root(), data=body)
-        )
+        return SipIpAddress.model_validate(await self._t.request("POST", self._root(), data=body))
 
     async def fetch(self, ip_address_sid: str) -> SipIpAddress:
-        return SipIpAddress.model_validate(
-            await self._t.request("GET", self._root(ip_address_sid))
-        )
+        return SipIpAddress.model_validate(await self._t.request("GET", self._root(ip_address_sid)))
 
     async def update(
         self,
@@ -1033,9 +1104,9 @@ class _AsyncSipIpAddressesResource(AsyncResource):
         cidr_prefix_length: int | None = None,
     ) -> SipIpAddress:
         body = UpdateSipIpAddressRequest(
-            FriendlyName=friendly_name,
-            IpAddress=ip_address,
-            CidrPrefixLength=cidr_prefix_length,
+            friendly_name=friendly_name,
+            ip_address=ip_address,
+            cidr_prefix_length=cidr_prefix_length,
         ).to_form()
         return SipIpAddress.model_validate(
             await self._t.request("POST", self._root(ip_address_sid), data=body)
@@ -1049,6 +1120,7 @@ class SipIpAccessControlListsAsyncResource(AsyncResource):
     async def list(
         self,
         *,
+        friendly_name: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
@@ -1057,33 +1129,28 @@ class SipIpAccessControlListsAsyncResource(AsyncResource):
             await self._t.request(
                 "GET",
                 self._path("SIP", "IpAccessControlLists"),
-                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+                params={
+                    "FriendlyName": friendly_name,
+                    **_page_params(page=page, page_size=page_size, page_token=page_token),
+                },
             )
         )
 
     async def create(self, *, friendly_name: str) -> SipIpAccessControlList:
-        body = CreateSipIpAccessControlListRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+        body = CreateSipIpAccessControlListRequest(friendly_name=friendly_name).to_form()
         return SipIpAccessControlList.model_validate(
-            await self._t.request(
-                "POST", self._path("SIP", "IpAccessControlLists"), data=body
-            )
+            await self._t.request("POST", self._path("SIP", "IpAccessControlLists"), data=body)
         )
 
     async def fetch(self, ipacl_sid: str) -> SipIpAccessControlList:
         return SipIpAccessControlList.model_validate(
-            await self._t.request(
-                "GET", self._path("SIP", "IpAccessControlLists", ipacl_sid)
-            )
+            await self._t.request("GET", self._path("SIP", "IpAccessControlLists", ipacl_sid))
         )
 
     async def update(
         self, ipacl_sid: str, *, friendly_name: str | None = None
     ) -> SipIpAccessControlList:
-        body = UpdateSipIpAccessControlListRequest(
-            FriendlyName=friendly_name
-        ).to_form()
+        body = UpdateSipIpAccessControlListRequest(friendly_name=friendly_name).to_form()
         return SipIpAccessControlList.model_validate(
             await self._t.request(
                 "POST",
@@ -1093,16 +1160,39 @@ class SipIpAccessControlListsAsyncResource(AsyncResource):
         )
 
     async def delete(self, ipacl_sid: str) -> None:
-        await self._t.request(
-            "DELETE", self._path("SIP", "IpAccessControlLists", ipacl_sid)
-        )
+        await self._t.request("DELETE", self._path("SIP", "IpAccessControlLists", ipacl_sid))
 
     def ip_addresses(self, ipacl_sid: str) -> _AsyncSipIpAddressesResource:
         return _AsyncSipIpAddressesResource(self._t, ipacl_sid)
 
 
+class SipRegistrationsAsyncResource(AsyncResource):
+    """Async counterpart to :class:`SipRegistrationsResource`."""
+
+    async def list(
+        self,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> SipRegistrationList:
+        return SipRegistrationList.model_validate(
+            await self._t.request(
+                "GET",
+                self._path("SIP", "Registrations"),
+                params=_page_params(page=page, page_size=page_size, page_token=page_token),
+            )
+        )
+
+    async def iter(self, *, page_size: int | None = None) -> AsyncIterator[SipRegistration]:
+        """Lazily yield registrations, following ``next_page_uri`` page by page."""
+        async for item in self._paginate(await self.list(page_size=page_size)):
+            yield item
+
+
 class SipAsyncResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport | _ScopedTransport) -> None:
         self.domains = SipDomainsAsyncResource(transport)
         self.credential_lists = SipCredentialListsAsyncResource(transport)
         self.ip_access_control_lists = SipIpAccessControlListsAsyncResource(transport)
+        self.registrations = SipRegistrationsAsyncResource(transport)

@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from ._base import _Base
+from ._base import _Base, _Request
 from .common import Page
 
 TranscriptionStatus = Literal["in-progress", "stopped"]
@@ -15,26 +15,52 @@ TrackSelector = Literal["inbound_track", "outbound_track", "both_tracks"]
 
 
 class CallTranscription(_Base):
-    """Live per-call transcription. Events stream via StatusCallback."""
+    """Live per-call transcription. Events stream via StatusCallback.
 
-    sid: str
-    account_sid: str
-    call_sid: str
+    ``language_code``, ``transcription_engine``, ``api_version`` and ``date_created``
+    are deprecated: the server no longer emits them, so they are always ``None``.
+    """
+
+    sid: str | None = None
+    account_sid: str | None = None
+    call_sid: str | None = None
     name: str | None = None
     language_code: str | None = None
     transcription_engine: TranscriptionEngine | None = None
-    status: TranscriptionStatus
+    status: TranscriptionStatus | str
     api_version: str | None = None
-    uri: str
+    uri: str | None = None
     date_created: str | None = None
     date_updated: str | None = None
 
 
-class TranscriptionList(Page[CallTranscription]):
-    transcriptions: list[CallTranscription] = Field(default_factory=list)
+RecordingTranscriptionStatus = Literal["in-progress", "completed", "failed"]
 
 
-class StartTranscriptionRequest(_Base):
+class RecordingTranscription(_Base):
+    """A transcription of a stored recording (``TR…``), as listed under
+    ``/Transcriptions`` and ``/Recordings/{RecordingSid}/Transcriptions``."""
+
+    sid: str | None = None
+    account_sid: str | None = None
+    status: RecordingTranscriptionStatus | str | None = None
+    recording_sid: str | None = None
+    duration: str | None = None
+    transcription_text: str | None = None
+    type: str | None = None
+    price: str | None = None
+    price_unit: str | None = None
+    api_version: str | None = None
+    uri: str | None = None
+    date_created: str | None = None
+    date_updated: str | None = None
+
+
+class RecordingTranscriptionList(Page[RecordingTranscription]):
+    transcriptions: list[RecordingTranscription] = Field(default_factory=list)
+
+
+class StartTranscriptionRequest(_Request):
     """Body for ``POST /Calls/{sid}/Transcriptions``."""
 
     name: str | None = Field(default=None, alias="Name")
@@ -51,5 +77,5 @@ class StartTranscriptionRequest(_Base):
     status_callback_events: str | None = Field(default=None, alias="StatusCallbackEvents")
 
 
-class StopTranscriptionRequest(_Base):
+class StopTranscriptionRequest(_Request):
     status: Literal["stopped"] = Field(alias="Status")

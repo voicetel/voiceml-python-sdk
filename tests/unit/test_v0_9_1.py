@@ -245,9 +245,7 @@ def test_assistants_v1_tools_crud(httpx_mock: HTTPXMock):
 def test_assistants_v1_assistant_tools_attach_detach(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(BASE)}/v1/Assistants/{ASST_ID}/Tools(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(BASE)}/v1/Assistants/{ASST_ID}/Tools(\?.*)?$"),
         json={"tools": [_tool_payload()], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -360,9 +358,7 @@ def test_assistants_v1_knowledge_status_and_chunks(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(BASE)}/v1/Knowledge/{KNOW_ID}/Chunks(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(BASE)}/v1/Knowledge/{KNOW_ID}/Chunks(\?.*)?$"),
         json={
             "chunks": [
                 {
@@ -390,9 +386,7 @@ def test_assistants_v1_knowledge_status_and_chunks(httpx_mock: HTTPXMock):
 def test_assistants_v1_assistant_knowledge_attach_detach(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(BASE)}/v1/Assistants/{ASST_ID}/Knowledge(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(BASE)}/v1/Assistants/{ASST_ID}/Knowledge(\?.*)?$"),
         json={"knowledge": [_knowledge_payload()], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -443,9 +437,7 @@ def test_assistants_v1_sessions_list_fetch_messages(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(BASE)}/v1/Sessions/{SESSION_ID}/Messages(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(BASE)}/v1/Sessions/{SESSION_ID}/Messages(\?.*)?$"),
         json={
             "messages": [
                 {
@@ -535,9 +527,7 @@ def _feedback_payload(id_: str = FDBK_ID) -> dict:
 def test_assistants_v1_assistant_feedbacks_list_create(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(BASE)}/v1/Assistants/{ASST_ID}/Feedbacks(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(BASE)}/v1/Assistants/{ASST_ID}/Feedbacks(\?.*)?$"),
         json={"feedbacks": [_feedback_payload()], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -595,9 +585,7 @@ def test_assistants_v1_policies_list(httpx_mock: HTTPXMock):
         },
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        listed = c.assistants_v1.policies.list(
-            tool_id=TOOL_ID, knowledge_id=KNOW_ID, page_size=15
-        )
+        listed = c.assistants_v1.policies.list(tool_id=TOOL_ID, knowledge_id=KNOW_ID, page_size=15)
     assert len(listed.policies) == 1
     assert listed.policies[0].id == POLICY_ID
 

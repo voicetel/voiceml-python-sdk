@@ -113,9 +113,7 @@ def test_phase4_service_conversations_crud(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(BASE)}/v1/Services/{SVC_SID}/Conversations(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(BASE)}/v1/Services/{SVC_SID}/Conversations(\?.*)?$"),
         json={"conversations": [_service_conversation_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -166,16 +164,14 @@ def test_phase4_service_conversations_crud(httpx_mock: HTTPXMock):
 # ---------------------------------------------------------------------------
 
 
-def _service_message_payload(
-    sid: str = "IM" + "0" * 32, conv_sid: str = CH_SID
-) -> dict:
+def _service_message_payload(sid: str = "IM" + "0" * 32, conv_sid: str = CH_SID) -> dict:
     return {
         "account_sid": ACCOUNT_SID,
         "chat_service_sid": SVC_SID,
         "conversation_sid": conv_sid,
         "sid": sid,
         "index": 0,
-        "author": "+15551234567",
+        "author": "+14155550103",
         "body": "Hello",
         "attributes": "{}",
         "date_created": "2026-06-27T00:00:00Z",
@@ -215,24 +211,20 @@ def test_phase4_service_messages_crud(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         messages = c.conversations_v1.services(SVC_SID).conversations(CH_SID).messages
-        messages.create(author="+15551234567", body="Hello")
+        messages.create(author="+14155550103", body="Hello")
         messages.list()
         messages.fetch(msg_sid)
         messages.update(msg_sid, body="Hi there")
         messages.delete(msg_sid)
 
-    create_body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
-    assert create_body == {"Author": ["+15551234567"], "Body": ["Hello"]}
+    create_body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
+    assert create_body == {"Author": ["+14155550103"], "Body": ["Hello"]}
 
 
 def test_phase4_service_message_receipts_list_and_fetch(httpx_mock: HTTPXMock):
     msg_sid = "IM" + "2" * 32
     receipt_sid = "DY" + "0" * 32
-    base_path = (
-        f"{BASE}/v1/Services/{SVC_SID}/Conversations/{CH_SID}/Messages/{msg_sid}/Receipts"
-    )
+    base_path = f"{BASE}/v1/Services/{SVC_SID}/Conversations/{CH_SID}/Messages/{msg_sid}/Receipts"
     receipt_payload = {
         "account_sid": ACCOUNT_SID,
         "chat_service_sid": SVC_SID,
@@ -257,9 +249,7 @@ def test_phase4_service_message_receipts_list_and_fetch(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         receipts = (
-            c.conversations_v1.services(SVC_SID)
-            .conversations(CH_SID)
-            .messages.receipts(msg_sid)
+            c.conversations_v1.services(SVC_SID).conversations(CH_SID).messages.receipts(msg_sid)
         )
         listed = receipts.list()
         fetched = receipts.fetch(receipt_sid)
@@ -320,7 +310,7 @@ def test_phase4_service_participants_crud(httpx_mock: HTTPXMock):
         ps = c.conversations_v1.services(SVC_SID).conversations(CH_SID).participants
         ps.create(
             identity="alice",
-            messaging_binding_address="+15551234567",
+            messaging_binding_address="+14155550103",
             messaging_binding_proxy_address="+15559876543",
         )
         ps.list()
@@ -331,7 +321,7 @@ def test_phase4_service_participants_crud(httpx_mock: HTTPXMock):
     requests = httpx_mock.get_requests()
     create_body = parse_qs(requests[0].content.decode(), keep_blank_values=True)
     assert create_body["Identity"] == ["alice"]
-    assert create_body["MessagingBinding.Address"] == ["+15551234567"]
+    assert create_body["MessagingBinding.Address"] == ["+14155550103"]
     assert create_body["MessagingBinding.ProxyAddress"] == ["+15559876543"]
     update_body = parse_qs(requests[3].content.decode(), keep_blank_values=True)
     # Service-scoped update accepts only Attributes/RoleSid.
@@ -398,9 +388,7 @@ def test_phase4_service_scoped_webhooks_crud(httpx_mock: HTTPXMock):
         whs.update(sid, configuration_url="https://example.com/new")
         whs.delete(sid)
 
-    create_body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
+    create_body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
     assert create_body["Target"] == ["webhook"]
     assert create_body["Configuration.Url"] == ["https://example.com/hook"]
     assert create_body["Configuration.Method"] == ["POST"]
@@ -466,9 +454,7 @@ def test_phase4_service_roles_crud(httpx_mock: HTTPXMock):
         roles.update(sid, permission=["editAnyMessage"])
         roles.delete(sid)
 
-    create_body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
+    create_body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
     assert create_body["FriendlyName"] == ["service-admin"]
     assert create_body["Type"] == ["service"]
     assert create_body["Permission"] == ["editAnyMessage", "deleteAnyMessage"]
@@ -532,9 +518,7 @@ def test_phase4_service_users_crud(httpx_mock: HTTPXMock):
         users.update(sid, friendly_name="Alice X")
         users.delete(sid)
 
-    create_body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
+    create_body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
     assert create_body == {"Identity": ["alice"], "FriendlyName": ["Alice"]}
 
 
@@ -558,8 +542,8 @@ def test_phase4_service_user_conversations_list(httpx_mock: HTTPXMock):
         json={"conversations": [payload], "meta": _meta()},
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        listed = c.conversations_v1.services(SVC_SID).users(user_sid).conversations.list(
-            page_size=5
+        listed = (
+            c.conversations_v1.services(SVC_SID).users(user_sid).conversations.list(page_size=5)
         )
     assert len(listed.conversations) == 1
     assert listed.conversations[0].chat_service_sid == SVC_SID
@@ -653,9 +637,7 @@ def test_phase4_service_configuration_fetch_update(httpx_mock: HTTPXMock):
     assert fetched.chat_service_sid == SVC_SID
     assert fetched.reachability_enabled is True
 
-    update_body = parse_qs(
-        httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True
-    )
+    update_body = parse_qs(httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True)
     assert update_body == {
         "DefaultChatServiceRoleSid": ["RL" + "0" * 32],
         "ReachabilityEnabled": ["true"],
@@ -690,9 +672,7 @@ def test_phase4_service_notifications_fetch_update(httpx_mock: HTTPXMock):
             removed_from_conversation_enabled=False,
         )
 
-    body = parse_qs(
-        httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True
-    )
+    body = parse_qs(httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True)
     assert body["LogEnabled"] == ["true"]
     assert body["NewMessage.Enabled"] == ["true"]
     assert body["NewMessage.Template"] == ["hi {name}"]
@@ -726,9 +706,7 @@ def test_phase4_service_webhook_configuration_fetch_update(httpx_mock: HTTPXMock
             filters=["onMessageAdded", "onMessageUpdated"],
         )
 
-    body = parse_qs(
-        httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True
-    )
+    body = parse_qs(httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True)
     assert body["PreWebhookUrl"] == ["https://example.com/pre"]
     assert body["Method"] == ["POST"]
     assert body["Filters"] == ["onMessageAdded", "onMessageUpdated"]
@@ -757,12 +735,12 @@ def test_phase4_service_participant_conversations_list(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         listed = c.conversations_v1.services(SVC_SID).participant_conversations.list(
-            identity="alice", address="+15551234567"
+            identity="alice", address="+14155550103"
         )
     assert len(listed.conversations) == 1
     q = httpx_mock.get_requests()[0].url.query.decode()
     assert "Identity=alice" in q
-    assert "Address=%2B15551234567" in q
+    assert "Address=%2B14155550103" in q
 
 
 def test_phase4_service_conversation_with_participants_create(httpx_mock: HTTPXMock):
@@ -778,16 +756,14 @@ def test_phase4_service_conversation_with_participants_create(httpx_mock: HTTPXM
             friendly_name="Support",
             participant=[
                 '{"identity":"alice"}',
-                '{"messaging_binding":{"address":"+15551234567"}}',
+                '{"messaging_binding":{"address":"+14155550103"}}',
             ],
         )
-    body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
+    body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
     assert body["FriendlyName"] == ["Support"]
     assert body["Participant"] == [
         '{"identity":"alice"}',
-        '{"messaging_binding":{"address":"+15551234567"}}',
+        '{"messaging_binding":{"address":"+14155550103"}}',
     ]
 
 

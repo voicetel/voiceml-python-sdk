@@ -1,13 +1,23 @@
 """Public model surface — every request and response shape exposed by the SDK.
 
-Naming follows the OpenAPI spec, with form-encoded request fields modelled in
-PascalCase (matching the wire) via Pydantic ``alias=…``. Response fields stay
-snake_case (also matching the wire). Call ``.to_form()`` on any request model
-to produce the dict the transport sends.
+Naming follows the OpenAPI spec. Form-encoded request fields are modelled with their
+wire (PascalCase) names as Pydantic aliases; construct request models with either the
+snake_case field names or the aliases. Response fields stay snake_case (matching the
+wire). Call ``.to_form()`` (form bodies) or ``.to_json()`` (JSON bodies) on a request
+model to produce the dict the transport sends.
 """
 
 from __future__ import annotations
 
+from .accounts import (
+    Account,
+    AccountStatus,
+    AccountType,
+    AccountWithKey,
+    Balance,
+    HttpMethod,
+    UpdateAccountRequest,
+)
 from .applications import (
     Application,
     ApplicationList,
@@ -52,7 +62,6 @@ from .calls import (
     CallStatus,
     CallStatusCallbackEvent,
     CreateCallRequest,
-    HttpMethod,
     MachineDetectionMode,
     RecordingChannelsLayout,
     RecordingTrack,
@@ -60,7 +69,15 @@ from .calls import (
     UpdateCallRequest,
     UpdateCallStatus,
 )
-from .common import ErrorBody, HealthFailure, Page
+from .common import (
+    ErrorBody,
+    HealthFailure,
+    ListResponse,
+    Page,
+    Product,
+    V1Page,
+    VoiceV1Meta,
+)
 from .conferences import (
     Conference,
     ConferenceList,
@@ -162,28 +179,63 @@ from .conversations_v1 import (
     UpdateConversationsV1UserConversationRequest,
     UpdateConversationsV1UserRequest,
 )
-from .diagnostics import EventsList, HealthStatus, NotificationsList
+from .diagnostics import (
+    CallEvent,
+    CallEventRequest,
+    CallEventResponse,
+    EventsList,
+    HealthStatus,
+    Notification,
+    NotificationsList,
+)
+from .exports import (
+    Export,
+    ExportArchive,
+    ExportList,
+)
 from .incoming_phone_numbers import (
     CreateIncomingPhoneNumberRequest,
+    CreateTypedIncomingPhoneNumberRequest,
     IncomingPhoneNumber,
     IncomingPhoneNumberCapabilities,
     IncomingPhoneNumberList,
+    IncomingPhoneNumberOrigin,
     UpdateIncomingPhoneNumberRequest,
 )
 from .messages import (
+    CreateMessageFeedbackRequest,
     CreateMessageRequest,
+    Media,
+    MediaList,
     Message,
     MessageDirection,
+    MessageFeedback,
+    MessageFeedbackOutcome,
     MessageList,
     MessageStatus,
     UpdateMessageRequest,
     UpdateMessageStatus,
 )
 from .messaging_v1 import (
+    CreateMessagingServicePhoneNumberRequest,
     CreateMessagingServiceRequest,
     MessagingService,
     MessagingServiceList,
+    MessagingServicePhoneNumber,
+    MessagingServicePhoneNumberList,
     UpdateMessagingServiceRequest,
+)
+from .monitor_v1 import (
+    MonitorV1Alert,
+    MonitorV1AlertList,
+    MonitorV1LogLevel,
+)
+from .outgoing_caller_ids import (
+    CreateOutgoingCallerIdRequest,
+    OutgoingCallerId,
+    OutgoingCallerIdList,
+    UpdateOutgoingCallerIdRequest,
+    ValidationRequest,
 )
 from .payments import (
     CallPayment,
@@ -231,7 +283,9 @@ from .recordings import (
     RecordingSource,
     RecordingStatus,
     RecordingUpdateStatus,
+    StartConferenceRecordingRequest,
     StartRecordingRequest,
+    UpdateConferenceRecordingRequest,
     UpdateRecordingRequest,
 )
 from .routes_v2 import (
@@ -262,6 +316,10 @@ from .sip import (
     SipIpAccessControlListMappingList,
     SipIpAddress,
     SipIpAddressList,
+    SipRegistration,
+    SipRegistrationActiveCall,
+    SipRegistrationContact,
+    SipRegistrationList,
     UpdateSipCredentialListRequest,
     UpdateSipCredentialRequest,
     UpdateSipDomainRequest,
@@ -269,20 +327,32 @@ from .sip import (
     UpdateSipIpAddressRequest,
 )
 from .siprec import (
-    SiprecList,
     SiprecSession,
     SiprecStatus,
     StartSiprecRequest,
     StopSiprecRequest,
+    TrackSelector,
 )
-from .streams import StartStreamRequest, StopStreamRequest, Stream, StreamList, StreamStatus
+from .streams import (
+    StartStreamRequest,
+    StopStreamRequest,
+    Stream,
+    StreamStatus,
+)
 from .transcriptions import (
     CallTranscription,
+    RecordingTranscription,
+    RecordingTranscriptionList,
+    RecordingTranscriptionStatus,
     StartTranscriptionRequest,
     StopTranscriptionRequest,
     TranscriptionEngine,
-    TranscriptionList,
     TranscriptionStatus,
+)
+from .usage import (
+    UsageCategory,
+    UsageRecord,
+    UsageRecordList,
 )
 from .voice_v1 import (
     CreateVoiceV1ByocTrunkRequest,
@@ -305,12 +375,15 @@ from .voice_v1 import (
     VoiceV1DialingPermissionsSettings,
     VoiceV1IpRecord,
     VoiceV1IpRecordList,
-    VoiceV1Meta,
     VoiceV1SourceIpMapping,
     VoiceV1SourceIpMappingList,
 )
 
 __all__ = [
+    "Account",
+    "AccountStatus",
+    "AccountType",
+    "AccountWithKey",
     "AnsweredBy",
     "Application",
     "ApplicationList",
@@ -334,8 +407,12 @@ __all__ = [
     "AssistantsV1Tool",
     "AssistantsV1ToolList",
     "AssistantsV1ToolWithPolicies",
+    "Balance",
     "Call",
     "CallDirection",
+    "CallEvent",
+    "CallEventRequest",
+    "CallEventResponse",
     "CallList",
     "CallPayment",
     "CallStatus",
@@ -419,8 +496,11 @@ __all__ = [
     "CreateConversationsV1ServiceUserRequest",
     "CreateConversationsV1UserRequest",
     "CreateIncomingPhoneNumberRequest",
+    "CreateMessageFeedbackRequest",
     "CreateMessageRequest",
+    "CreateMessagingServicePhoneNumberRequest",
     "CreateMessagingServiceRequest",
+    "CreateOutgoingCallerIdRequest",
     "CreateParticipantRequest",
     "CreateQueueRequest",
     "CreateSipCredentialListMappingRequest",
@@ -430,6 +510,7 @@ __all__ = [
     "CreateSipIpAccessControlListMappingRequest",
     "CreateSipIpAccessControlListRequest",
     "CreateSipIpAddressRequest",
+    "CreateTypedIncomingPhoneNumberRequest",
     "CreateVoiceV1ByocTrunkRequest",
     "CreateVoiceV1ConnectionPolicyRequest",
     "CreateVoiceV1ConnectionPolicyTargetRequest",
@@ -439,20 +520,37 @@ __all__ = [
     "EndConferenceRequest",
     "ErrorBody",
     "EventsList",
+    "Export",
+    "ExportArchive",
+    "ExportList",
     "HealthFailure",
     "HealthStatus",
     "HttpMethod",
     "IncomingPhoneNumber",
     "IncomingPhoneNumberCapabilities",
     "IncomingPhoneNumberList",
+    "IncomingPhoneNumberOrigin",
+    "ListResponse",
     "MachineDetectionMode",
+    "Media",
+    "MediaList",
     "Message",
     "MessageDirection",
+    "MessageFeedback",
+    "MessageFeedbackOutcome",
     "MessageList",
     "MessageStatus",
     "MessagingService",
     "MessagingServiceList",
+    "MessagingServicePhoneNumber",
+    "MessagingServicePhoneNumberList",
+    "MonitorV1Alert",
+    "MonitorV1AlertList",
+    "MonitorV1LogLevel",
+    "Notification",
     "NotificationsList",
+    "OutgoingCallerId",
+    "OutgoingCallerIdList",
     "Page",
     "Participant",
     "ParticipantList",
@@ -480,6 +578,7 @@ __all__ = [
     "PricingVoiceCountryV2",
     "PricingVoiceNumber",
     "PricingVoiceNumberV2",
+    "Product",
     "Queue",
     "QueueList",
     "QueueMember",
@@ -490,7 +589,11 @@ __all__ = [
     "RecordingList",
     "RecordingSource",
     "RecordingStatus",
+    "RecordingStatusCallbackEvent",
     "RecordingTrack",
+    "RecordingTranscription",
+    "RecordingTranscriptionList",
+    "RecordingTranscriptionStatus",
     "RecordingUpdateStatus",
     "RoutesV2PhoneNumber",
     "RoutesV2SipDomain",
@@ -509,9 +612,13 @@ __all__ = [
     "SipIpAccessControlListMappingList",
     "SipIpAddress",
     "SipIpAddressList",
-    "SiprecList",
+    "SipRegistration",
+    "SipRegistrationActiveCall",
+    "SipRegistrationContact",
+    "SipRegistrationList",
     "SiprecSession",
     "SiprecStatus",
+    "StartConferenceRecordingRequest",
     "StartPaymentRequest",
     "StartRecordingRequest",
     "StartSiprecRequest",
@@ -521,18 +628,19 @@ __all__ = [
     "StopStreamRequest",
     "StopTranscriptionRequest",
     "Stream",
-    "StreamList",
     "StreamStatus",
+    "TrackSelector",
     "TranscriptionEngine",
-    "TranscriptionList",
     "TranscriptionStatus",
     "TrimMode",
+    "UpdateAccountRequest",
     "UpdateApplicationRequest",
     "UpdateAssistantsV1AssistantRequest",
     "UpdateAssistantsV1KnowledgeRequest",
     "UpdateAssistantsV1ToolRequest",
     "UpdateCallRequest",
     "UpdateCallStatus",
+    "UpdateConferenceRecordingRequest",
     "UpdateConversationsV1ConfigAddressRequest",
     "UpdateConversationsV1ConfigurationRequest",
     "UpdateConversationsV1ConfigurationWebhookRequest",
@@ -557,6 +665,7 @@ __all__ = [
     "UpdateMessageRequest",
     "UpdateMessageStatus",
     "UpdateMessagingServiceRequest",
+    "UpdateOutgoingCallerIdRequest",
     "UpdateParticipantRequest",
     "UpdatePaymentRequest",
     "UpdateQueueRequest",
@@ -574,6 +683,11 @@ __all__ = [
     "UpdateVoiceV1DialingPermissionsSettingsRequest",
     "UpdateVoiceV1IpRecordRequest",
     "UpdateVoiceV1SourceIpMappingRequest",
+    "UsageCategory",
+    "UsageRecord",
+    "UsageRecordList",
+    "V1Page",
+    "ValidationRequest",
     "VoiceV1ByocTrunk",
     "VoiceV1ByocTrunkList",
     "VoiceV1ConnectionPolicy",

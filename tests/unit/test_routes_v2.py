@@ -76,15 +76,13 @@ def test_routes_v2_sip_domains_update_both_fields(httpx_mock: HTTPXMock):
         json=_payload(),
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        c.routes_v2.sip_domains.update(
-            DOMAIN_NAME, voice_region="ie1", friendly_name="renamed"
-        )
+        c.routes_v2.sip_domains.update(DOMAIN_NAME, voice_region="ie1", friendly_name="renamed")
     body = parse_qs(httpx_mock.get_request().content.decode(), keep_blank_values=True)
     assert body == {"VoiceRegion": ["ie1"], "FriendlyName": ["renamed"]}
 
 
 def test_routes_v2_path_has_no_account_prefix(httpx_mock: HTTPXMock):
-    """The /v2/ namespace is account-implicit (auth-derived) — no /2010-04-01/Accounts/.../ prefix."""
+    """The /v2/ namespace is account-implicit (auth-derived): no /2010-04-01/Accounts prefix."""
     httpx_mock.add_response(
         method="GET",
         url=f"{BASE}/v2/SipDomains/{DOMAIN_NAME}",

@@ -1,22 +1,22 @@
-"""``/Messages`` REST resource — Twilio-compatible outbound SMS.
-
-The wire surface is fire-and-forget today: ``status`` pins to ``"sent"`` on
-successful dispatch and ``"failed"`` otherwise. No MMS, no inbound webhook
-delivery, no in-flight ``queued``/``sending``/``delivered`` lifecycle.
-"""
+"""``/Messages`` REST resource — Twilio-compatible outbound SMS / MMS, plus the
+per-message ``/Media`` sub-resource."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import cast
+from collections.abc import AsyncIterator, Iterator, Sequence
 
 from ..models import (
+    CreateMessageFeedbackRequest,
     CreateMessageRequest,
+    Media,
+    MediaList,
     Message,
+    MessageFeedback,
     MessageList,
     UpdateMessageRequest,
     UpdateMessageStatus,
 )
+from ..models.messages import HttpMethod, MessageFeedbackOutcome
 from ._base import AsyncResource, Resource
 
 
@@ -43,34 +43,54 @@ def _list_params(
     }
 
 
+def _media_list_params(
+    *,
+    date_created: str | None,
+    date_created_lt: str | None,
+    date_created_gt: str | None,
+    page: int | None,
+    page_size: int | None,
+    page_token: str | None,
+) -> dict[str, object]:
+    return {
+        "DateCreated": date_created,
+        "DateCreated<": date_created_lt,
+        "DateCreated>": date_created_gt,
+        "Page": page,
+        "PageSize": page_size,
+        "PageToken": page_token,
+    }
+
+
 def _build_create_form(
     *,
     to: str,
-    body: str,
+    body: str | None,
     from_: str | None,
+    media_url: Sequence[str] | None,
     messaging_service_sid: str | None,
+    validity_period: int | None,
     status_callback: str | None,
+    status_callback_method: HttpMethod | None,
 ) -> dict[str, object]:
     return CreateMessageRequest(
-        To=to,
-        Body=body,
-        From=from_,
-        MessagingServiceSid=messaging_service_sid,
-        StatusCallback=status_callback,
+        to=to,
+        body=body,
+        from_=from_,
+        media_url=list(media_url) if media_url is not None else None,
+        messaging_service_sid=messaging_service_sid,
+        validity_period=validity_period,
+        status_callback=status_callback,
+        status_callback_method=status_callback_method,
     ).to_form()
 
 
 def _build_update_form(
-    *, body: str | None, status: str | None
+    *, body: str | None, status: UpdateMessageStatus | None
 ) -> dict[str, object]:
-    req = UpdateMessageRequest(
-        Body=body,
-        Status=cast("UpdateMessageStatus | None", status),
-    )
-    # ``to_form()`` already drops ``None``, but Body="" is a meaningful
-    # redaction request that must round-trip — and exclude_unset filtering
-    # in to_form() relies on us only setting the kwargs the caller passed.
-    return req.to_form()
+    # ``to_form()`` drops ``None`` but keeps ``body=""``, which is a meaningful
+    # redaction request that must round-trip.
+    return UpdateMessageRequest(body=body, status=status).to_form()
 
 
 class MessagesResource(Resource):
@@ -80,15 +100,19 @@ class MessagesResource(Resource):
         self,
         *,
         to: str,
-        body: str,
+        body: str | None = None,
         from_: str | None = None,
+        media_url: Sequence[str] | None = None,
         messaging_service_sid: str | None = None,
+        validity_period: int | None = None,
         status_callback: str | None = None,
+        status_callback_method: HttpMethod | None = None,
     ) -> Message:
-        """Dispatch an outbound SMS.
+        """Send an SMS (``body``) or MMS (``media_url``, optionally with ``body``).
 
-        ``to`` and ``body`` are required; ``from_`` falls back to the
-        tenant's configured default sender when omitted.
+        At least one of ``body`` / ``media_url`` is required (checked before any
+        request is made). ``from_`` falls back to the tenant's configured default
+        sender when omitted. Never retried on 5xx or read timeouts.
         """
         return Message.model_validate(
             self._t.request(
@@ -98,17 +122,18 @@ class MessagesResource(Resource):
                     to=to,
                     body=body,
                     from_=from_,
+                    media_url=media_url,
                     messaging_service_sid=messaging_service_sid,
+                    validity_period=validity_period,
                     status_callback=status_callback,
+                    status_callback_method=status_callback_method,
                 ),
             )
         )
 
     def fetch(self, message_sid: str) -> Message:
         """Fetch a previously-sent Message by sid."""
-        return Message.model_validate(
-            self._t.request("GET", self._path("Messages", message_sid))
-        )
+        return Message.model_validate(self._t.request("GET", self._path("Messages", message_sid)))
 
     def list(
         self,
@@ -140,19 +165,41 @@ class MessagesResource(Resource):
             )
         )
 
+    def iter(
+        self,
+        *,
+        to: str | None = None,
+        from_: str | None = None,
+        date_sent: str | None = None,
+        date_sent_lt: str | None = None,
+        date_sent_gt: str | None = None,
+        page_size: int | None = None,
+    ) -> Iterator[Message]:
+        """Lazily yield messages, following ``next_page_uri`` page by page.
+
+        One request per page, issued as the iterator is consumed; stopping early
+        issues no further requests.
+        """
+        yield from self._paginate(
+            self.list(
+                to=to,
+                from_=from_,
+                date_sent=date_sent,
+                date_sent_lt=date_sent_lt,
+                date_sent_gt=date_sent_gt,
+                page_size=page_size,
+            )
+        )
+
     def update(
         self,
         message_sid: str,
         *,
         body: str | None = None,
-        status: str | None = None,
+        status: UpdateMessageStatus | None = None,
     ) -> Message:
-        """Mutate an existing Message — redact ``body`` or attempt cancel.
-
-        Only ``body=""`` (redaction) is honoured by the server today;
-        ``status="canceled"`` returns 21610 because the gateway is
-        fire-and-forget.
-        """
+        """Mutate an existing Message — redact with ``body=""`` or cancel a scheduled
+        send with ``status="canceled"``."""
         return Message.model_validate(
             self._t.request(
                 "POST",
@@ -165,37 +212,58 @@ class MessagesResource(Resource):
         """Remove a Message resource from the account's store."""
         self._t.request("DELETE", self._path("Messages", message_sid))
 
-    def iter(
-        self,
-        *,
-        to: str | None = None,
-        from_: str | None = None,
-        date_sent: str | None = None,
-        date_sent_lt: str | None = None,
-        date_sent_gt: str | None = None,
-        page_size: int | None = None,
-    ) -> Sequence[Message]:
-        """Walk all pages of ``/Messages`` and return a list.
+    def create_feedback(
+        self, message_sid: str, *, outcome: MessageFeedbackOutcome | None = None
+    ) -> MessageFeedback:
+        """Submit delivery feedback for a Message.
 
-        Use for small-to-medium result sets; for very large pulls, iterate
-        ``list(...).next_page_uri`` manually.
+        ``outcome="confirmed"`` marks the message as delivered; anything else
+        (including omitting it) is recorded as ``unconfirmed``. The response
+        echoes the Feedback resource.
         """
-        out: list[Message] = []
-        page = 0
-        while True:
-            chunk = self.list(
-                to=to,
-                from_=from_,
-                date_sent=date_sent,
-                date_sent_lt=date_sent_lt,
-                date_sent_gt=date_sent_gt,
-                page=page,
-                page_size=page_size,
+        body = CreateMessageFeedbackRequest(outcome=outcome).to_form()
+        return MessageFeedback.model_validate(
+            self._t.request("POST", self._path("Messages", message_sid, "Feedback"), data=body)
+        )
+
+    # --- Media ---
+
+    def list_media(
+        self,
+        message_sid: str,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> MediaList:
+        """List the media attached to a message."""
+        return MediaList.model_validate(
+            self._t.request(
+                "GET",
+                self._path("Messages", message_sid, "Media"),
+                params=_media_list_params(
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
             )
-            out.extend(chunk.messages)
-            if not chunk.next_page_uri or not chunk.messages:
-                return out
-            page += 1
+        )
+
+    def get_media(self, message_sid: str, media_sid: str) -> Media:
+        """Fetch one media item's metadata."""
+        return Media.model_validate(
+            self._t.request("GET", self._path("Messages", message_sid, "Media", media_sid))
+        )
+
+    def delete_media(self, message_sid: str, media_sid: str) -> None:
+        """Delete one media item from a message."""
+        self._t.request("DELETE", self._path("Messages", message_sid, "Media", media_sid))
 
 
 class MessagesAsyncResource(AsyncResource):
@@ -205,10 +273,13 @@ class MessagesAsyncResource(AsyncResource):
         self,
         *,
         to: str,
-        body: str,
+        body: str | None = None,
         from_: str | None = None,
+        media_url: Sequence[str] | None = None,
         messaging_service_sid: str | None = None,
+        validity_period: int | None = None,
         status_callback: str | None = None,
+        status_callback_method: HttpMethod | None = None,
     ) -> Message:
         return Message.model_validate(
             await self._t.request(
@@ -218,8 +289,11 @@ class MessagesAsyncResource(AsyncResource):
                     to=to,
                     body=body,
                     from_=from_,
+                    media_url=media_url,
                     messaging_service_sid=messaging_service_sid,
+                    validity_period=validity_period,
                     status_callback=status_callback,
+                    status_callback_method=status_callback_method,
                 ),
             )
         )
@@ -258,12 +332,34 @@ class MessagesAsyncResource(AsyncResource):
             )
         )
 
+    async def iter(
+        self,
+        *,
+        to: str | None = None,
+        from_: str | None = None,
+        date_sent: str | None = None,
+        date_sent_lt: str | None = None,
+        date_sent_gt: str | None = None,
+        page_size: int | None = None,
+    ) -> AsyncIterator[Message]:
+        """Lazily yield messages, following ``next_page_uri`` page by page."""
+        first = await self.list(
+            to=to,
+            from_=from_,
+            date_sent=date_sent,
+            date_sent_lt=date_sent_lt,
+            date_sent_gt=date_sent_gt,
+            page_size=page_size,
+        )
+        async for item in self._paginate(first):
+            yield item
+
     async def update(
         self,
         message_sid: str,
         *,
         body: str | None = None,
-        status: str | None = None,
+        status: UpdateMessageStatus | None = None,
     ) -> Message:
         return Message.model_validate(
             await self._t.request(
@@ -275,3 +371,48 @@ class MessagesAsyncResource(AsyncResource):
 
     async def delete(self, message_sid: str) -> None:
         await self._t.request("DELETE", self._path("Messages", message_sid))
+
+    async def create_feedback(
+        self, message_sid: str, *, outcome: MessageFeedbackOutcome | None = None
+    ) -> MessageFeedback:
+        """Submit delivery feedback for a Message (see the sync counterpart)."""
+        body = CreateMessageFeedbackRequest(outcome=outcome).to_form()
+        return MessageFeedback.model_validate(
+            await self._t.request(
+                "POST", self._path("Messages", message_sid, "Feedback"), data=body
+            )
+        )
+
+    async def list_media(
+        self,
+        message_sid: str,
+        *,
+        date_created: str | None = None,
+        date_created_lt: str | None = None,
+        date_created_gt: str | None = None,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> MediaList:
+        return MediaList.model_validate(
+            await self._t.request(
+                "GET",
+                self._path("Messages", message_sid, "Media"),
+                params=_media_list_params(
+                    date_created=date_created,
+                    date_created_lt=date_created_lt,
+                    date_created_gt=date_created_gt,
+                    page=page,
+                    page_size=page_size,
+                    page_token=page_token,
+                ),
+            )
+        )
+
+    async def get_media(self, message_sid: str, media_sid: str) -> Media:
+        return Media.model_validate(
+            await self._t.request("GET", self._path("Messages", message_sid, "Media", media_sid))
+        )
+
+    async def delete_media(self, message_sid: str, media_sid: str) -> None:
+        await self._t.request("DELETE", self._path("Messages", message_sid, "Media", media_sid))

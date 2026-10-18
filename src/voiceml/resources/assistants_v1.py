@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .._http import AsyncTransport, Transport
 from ..models import (
     AssistantsV1Assistant,
     AssistantsV1AssistantList,
@@ -57,7 +58,7 @@ from ..models import (
     UpdateAssistantsV1KnowledgeRequest,
     UpdateAssistantsV1ToolRequest,
 )
-
+from ._base import path
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -114,19 +115,17 @@ def _assistant_update_body(
 class _AssistantsV1AssistantToolsResource:
     """``/v1/Assistants/{id}/Tools`` (sync) — list + attach/detach."""
 
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: Transport, assistant_id: str) -> None:
         self._t = transport
         self._asst = assistant_id
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Assistants", self._asst, "Tools", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     def list(self, *, page_size: int | None = None) -> AssistantsV1ToolList:
         return AssistantsV1ToolList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def attach(self, tool_id: str) -> None:
@@ -139,19 +138,17 @@ class _AssistantsV1AssistantToolsResource:
 class _AssistantsV1AssistantKnowledgeResource:
     """``/v1/Assistants/{id}/Knowledge`` (sync) — list + attach/detach."""
 
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: Transport, assistant_id: str) -> None:
         self._t = transport
         self._asst = assistant_id
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Assistants", self._asst, "Knowledge", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     def list(self, *, page_size: int | None = None) -> AssistantsV1KnowledgeList:
         return AssistantsV1KnowledgeList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def attach(self, knowledge_id: str) -> None:
@@ -164,19 +161,17 @@ class _AssistantsV1AssistantKnowledgeResource:
 class _AssistantsV1AssistantFeedbacksResource:
     """``/v1/Assistants/{id}/Feedbacks`` (sync) — list + create."""
 
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: Transport, assistant_id: str) -> None:
         self._t = transport
         self._asst = assistant_id
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Assistants", self._asst, "Feedbacks", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     def list(self, *, page_size: int | None = None) -> AssistantsV1FeedbackList:
         return AssistantsV1FeedbackList.model_validate(
-            self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     def create(
@@ -193,20 +188,18 @@ class _AssistantsV1AssistantFeedbacksResource:
             score=score,
             text=text,
         ).to_json()
-        return AssistantsV1Feedback.model_validate(
-            self._t.request("POST", self._root(), json=body)
-        )
+        return AssistantsV1Feedback.model_validate(self._t.request("POST", self._root(), json=body))
 
 
 class _AssistantsV1AssistantMessagesResource:
     """``/v1/Assistants/{id}/Messages`` (sync) — send a message to the Assistant."""
 
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: Transport, assistant_id: str) -> None:
         self._t = transport
         self._asst = assistant_id
 
     def _root(self) -> str:
-        return f"/v1/Assistants/{self._asst}/Messages"
+        return path("v1", "Assistants", self._asst, "Messages")
 
     def create(
         self,
@@ -232,7 +225,7 @@ class _AssistantsV1AssistantMessagesResource:
 class _AssistantContext:
     """Returned by ``client.assistants_v1.assistants(id)`` — sub-resource factory."""
 
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: Transport, assistant_id: str) -> None:
         self.tools = _AssistantsV1AssistantToolsResource(transport, assistant_id)
         self.knowledge = _AssistantsV1AssistantKnowledgeResource(transport, assistant_id)
         self.feedbacks = _AssistantsV1AssistantFeedbacksResource(transport, assistant_id)
@@ -247,7 +240,7 @@ class _AssistantsV1AssistantsCallable:
     attributes drives the un-bound CRUD.
     """
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def __call__(self, assistant_id: str) -> _AssistantContext:
@@ -266,7 +259,7 @@ class _AssistantsV1AssistantsCallable:
         return AssistantsV1Assistant.model_validate(
             self._t.request(
                 "POST",
-                "/v1/Assistants",
+                path("v1", "Assistants"),
                 json=_assistant_create_body(
                     name=name,
                     owner=owner,
@@ -278,18 +271,24 @@ class _AssistantsV1AssistantsCallable:
             )
         )
 
-    def list(self, *, page_size: int | None = None) -> AssistantsV1AssistantList:
+    def list(
+        self,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> AssistantsV1AssistantList:
         return AssistantsV1AssistantList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/Assistants",
-                params=_page_params(page_size=page_size),
+                path("v1", "Assistants"),
+                params={"Page": page, "PageSize": page_size, "PageToken": page_token},
             )
         )
 
     def fetch(self, assistant_id: str) -> AssistantsV1AssistantWithToolsAndKnowledge:
         return AssistantsV1AssistantWithToolsAndKnowledge.model_validate(
-            self._t.request("GET", f"/v1/Assistants/{assistant_id}")
+            self._t.request("GET", path("v1", "Assistants", assistant_id))
         )
 
     def update(
@@ -306,7 +305,7 @@ class _AssistantsV1AssistantsCallable:
         return AssistantsV1Assistant.model_validate(
             self._t.request(
                 "PUT",
-                f"/v1/Assistants/{assistant_id}",
+                path("v1", "Assistants", assistant_id),
                 json=_assistant_update_body(
                     name=name,
                     owner=owner,
@@ -319,13 +318,13 @@ class _AssistantsV1AssistantsCallable:
         )
 
     def delete(self, assistant_id: str) -> None:
-        self._t.request("DELETE", f"/v1/Assistants/{assistant_id}")
+        self._t.request("DELETE", path("v1", "Assistants", assistant_id))
 
 
 class _AssistantsV1ToolsResource:
     """``/v1/Tools`` (sync) — global Tool CRUD."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def create(
@@ -347,7 +346,7 @@ class _AssistantsV1ToolsResource:
             meta=meta,
         ).to_json()
         return AssistantsV1Tool.model_validate(
-            self._t.request("POST", "/v1/Tools", json=body)
+            self._t.request("POST", path("v1", "Tools"), json=body)
         )
 
     def list(
@@ -359,14 +358,14 @@ class _AssistantsV1ToolsResource:
         return AssistantsV1ToolList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/Tools",
+                path("v1", "Tools"),
                 params={"AssistantId": assistant_id, "PageSize": page_size},
             )
         )
 
     def fetch(self, tool_id: str) -> AssistantsV1ToolWithPolicies:
         return AssistantsV1ToolWithPolicies.model_validate(
-            self._t.request("GET", f"/v1/Tools/{tool_id}")
+            self._t.request("GET", path("v1", "Tools", tool_id))
         )
 
     def update(
@@ -387,30 +386,30 @@ class _AssistantsV1ToolsResource:
             meta=meta,
         ).to_json()
         return AssistantsV1Tool.model_validate(
-            self._t.request("PUT", f"/v1/Tools/{tool_id}", json=body)
+            self._t.request("PUT", path("v1", "Tools", tool_id), json=body)
         )
 
     def delete(self, tool_id: str) -> None:
-        self._t.request("DELETE", f"/v1/Tools/{tool_id}")
+        self._t.request("DELETE", path("v1", "Tools", tool_id))
 
 
 class _AssistantsV1KnowledgeStatusResource:
     """``/v1/Knowledge/{id}/Status`` (sync) — read-only status singleton."""
 
-    def __init__(self, transport: object, knowledge_id: str) -> None:
+    def __init__(self, transport: Transport, knowledge_id: str) -> None:
         self._t = transport
         self._know = knowledge_id
 
     def fetch(self) -> AssistantsV1KnowledgeStatus:
         return AssistantsV1KnowledgeStatus.model_validate(
-            self._t.request("GET", f"/v1/Knowledge/{self._know}/Status")
+            self._t.request("GET", path("v1", "Knowledge", self._know, "Status"))
         )
 
 
 class _AssistantsV1KnowledgeChunksResource:
     """``/v1/Knowledge/{id}/Chunks`` (sync) — read-only chunk listing."""
 
-    def __init__(self, transport: object, knowledge_id: str) -> None:
+    def __init__(self, transport: Transport, knowledge_id: str) -> None:
         self._t = transport
         self._know = knowledge_id
 
@@ -418,7 +417,7 @@ class _AssistantsV1KnowledgeChunksResource:
         return AssistantsV1KnowledgeChunkList.model_validate(
             self._t.request(
                 "GET",
-                f"/v1/Knowledge/{self._know}/Chunks",
+                path("v1", "Knowledge", self._know, "Chunks"),
                 params=_page_params(page_size=page_size),
             )
         )
@@ -427,7 +426,7 @@ class _AssistantsV1KnowledgeChunksResource:
 class _KnowledgeContext:
     """Returned by ``client.assistants_v1.knowledge(id)`` — sub-resource factory."""
 
-    def __init__(self, transport: object, knowledge_id: str) -> None:
+    def __init__(self, transport: Transport, knowledge_id: str) -> None:
         self.status = _AssistantsV1KnowledgeStatusResource(transport, knowledge_id)
         self.chunks = _AssistantsV1KnowledgeChunksResource(transport, knowledge_id)
 
@@ -435,7 +434,7 @@ class _KnowledgeContext:
 class _AssistantsV1KnowledgeCallable:
     """Top-level ``client.assistants_v1.knowledge`` — callable + namespace."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def __call__(self, knowledge_id: str) -> _KnowledgeContext:
@@ -460,7 +459,7 @@ class _AssistantsV1KnowledgeCallable:
             knowledge_source_details=knowledge_source_details,
         ).to_json()
         return AssistantsV1Knowledge.model_validate(
-            self._t.request("POST", "/v1/Knowledge", json=body)
+            self._t.request("POST", path("v1", "Knowledge"), json=body)
         )
 
     def list(
@@ -472,14 +471,14 @@ class _AssistantsV1KnowledgeCallable:
         return AssistantsV1KnowledgeList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/Knowledge",
+                path("v1", "Knowledge"),
                 params={"AssistantId": assistant_id, "PageSize": page_size},
             )
         )
 
     def fetch(self, knowledge_id: str) -> AssistantsV1Knowledge:
         return AssistantsV1Knowledge.model_validate(
-            self._t.request("GET", f"/v1/Knowledge/{knowledge_id}")
+            self._t.request("GET", path("v1", "Knowledge", knowledge_id))
         )
 
     def update(
@@ -500,17 +499,17 @@ class _AssistantsV1KnowledgeCallable:
             knowledge_source_details=knowledge_source_details,
         ).to_json()
         return AssistantsV1Knowledge.model_validate(
-            self._t.request("PUT", f"/v1/Knowledge/{knowledge_id}", json=body)
+            self._t.request("PUT", path("v1", "Knowledge", knowledge_id), json=body)
         )
 
     def delete(self, knowledge_id: str) -> None:
-        self._t.request("DELETE", f"/v1/Knowledge/{knowledge_id}")
+        self._t.request("DELETE", path("v1", "Knowledge", knowledge_id))
 
 
 class _AssistantsV1SessionMessagesResource:
     """``/v1/Sessions/{id}/Messages`` (sync) — read-only message listing."""
 
-    def __init__(self, transport: object, session_id: str) -> None:
+    def __init__(self, transport: Transport, session_id: str) -> None:
         self._t = transport
         self._session = session_id
 
@@ -518,7 +517,7 @@ class _AssistantsV1SessionMessagesResource:
         return AssistantsV1MessageList.model_validate(
             self._t.request(
                 "GET",
-                f"/v1/Sessions/{self._session}/Messages",
+                path("v1", "Sessions", self._session, "Messages"),
                 params=_page_params(page_size=page_size),
             )
         )
@@ -527,14 +526,14 @@ class _AssistantsV1SessionMessagesResource:
 class _SessionContext:
     """Returned by ``client.assistants_v1.sessions(id)`` — sub-resource factory."""
 
-    def __init__(self, transport: object, session_id: str) -> None:
+    def __init__(self, transport: Transport, session_id: str) -> None:
         self.messages = _AssistantsV1SessionMessagesResource(transport, session_id)
 
 
 class _AssistantsV1SessionsCallable:
     """Top-level ``client.assistants_v1.sessions`` — callable + namespace."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def __call__(self, session_id: str) -> _SessionContext:
@@ -544,21 +543,21 @@ class _AssistantsV1SessionsCallable:
         return AssistantsV1SessionList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/Sessions",
+                path("v1", "Sessions"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     def fetch(self, session_id: str) -> AssistantsV1Session:
         return AssistantsV1Session.model_validate(
-            self._t.request("GET", f"/v1/Sessions/{session_id}")
+            self._t.request("GET", path("v1", "Sessions", session_id))
         )
 
 
 class _AssistantsV1PoliciesResource:
     """``/v1/Policies`` (sync) — read-only listing, filter by tool or knowledge."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self._t = transport
 
     def list(
@@ -571,7 +570,7 @@ class _AssistantsV1PoliciesResource:
         return AssistantsV1PolicyList.model_validate(
             self._t.request(
                 "GET",
-                "/v1/Policies",
+                path("v1", "Policies"),
                 params={
                     "ToolId": tool_id,
                     "KnowledgeId": knowledge_id,
@@ -584,7 +583,7 @@ class _AssistantsV1PoliciesResource:
 class AssistantsV1Resource:
     """Holder for ``client.assistants_v1.*`` sub-resources (sync)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: Transport) -> None:
         self.assistants = _AssistantsV1AssistantsCallable(transport)
         self.tools = _AssistantsV1ToolsResource(transport)
         self.knowledge = _AssistantsV1KnowledgeCallable(transport)
@@ -598,19 +597,17 @@ class AssistantsV1Resource:
 
 
 class _AsyncAssistantsV1AssistantToolsResource:
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, assistant_id: str) -> None:
         self._t = transport
         self._asst = assistant_id
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Assistants", self._asst, "Tools", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     async def list(self, *, page_size: int | None = None) -> AssistantsV1ToolList:
         return AssistantsV1ToolList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     async def attach(self, tool_id: str) -> None:
@@ -621,19 +618,17 @@ class _AsyncAssistantsV1AssistantToolsResource:
 
 
 class _AsyncAssistantsV1AssistantKnowledgeResource:
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, assistant_id: str) -> None:
         self._t = transport
         self._asst = assistant_id
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Assistants", self._asst, "Knowledge", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     async def list(self, *, page_size: int | None = None) -> AssistantsV1KnowledgeList:
         return AssistantsV1KnowledgeList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     async def attach(self, knowledge_id: str) -> None:
@@ -644,19 +639,17 @@ class _AsyncAssistantsV1AssistantKnowledgeResource:
 
 
 class _AsyncAssistantsV1AssistantFeedbacksResource:
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, assistant_id: str) -> None:
         self._t = transport
         self._asst = assistant_id
 
     def _root(self, *tail: str) -> str:
         parts = ["v1", "Assistants", self._asst, "Feedbacks", *tail]
-        return "/" + "/".join(parts)
+        return path(*parts)
 
     async def list(self, *, page_size: int | None = None) -> AssistantsV1FeedbackList:
         return AssistantsV1FeedbackList.model_validate(
-            await self._t.request(
-                "GET", self._root(), params=_page_params(page_size=page_size)
-            )
+            await self._t.request("GET", self._root(), params=_page_params(page_size=page_size))
         )
 
     async def create(
@@ -679,12 +672,12 @@ class _AsyncAssistantsV1AssistantFeedbacksResource:
 
 
 class _AsyncAssistantsV1AssistantMessagesResource:
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, assistant_id: str) -> None:
         self._t = transport
         self._asst = assistant_id
 
     def _root(self) -> str:
-        return f"/v1/Assistants/{self._asst}/Messages"
+        return path("v1", "Assistants", self._asst, "Messages")
 
     async def create(
         self,
@@ -708,21 +701,15 @@ class _AsyncAssistantsV1AssistantMessagesResource:
 
 
 class _AsyncAssistantContext:
-    def __init__(self, transport: object, assistant_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, assistant_id: str) -> None:
         self.tools = _AsyncAssistantsV1AssistantToolsResource(transport, assistant_id)
-        self.knowledge = _AsyncAssistantsV1AssistantKnowledgeResource(
-            transport, assistant_id
-        )
-        self.feedbacks = _AsyncAssistantsV1AssistantFeedbacksResource(
-            transport, assistant_id
-        )
-        self.messages = _AsyncAssistantsV1AssistantMessagesResource(
-            transport, assistant_id
-        )
+        self.knowledge = _AsyncAssistantsV1AssistantKnowledgeResource(transport, assistant_id)
+        self.feedbacks = _AsyncAssistantsV1AssistantFeedbacksResource(transport, assistant_id)
+        self.messages = _AsyncAssistantsV1AssistantMessagesResource(transport, assistant_id)
 
 
 class _AsyncAssistantsV1AssistantsCallable:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     def __call__(self, assistant_id: str) -> _AsyncAssistantContext:
@@ -741,7 +728,7 @@ class _AsyncAssistantsV1AssistantsCallable:
         return AssistantsV1Assistant.model_validate(
             await self._t.request(
                 "POST",
-                "/v1/Assistants",
+                path("v1", "Assistants"),
                 json=_assistant_create_body(
                     name=name,
                     owner=owner,
@@ -754,21 +741,23 @@ class _AsyncAssistantsV1AssistantsCallable:
         )
 
     async def list(
-        self, *, page_size: int | None = None
+        self,
+        *,
+        page: int | None = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
     ) -> AssistantsV1AssistantList:
         return AssistantsV1AssistantList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/Assistants",
-                params=_page_params(page_size=page_size),
+                path("v1", "Assistants"),
+                params={"Page": page, "PageSize": page_size, "PageToken": page_token},
             )
         )
 
-    async def fetch(
-        self, assistant_id: str
-    ) -> AssistantsV1AssistantWithToolsAndKnowledge:
+    async def fetch(self, assistant_id: str) -> AssistantsV1AssistantWithToolsAndKnowledge:
         return AssistantsV1AssistantWithToolsAndKnowledge.model_validate(
-            await self._t.request("GET", f"/v1/Assistants/{assistant_id}")
+            await self._t.request("GET", path("v1", "Assistants", assistant_id))
         )
 
     async def update(
@@ -785,7 +774,7 @@ class _AsyncAssistantsV1AssistantsCallable:
         return AssistantsV1Assistant.model_validate(
             await self._t.request(
                 "PUT",
-                f"/v1/Assistants/{assistant_id}",
+                path("v1", "Assistants", assistant_id),
                 json=_assistant_update_body(
                     name=name,
                     owner=owner,
@@ -798,11 +787,11 @@ class _AsyncAssistantsV1AssistantsCallable:
         )
 
     async def delete(self, assistant_id: str) -> None:
-        await self._t.request("DELETE", f"/v1/Assistants/{assistant_id}")
+        await self._t.request("DELETE", path("v1", "Assistants", assistant_id))
 
 
 class _AsyncAssistantsV1ToolsResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     async def create(
@@ -824,7 +813,7 @@ class _AsyncAssistantsV1ToolsResource:
             meta=meta,
         ).to_json()
         return AssistantsV1Tool.model_validate(
-            await self._t.request("POST", "/v1/Tools", json=body)
+            await self._t.request("POST", path("v1", "Tools"), json=body)
         )
 
     async def list(
@@ -836,14 +825,14 @@ class _AsyncAssistantsV1ToolsResource:
         return AssistantsV1ToolList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/Tools",
+                path("v1", "Tools"),
                 params={"AssistantId": assistant_id, "PageSize": page_size},
             )
         )
 
     async def fetch(self, tool_id: str) -> AssistantsV1ToolWithPolicies:
         return AssistantsV1ToolWithPolicies.model_validate(
-            await self._t.request("GET", f"/v1/Tools/{tool_id}")
+            await self._t.request("GET", path("v1", "Tools", tool_id))
         )
 
     async def update(
@@ -864,53 +853,47 @@ class _AsyncAssistantsV1ToolsResource:
             meta=meta,
         ).to_json()
         return AssistantsV1Tool.model_validate(
-            await self._t.request("PUT", f"/v1/Tools/{tool_id}", json=body)
+            await self._t.request("PUT", path("v1", "Tools", tool_id), json=body)
         )
 
     async def delete(self, tool_id: str) -> None:
-        await self._t.request("DELETE", f"/v1/Tools/{tool_id}")
+        await self._t.request("DELETE", path("v1", "Tools", tool_id))
 
 
 class _AsyncAssistantsV1KnowledgeStatusResource:
-    def __init__(self, transport: object, knowledge_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, knowledge_id: str) -> None:
         self._t = transport
         self._know = knowledge_id
 
     async def fetch(self) -> AssistantsV1KnowledgeStatus:
         return AssistantsV1KnowledgeStatus.model_validate(
-            await self._t.request("GET", f"/v1/Knowledge/{self._know}/Status")
+            await self._t.request("GET", path("v1", "Knowledge", self._know, "Status"))
         )
 
 
 class _AsyncAssistantsV1KnowledgeChunksResource:
-    def __init__(self, transport: object, knowledge_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, knowledge_id: str) -> None:
         self._t = transport
         self._know = knowledge_id
 
-    async def list(
-        self, *, page_size: int | None = None
-    ) -> AssistantsV1KnowledgeChunkList:
+    async def list(self, *, page_size: int | None = None) -> AssistantsV1KnowledgeChunkList:
         return AssistantsV1KnowledgeChunkList.model_validate(
             await self._t.request(
                 "GET",
-                f"/v1/Knowledge/{self._know}/Chunks",
+                path("v1", "Knowledge", self._know, "Chunks"),
                 params=_page_params(page_size=page_size),
             )
         )
 
 
 class _AsyncKnowledgeContext:
-    def __init__(self, transport: object, knowledge_id: str) -> None:
-        self.status = _AsyncAssistantsV1KnowledgeStatusResource(
-            transport, knowledge_id
-        )
-        self.chunks = _AsyncAssistantsV1KnowledgeChunksResource(
-            transport, knowledge_id
-        )
+    def __init__(self, transport: AsyncTransport, knowledge_id: str) -> None:
+        self.status = _AsyncAssistantsV1KnowledgeStatusResource(transport, knowledge_id)
+        self.chunks = _AsyncAssistantsV1KnowledgeChunksResource(transport, knowledge_id)
 
 
 class _AsyncAssistantsV1KnowledgeCallable:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     def __call__(self, knowledge_id: str) -> _AsyncKnowledgeContext:
@@ -935,7 +918,7 @@ class _AsyncAssistantsV1KnowledgeCallable:
             knowledge_source_details=knowledge_source_details,
         ).to_json()
         return AssistantsV1Knowledge.model_validate(
-            await self._t.request("POST", "/v1/Knowledge", json=body)
+            await self._t.request("POST", path("v1", "Knowledge"), json=body)
         )
 
     async def list(
@@ -947,14 +930,14 @@ class _AsyncAssistantsV1KnowledgeCallable:
         return AssistantsV1KnowledgeList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/Knowledge",
+                path("v1", "Knowledge"),
                 params={"AssistantId": assistant_id, "PageSize": page_size},
             )
         )
 
     async def fetch(self, knowledge_id: str) -> AssistantsV1Knowledge:
         return AssistantsV1Knowledge.model_validate(
-            await self._t.request("GET", f"/v1/Knowledge/{knowledge_id}")
+            await self._t.request("GET", path("v1", "Knowledge", knowledge_id))
         )
 
     async def update(
@@ -975,15 +958,15 @@ class _AsyncAssistantsV1KnowledgeCallable:
             knowledge_source_details=knowledge_source_details,
         ).to_json()
         return AssistantsV1Knowledge.model_validate(
-            await self._t.request("PUT", f"/v1/Knowledge/{knowledge_id}", json=body)
+            await self._t.request("PUT", path("v1", "Knowledge", knowledge_id), json=body)
         )
 
     async def delete(self, knowledge_id: str) -> None:
-        await self._t.request("DELETE", f"/v1/Knowledge/{knowledge_id}")
+        await self._t.request("DELETE", path("v1", "Knowledge", knowledge_id))
 
 
 class _AsyncAssistantsV1SessionMessagesResource:
-    def __init__(self, transport: object, session_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, session_id: str) -> None:
         self._t = transport
         self._session = session_id
 
@@ -991,19 +974,19 @@ class _AsyncAssistantsV1SessionMessagesResource:
         return AssistantsV1MessageList.model_validate(
             await self._t.request(
                 "GET",
-                f"/v1/Sessions/{self._session}/Messages",
+                path("v1", "Sessions", self._session, "Messages"),
                 params=_page_params(page_size=page_size),
             )
         )
 
 
 class _AsyncSessionContext:
-    def __init__(self, transport: object, session_id: str) -> None:
+    def __init__(self, transport: AsyncTransport, session_id: str) -> None:
         self.messages = _AsyncAssistantsV1SessionMessagesResource(transport, session_id)
 
 
 class _AsyncAssistantsV1SessionsCallable:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     def __call__(self, session_id: str) -> _AsyncSessionContext:
@@ -1013,19 +996,19 @@ class _AsyncAssistantsV1SessionsCallable:
         return AssistantsV1SessionList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/Sessions",
+                path("v1", "Sessions"),
                 params=_page_params(page_size=page_size),
             )
         )
 
     async def fetch(self, session_id: str) -> AssistantsV1Session:
         return AssistantsV1Session.model_validate(
-            await self._t.request("GET", f"/v1/Sessions/{session_id}")
+            await self._t.request("GET", path("v1", "Sessions", session_id))
         )
 
 
 class _AsyncAssistantsV1PoliciesResource:
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
     async def list(
@@ -1038,7 +1021,7 @@ class _AsyncAssistantsV1PoliciesResource:
         return AssistantsV1PolicyList.model_validate(
             await self._t.request(
                 "GET",
-                "/v1/Policies",
+                path("v1", "Policies"),
                 params={
                     "ToolId": tool_id,
                     "KnowledgeId": knowledge_id,
@@ -1051,7 +1034,7 @@ class _AsyncAssistantsV1PoliciesResource:
 class AssistantsV1AsyncResource:
     """Holder for ``client.assistants_v1.*`` sub-resources (async)."""
 
-    def __init__(self, transport: object) -> None:
+    def __init__(self, transport: AsyncTransport) -> None:
         self.assistants = _AsyncAssistantsV1AssistantsCallable(transport)
         self.tools = _AsyncAssistantsV1ToolsResource(transport)
         self.knowledge = _AsyncAssistantsV1KnowledgeCallable(transport)

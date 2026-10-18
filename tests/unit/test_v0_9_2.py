@@ -213,7 +213,7 @@ def test_pricing_v1_voice_countries_and_number(httpx_mock: HTTPXMock):
         "url": f"{BASE}/v1/Voice/Countries/US",
     }
     number = {
-        "number": "+18005551234",
+        "number": "+14155550100",
         "country": "United States",
         "iso_country": "US",
         "outbound_call_price": {"base_price": "0.013", "current_price": "0.013"},
@@ -223,36 +223,32 @@ def test_pricing_v1_voice_countries_and_number(httpx_mock: HTTPXMock):
             "number_type": "toll free",
         },
         "price_unit": "USD",
-        "url": f"{BASE}/v1/Voice/Numbers/+18005551234",
+        "url": f"{BASE}/v1/Voice/Numbers/+14155550100",
     }
     httpx_mock.add_response(
         method="GET",
         url=re.compile(rf"{re.escape(BASE)}/v1/Voice/Countries(\?.*)?$"),
         json=countries,
     )
-    httpx_mock.add_response(
-        method="GET", url=f"{BASE}/v1/Voice/Countries/US", json=country
-    )
+    httpx_mock.add_response(method="GET", url=f"{BASE}/v1/Voice/Countries/US", json=country)
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v1/Voice/Numbers/%2B18005551234",
+        url=f"{BASE}/v1/Voice/Numbers/%2B14155550100",
         json=number,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         listed = c.pricing.v1.voice.countries.list()
         fetched = c.pricing.v1.voice.countries.fetch("US")
-        num = c.pricing.v1.voice.numbers.fetch("+18005551234")
+        num = c.pricing.v1.voice.numbers.fetch("+14155550100")
     assert listed.countries[0].iso_country == "US"
     assert fetched.outbound_prefix_prices[0].prefixes == ["1"]
     assert num.inbound_call_price.number_type == "toll free"
-    assert all(
-        r.url.host == "voiceml.voicetel.com" for r in httpx_mock.get_requests()
-    )
+    assert all(r.url.host == "voiceml.voicetel.com" for r in httpx_mock.get_requests())
 
 
 def test_pricing_v2_voice_number_with_origination(httpx_mock: HTTPXMock):
     payload = {
-        "destination_number": "+18005551234",
+        "destination_number": "+14155550100",
         "origination_number": "+15551112222",
         "country": "United States",
         "iso_country": "US",
@@ -269,17 +265,15 @@ def test_pricing_v2_voice_number_with_origination(httpx_mock: HTTPXMock):
             "number_type": "local",
         },
         "price_unit": "USD",
-        "url": f"{BASE}/v2/Voice/Numbers/+18005551234",
+        "url": f"{BASE}/v2/Voice/Numbers/+14155550100",
     }
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(rf"{re.escape(BASE)}/v2/Voice/Numbers/%2B18005551234(\?.*)?$"),
+        url=re.compile(rf"{re.escape(BASE)}/v2/Voice/Numbers/%2B14155550100(\?.*)?$"),
         json=payload,
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        got = c.pricing.v2.voice.numbers.fetch(
-            "+18005551234", origination_number="+15551112222"
-        )
+        got = c.pricing.v2.voice.numbers.fetch("+14155550100", origination_number="+15551112222")
     assert got.origination_number == "+15551112222"
     q = httpx_mock.get_requests()[0].url.query.decode()
     assert "OriginationNumber=%2B15551112222" in q
@@ -304,9 +298,7 @@ def test_pricing_v2_trunking_country(httpx_mock: HTTPXMock):
         "price_unit": "USD",
         "url": f"{BASE}/v2/Trunking/Countries/US",
     }
-    httpx_mock.add_response(
-        method="GET", url=f"{BASE}/v2/Trunking/Countries/US", json=payload
-    )
+    httpx_mock.add_response(method="GET", url=f"{BASE}/v2/Trunking/Countries/US", json=payload)
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         got = c.pricing.v2.trunking.countries.fetch("US")
     assert got.terminating_prefix_prices[0].friendly_name == "US"

@@ -1,6 +1,6 @@
 """SIP Trunking resources — the Twilio-compatible ``/SIP`` REST surface.
 
-VoiceML's SIP Trunking surface covers the three Twilio sub-trees:
+VoiceML's SIP Trunking surface covers three sub-trees:
 
 - **Domains** (`SD…`): SIP ingress endpoints with voice URL handlers.
 - **CredentialLists** (`CL…`) holding **Credentials** (`CR…`): username +
@@ -23,7 +23,7 @@ exposes four mapping endpoints per domain:
   aliases.
 - ``/SIP/Domains/{Sid}/Auth/Registrations/CredentialListMappings`` —
   controls who may SIP-REGISTER against the domain (no ACL counterpart
-  on the registrations side; Twilio only supports credential lists there).
+  on the registrations side; only credential lists are supported there).
 
 All four mapping endpoints round-trip the same :class:`SipDomainMapping`
 shape; the namespace difference is purely a routing concern.
@@ -31,11 +31,12 @@ shape; the namespace difference is purely a routing concern.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 
-from ._base import _Base
+from ._base import _Base, _Request
 from .common import Page
-
 
 # ---------------------------------------------------------------------------
 # Response models
@@ -49,10 +50,10 @@ class SipDomain(_Base):
     sub-resources to authenticate inbound SIP traffic.
     """
 
-    sid: str
-    account_sid: str
-    domain_name: str
-    api_version: str
+    sid: str | None = None
+    account_sid: str | None = None
+    domain_name: str | None = None
+    api_version: str | None = None
     friendly_name: str | None = None
     auth_type: str | None = None
     voice_url: str | None = None
@@ -66,9 +67,9 @@ class SipDomain(_Base):
     secure: bool | None = None
     byoc_trunk_sid: str | None = None
     emergency_caller_sid: str | None = None
-    date_created: str
-    date_updated: str
-    uri: str
+    date_created: str | None = None
+    date_updated: str | None = None
+    uri: str | None = None
     subresource_uris: dict[str, str] | None = None
 
 
@@ -79,12 +80,12 @@ class SipDomainList(Page[SipDomain]):
 class SipCredentialList(_Base):
     """A named bag of SIP-digest credentials — Twilio-compatible ``CL…``."""
 
-    sid: str
-    account_sid: str
+    sid: str | None = None
+    account_sid: str | None = None
     friendly_name: str | None = None
-    date_created: str
-    date_updated: str
-    uri: str
+    date_created: str | None = None
+    date_updated: str | None = None
+    uri: str | None = None
     subresource_uris: dict[str, str] | None = None
 
 
@@ -100,20 +101,20 @@ class SipCredential(_Base):
     a new password.
     """
 
-    sid: str
-    account_sid: str
-    credential_list_sid: str
-    username: str
-    date_created: str
-    date_updated: str
-    uri: str
+    sid: str | None = None
+    account_sid: str | None = None
+    credential_list_sid: str | None = None
+    username: str | None = None
+    date_created: str | None = None
+    date_updated: str | None = None
+    uri: str | None = None
 
 
 class SipCredentialListPage(Page[SipCredential]):
     """List page for credentials within a CredentialList.
 
     Spec-named ``SipCredentialListPage`` (note: it's a *page of credentials*,
-    not a page of credential-lists — the schema name mirrors Twilio's).
+    not a page of credential-lists — the schema name follows the Twilio-compatible API).
     """
 
     credentials: list[SipCredential] = Field(default_factory=list)
@@ -122,33 +123,31 @@ class SipCredentialListPage(Page[SipCredential]):
 class SipIpAccessControlList(_Base):
     """A named bag of CIDR-bound IP addresses — Twilio-compatible ``AL…``."""
 
-    sid: str
-    account_sid: str
+    sid: str | None = None
+    account_sid: str | None = None
     friendly_name: str | None = None
-    date_created: str
-    date_updated: str
-    uri: str
+    date_created: str | None = None
+    date_updated: str | None = None
+    uri: str | None = None
     subresource_uris: dict[str, str] | None = None
 
 
 class SipIpAccessControlListList(Page[SipIpAccessControlList]):
-    ip_access_control_lists: list[SipIpAccessControlList] = Field(
-        default_factory=list
-    )
+    ip_access_control_lists: list[SipIpAccessControlList] = Field(default_factory=list)
 
 
 class SipIpAddress(_Base):
     """A single CIDR-bound entry in an IpAccessControlList — ``IP…``."""
 
-    sid: str
-    account_sid: str
-    ip_access_control_list_sid: str
-    friendly_name: str
-    ip_address: str
+    sid: str | None = None
+    account_sid: str | None = None
+    ip_access_control_list_sid: str | None = None
+    friendly_name: str | None = None
+    ip_address: str | None = None
     cidr_prefix_length: int
-    date_created: str
-    date_updated: str
-    uri: str
+    date_created: str | None = None
+    date_updated: str | None = None
+    uri: str | None = None
 
 
 class SipIpAddressList(Page[SipIpAddress]):
@@ -170,25 +169,21 @@ class SipDomainMapping(_Base):
     mapping object without an envelope-style URI.
     """
 
-    sid: str
-    account_sid: str
+    sid: str | None = None
+    account_sid: str | None = None
     friendly_name: str | None = None
     domain_sid: str | None = None
-    date_created: str
-    date_updated: str
+    date_created: str | None = None
+    date_updated: str | None = None
     uri: str | None = None
 
 
 class SipCredentialListMappingList(Page[SipDomainMapping]):
-    credential_list_mappings: list[SipDomainMapping] = Field(
-        default_factory=list
-    )
+    credential_list_mappings: list[SipDomainMapping] = Field(default_factory=list)
 
 
 class SipIpAccessControlListMappingList(Page[SipDomainMapping]):
-    ip_access_control_list_mappings: list[SipDomainMapping] = Field(
-        default_factory=list
-    )
+    ip_access_control_list_mappings: list[SipDomainMapping] = Field(default_factory=list)
 
 
 class SipAuthMappingList(Page[SipDomainMapping]):
@@ -208,77 +203,69 @@ class SipAuthMappingList(Page[SipDomainMapping]):
 # ---------------------------------------------------------------------------
 
 
-class CreateSipDomainRequest(_Base):
+class CreateSipDomainRequest(_Request):
     """Body for ``POST /SIP/Domains.json``. ``DomainName`` is required."""
 
     domain_name: str = Field(alias="DomainName")
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     voice_url: str | None = Field(default=None, alias="VoiceUrl")
-    voice_method: str | None = Field(default=None, alias="VoiceMethod")
+    voice_method: Literal["GET", "POST"] | None = Field(default=None, alias="VoiceMethod")
     voice_fallback_url: str | None = Field(default=None, alias="VoiceFallbackUrl")
-    voice_fallback_method: str | None = Field(default=None, alias="VoiceFallbackMethod")
-    voice_status_callback_url: str | None = Field(
-        default=None, alias="VoiceStatusCallbackUrl"
+    voice_fallback_method: Literal["GET", "POST"] | None = Field(
+        default=None, alias="VoiceFallbackMethod"
     )
-    voice_status_callback_method: str | None = Field(
+    voice_status_callback_url: str | None = Field(default=None, alias="VoiceStatusCallbackUrl")
+    voice_status_callback_method: Literal["GET", "POST"] | None = Field(
         default=None, alias="VoiceStatusCallbackMethod"
     )
     sip_registration: bool | None = Field(default=None, alias="SipRegistration")
     secure: bool | None = Field(default=None, alias="Secure")
-    emergency_calling_enabled: bool | None = Field(
-        default=None, alias="EmergencyCallingEnabled"
-    )
+    emergency_calling_enabled: bool | None = Field(default=None, alias="EmergencyCallingEnabled")
     byoc_trunk_sid: str | None = Field(default=None, alias="ByocTrunkSid")
-    emergency_caller_sid: str | None = Field(
-        default=None, alias="EmergencyCallerSid"
-    )
+    emergency_caller_sid: str | None = Field(default=None, alias="EmergencyCallerSid")
 
 
-class UpdateSipDomainRequest(_Base):
+class UpdateSipDomainRequest(_Request):
     """Body for ``POST /SIP/Domains/{Sid}.json``. All fields optional."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     voice_url: str | None = Field(default=None, alias="VoiceUrl")
-    voice_method: str | None = Field(default=None, alias="VoiceMethod")
+    voice_method: Literal["GET", "POST"] | None = Field(default=None, alias="VoiceMethod")
     voice_fallback_url: str | None = Field(default=None, alias="VoiceFallbackUrl")
-    voice_fallback_method: str | None = Field(default=None, alias="VoiceFallbackMethod")
-    voice_status_callback_url: str | None = Field(
-        default=None, alias="VoiceStatusCallbackUrl"
+    voice_fallback_method: Literal["GET", "POST"] | None = Field(
+        default=None, alias="VoiceFallbackMethod"
     )
-    voice_status_callback_method: str | None = Field(
+    voice_status_callback_url: str | None = Field(default=None, alias="VoiceStatusCallbackUrl")
+    voice_status_callback_method: Literal["GET", "POST"] | None = Field(
         default=None, alias="VoiceStatusCallbackMethod"
     )
     sip_registration: bool | None = Field(default=None, alias="SipRegistration")
     secure: bool | None = Field(default=None, alias="Secure")
-    emergency_calling_enabled: bool | None = Field(
-        default=None, alias="EmergencyCallingEnabled"
-    )
+    emergency_calling_enabled: bool | None = Field(default=None, alias="EmergencyCallingEnabled")
     byoc_trunk_sid: str | None = Field(default=None, alias="ByocTrunkSid")
-    emergency_caller_sid: str | None = Field(
-        default=None, alias="EmergencyCallerSid"
-    )
+    emergency_caller_sid: str | None = Field(default=None, alias="EmergencyCallerSid")
 
 
-class CreateSipCredentialListRequest(_Base):
+class CreateSipCredentialListRequest(_Request):
     """Body for ``POST /SIP/CredentialLists.json``."""
 
     friendly_name: str = Field(alias="FriendlyName")
 
 
-class UpdateSipCredentialListRequest(_Base):
+class UpdateSipCredentialListRequest(_Request):
     """Body for ``POST /SIP/CredentialLists/{Sid}.json``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
 
 
-class CreateSipCredentialRequest(_Base):
+class CreateSipCredentialRequest(_Request):
     """Body for ``POST /SIP/CredentialLists/{CredentialListSid}/Credentials.json``."""
 
     username: str = Field(alias="Username")
     password: str = Field(alias="Password")
 
 
-class UpdateSipCredentialRequest(_Base):
+class UpdateSipCredentialRequest(_Request):
     """Body for ``POST /SIP/CredentialLists/{CredentialListSid}/Credentials/{Sid}.json``.
 
     Only the password is mutable; username and credential-list assignment
@@ -288,19 +275,19 @@ class UpdateSipCredentialRequest(_Base):
     password: str = Field(alias="Password")
 
 
-class CreateSipIpAccessControlListRequest(_Base):
+class CreateSipIpAccessControlListRequest(_Request):
     """Body for ``POST /SIP/IpAccessControlLists.json``."""
 
     friendly_name: str = Field(alias="FriendlyName")
 
 
-class UpdateSipIpAccessControlListRequest(_Base):
+class UpdateSipIpAccessControlListRequest(_Request):
     """Body for ``POST /SIP/IpAccessControlLists/{Sid}.json``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
 
 
-class CreateSipIpAddressRequest(_Base):
+class CreateSipIpAddressRequest(_Request):
     """Body for ``POST /SIP/IpAccessControlLists/{Sid}/IpAddresses.json``.
 
     ``CidrPrefixLength`` defaults to ``32`` (single host) when omitted.
@@ -311,7 +298,7 @@ class CreateSipIpAddressRequest(_Base):
     cidr_prefix_length: int | None = Field(default=None, alias="CidrPrefixLength")
 
 
-class UpdateSipIpAddressRequest(_Base):
+class UpdateSipIpAddressRequest(_Request):
     """Body for ``POST /SIP/IpAccessControlLists/{Sid}/IpAddresses/{Sid}.json``."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
@@ -319,7 +306,7 @@ class UpdateSipIpAddressRequest(_Base):
     cidr_prefix_length: int | None = Field(default=None, alias="CidrPrefixLength")
 
 
-class CreateSipCredentialListMappingRequest(_Base):
+class CreateSipCredentialListMappingRequest(_Request):
     """Body for any ``…/CredentialListMappings.json`` POST.
 
     Used for both the historical (no-Auth) namespace and the modern
@@ -329,7 +316,7 @@ class CreateSipCredentialListMappingRequest(_Base):
     credential_list_sid: str = Field(alias="CredentialListSid")
 
 
-class CreateSipIpAccessControlListMappingRequest(_Base):
+class CreateSipIpAccessControlListMappingRequest(_Request):
     """Body for any ``…/IpAccessControlListMappings.json`` POST.
 
     Used for both the historical (no-Auth) namespace and the modern
@@ -338,3 +325,42 @@ class CreateSipIpAccessControlListMappingRequest(_Base):
     """
 
     ip_access_control_list_sid: str = Field(alias="IpAccessControlListSid")
+
+
+class SipRegistrationContact(_Base):
+    """One registered contact binding of a SIP user."""
+
+    contact: str | None = None
+    received: str | None = None
+    socket: str | None = None
+    user_agent: str | None = None
+    expires_at: str | None = None
+    registered: bool | None = None
+
+
+class SipRegistrationActiveCall(_Base):
+    """The call a registered SIP user is currently on, if any."""
+
+    call_sid: str | None = None
+    direction: str | None = None
+    remote: str | None = None
+    since: str | None = None
+
+
+class SipRegistration(_Base):
+    """A SIP user registration (``GET /SIP/Registrations``)."""
+
+    aor: str | None = None
+    username: str | None = None
+    domain: str | None = None
+    domain_sid: str | None = None
+    status: Literal["registered", "expired"] | str | None = None
+    caller_id: str | None = None
+    user_agent: str | None = None
+    last_registered: str | None = None
+    contacts: list[SipRegistrationContact] = Field(default_factory=list)
+    active_call: SipRegistrationActiveCall | None = None
+
+
+class SipRegistrationList(Page[SipRegistration]):
+    registrations: list[SipRegistration] = Field(default_factory=list)

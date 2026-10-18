@@ -1,4 +1,4 @@
-"""Messaging v1 resources — Twilio ``messaging.twilio.com/v1`` REST surface (#16).
+"""Messaging v1 resources — Twilio-compatible Messaging v1 REST surface.
 
 A Messaging Service (``MG…``) shares the ``/v1/Services`` path shape with the
 Conversations Service (``IS…``); the two are disambiguated on the wire by host
@@ -12,14 +12,16 @@ not, so ``POST /v1/Services/{sid}`` has no path collision.
 
 from __future__ import annotations
 
+from typing import ClassVar, Literal
+
 from pydantic import Field
 
-from ._base import _Base
-from .voice_v1 import VoiceV1Meta
+from ._base import _Base, _Request
+from .common import Product, V1Page
 
 
 class MessagingService(_Base):
-    """A Messaging Service — Twilio ``MG…`` resource.
+    """A Messaging Service (``MG…``).
 
     The various feature-toggle fields (``sticky_sender``, ``mms_converter``, …)
     are accept-and-echo on VoiceML; the service's operative role is gating
@@ -48,33 +50,34 @@ class MessagingService(_Base):
     url: str | None = None
     usecase: str | None = None
     use_inbound_webhook_on_number: bool | None = None
+    advanced_opt_out: bool | None = None
 
 
-class MessagingServiceList(_Base):
+class MessagingServiceList(V1Page[MessagingService]):
     """List envelope for ``GET /v1/Services`` on the messaging host."""
 
+    product: ClassVar[Product] = "messaging"
     services: list[MessagingService] = Field(default_factory=list)
-    meta: VoiceV1Meta | None = None
 
 
-class CreateMessagingServiceRequest(_Base):
+class CreateMessagingServiceRequest(_Request):
     """Body for ``POST /v1/Services`` (messaging host). ``FriendlyName`` required."""
 
     friendly_name: str = Field(alias="FriendlyName")
     inbound_request_url: str | None = Field(default=None, alias="InboundRequestUrl")
-    inbound_method: str | None = Field(default=None, alias="InboundMethod")
+    inbound_method: Literal["GET", "POST"] | None = Field(default=None, alias="InboundMethod")
     fallback_url: str | None = Field(default=None, alias="FallbackUrl")
-    fallback_method: str | None = Field(default=None, alias="FallbackMethod")
+    fallback_method: Literal["GET", "POST"] | None = Field(default=None, alias="FallbackMethod")
     status_callback: str | None = Field(default=None, alias="StatusCallback")
     sticky_sender: bool | None = Field(default=None, alias="StickySender")
     mms_converter: bool | None = Field(default=None, alias="MmsConverter")
     smart_encoding: bool | None = Field(default=None, alias="SmartEncoding")
-    scan_message_content: str | None = Field(default=None, alias="ScanMessageContent")
+    scan_message_content: Literal["inherit", "enable", "disable"] | None = Field(
+        default=None, alias="ScanMessageContent"
+    )
     fallback_to_long_code: bool | None = Field(default=None, alias="FallbackToLongCode")
     area_code_geomatch: bool | None = Field(default=None, alias="AreaCodeGeomatch")
-    synchronous_validation: bool | None = Field(
-        default=None, alias="SynchronousValidation"
-    )
+    synchronous_validation: bool | None = Field(default=None, alias="SynchronousValidation")
     validity_period: int | None = Field(default=None, alias="ValidityPeriod")
     usecase: str | None = Field(default=None, alias="Usecase")
     use_inbound_webhook_on_number: bool | None = Field(
@@ -82,26 +85,54 @@ class CreateMessagingServiceRequest(_Base):
     )
 
 
-class UpdateMessagingServiceRequest(_Base):
+class UpdateMessagingServiceRequest(_Request):
     """Body for ``POST /v1/Services/{sid}`` (messaging host). All fields optional."""
 
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
     inbound_request_url: str | None = Field(default=None, alias="InboundRequestUrl")
-    inbound_method: str | None = Field(default=None, alias="InboundMethod")
+    inbound_method: Literal["GET", "POST"] | None = Field(default=None, alias="InboundMethod")
     fallback_url: str | None = Field(default=None, alias="FallbackUrl")
-    fallback_method: str | None = Field(default=None, alias="FallbackMethod")
+    fallback_method: Literal["GET", "POST"] | None = Field(default=None, alias="FallbackMethod")
     status_callback: str | None = Field(default=None, alias="StatusCallback")
     sticky_sender: bool | None = Field(default=None, alias="StickySender")
     mms_converter: bool | None = Field(default=None, alias="MmsConverter")
     smart_encoding: bool | None = Field(default=None, alias="SmartEncoding")
-    scan_message_content: str | None = Field(default=None, alias="ScanMessageContent")
+    scan_message_content: Literal["inherit", "enable", "disable"] | None = Field(
+        default=None, alias="ScanMessageContent"
+    )
     fallback_to_long_code: bool | None = Field(default=None, alias="FallbackToLongCode")
     area_code_geomatch: bool | None = Field(default=None, alias="AreaCodeGeomatch")
-    synchronous_validation: bool | None = Field(
-        default=None, alias="SynchronousValidation"
-    )
+    synchronous_validation: bool | None = Field(default=None, alias="SynchronousValidation")
     validity_period: int | None = Field(default=None, alias="ValidityPeriod")
     usecase: str | None = Field(default=None, alias="Usecase")
     use_inbound_webhook_on_number: bool | None = Field(
         default=None, alias="UseInboundWebhookOnNumber"
     )
+
+
+class MessagingServicePhoneNumber(_Base):
+    """A phone number in a Messaging Service's sender pool (``PN…``)."""
+
+    sid: str | None = None
+    account_sid: str | None = None
+    service_sid: str | None = None
+    date_created: str | None = None
+    date_updated: str | None = None
+    phone_number: str | None = None
+    country_code: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
+    url: str | None = None
+
+
+class MessagingServicePhoneNumberList(V1Page[MessagingServicePhoneNumber]):
+    """List envelope for ``GET /v1/Services/{sid}/PhoneNumbers`` (messaging host)."""
+
+    product: ClassVar[Product] = "messaging"
+    phone_numbers: list[MessagingServicePhoneNumber] = Field(default_factory=list)
+
+
+class CreateMessagingServicePhoneNumberRequest(_Request):
+    """Body for ``POST /v1/Services/{sid}/PhoneNumbers``: add an IncomingPhoneNumber
+    (by its ``PN…`` sid) to the service's sender pool."""
+
+    phone_number_sid: str = Field(alias="PhoneNumberSid")

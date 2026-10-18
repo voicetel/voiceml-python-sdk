@@ -1,66 +1,127 @@
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, TypeVar
+from urllib.parse import quote, urlsplit
 
-from .._http import AsyncTransport, Transport
+from .._http import AsyncTransport, Transport, _ScopedTransport, origin_of
+from ..exceptions import PaginationError
+from ..models.common import ListResponse
+
+ItemT = TypeVar("ItemT")
+PageT = TypeVar("PageT", bound=ListResponse[Any])
 
 
-def _join_with_json_suffix(acct: str, parts: tuple[str, ...]) -> str:
-    """Build ``/2010-04-01/Accounts/{acct}/<parts…>.json``.
+def seg(value: str | int) -> str:
+    """Percent-encode one caller-supplied path segment.
 
-    The Twilio-compatible REST surface terminates every resource path with ``.json``. The server
-    accepts both forms for back-compat, but the SDK always emits the strict-Twilio form so
-    URL comparisons in user code (logging, signature validators, route assertions) line up.
-
-    If the last segment already carries an extension (``.wav``, ``.json``, ``.yaml``, etc.)
-    it's left alone — callers building binary or doc paths pass the extension themselves.
+    Keeps only the RFC 3986 unreserved set (``A-Z a-z 0-9 - . _ ~``); everything else
+    is encoded as UTF-8 ``%XX`` — ``+`` → ``%2B``, space → ``%20``, ``/`` → ``%2F``,
+    ``?`` → ``%3F``, ``#`` → ``%23``, ``%`` → ``%25``. A sid can therefore never
+    escape its segment or inject a query string.
     """
-    tail = "/".join(p for p in parts if p)
-    # Don't double-suffix paths the caller already extended (`.wav`, `.json`, `.yaml`…).
-    last = parts[-1] if parts else ""
-    if "." in last.rsplit("/", 1)[-1]:
-        return f"/2010-04-01/Accounts/{acct}/{tail}"
-    return f"/2010-04-01/Accounts/{acct}/{tail}.json"
+    return quote(str(value), safe="-._~")
+
+
+def path(*parts: str | int) -> str:
+    """Join already-literal and caller-supplied segments into ``/a/b/c``, encoding each."""
+    return "/" + "/".join(seg(p) for p in parts)
+
+
+def account_path(acct: str, *parts: str | int, suffix: str = ".json") -> str:
+    """Build ``/2010-04-01/Accounts/{acct}/<parts…>{suffix}``.
+
+    Every JSON route in the ``/2010-04-01`` namespace ends in ``.json``; the suffix is
+    appended to the route regardless of what the last segment contains (so
+    ``Recordings/Twilio.CURRENT`` becomes ``Recordings/Twilio.CURRENT.json``). Binary
+    routes pass their own suffix (``.wav``) or ``suffix=""`` (``Exports/{Date}``).
+    """
+    return path("2010-04-01", "Accounts", acct, *parts) + suffix
+
+
+def next_page_url(page: ListResponse[Any], product_base_url: str) -> str | None:
+    """Return the absolute URL of the page after ``page``, or ``None`` at the end.
+
+    * ``/2010-04-01`` lists: ``next_page_uri`` (path + query) is followed verbatim,
+      resolved against the scheme and host of the product host that served the page.
+    * ``/v1`` lists: ``meta.next_page_url`` is absolute; it is followed only when its
+      scheme and host equal the product host, otherwise :class:`PaginationError`.
+    """
+    link = page.next_link()
+    if not link:
+        return None
+    parts = urlsplit(product_base_url)
+    if link.startswith("/"):
+        return f"{parts.scheme}://{parts.netloc}{link}"
+    if origin_of(link) != origin_of(product_base_url):
+        raise PaginationError(
+            f"refusing to follow next page link to a different origin: {link!r} "
+            f"(configured host {parts.scheme}://{parts.netloc})"
+        )
+    return link
 
 
 class Resource:
-    """Mixin holding a sync :class:`Transport` reference + helpers for AccountSid pathing."""
+    """Base class for sync resources: holds the transport + path/pagination helpers."""
 
-    def __init__(self, transport: Transport) -> None:
+    _t: Transport | _ScopedTransport
+
+    def __init__(self, transport: Transport | _ScopedTransport) -> None:
         self._t = transport
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}>"
 
     @property
     def _acct(self) -> str:
         return self._t.account_sid
 
-    def _path(self, *parts: str) -> str:
-        """Build a URL under ``/2010-04-01/Accounts/{AccountSid}/….json``.
+    def _path(self, *parts: str | int) -> str:
+        """``/2010-04-01/Accounts/{AccountSid}/<parts…>.json`` with every segment encoded."""
+        return account_path(self._acct, *parts)
 
-        Caller passes path segments (e.g. ``"Calls"``, sid, ``"Recordings"``). Empty segments
-        are skipped; the trailing ``.json`` suffix Twilio expects is added automatically.
-        Nothing is URL-encoded — callers should pass sids and slugs that don't need escaping
-        (Twilio sids never do).
-        """
-        return _join_with_json_suffix(self._acct, parts)
+    def next_page(self, page: PageT) -> PageT | None:
+        """Fetch the page after ``page`` (``None`` when ``page`` is the last one)."""
+        url = next_page_url(page, self._t.base_url)
+        if url is None:
+            return None
+        return type(page).model_validate(self._t.request("GET", url))
 
-    @staticmethod
-    def _filter(params: dict[str, Any]) -> dict[str, Any]:
-        return {k: v for k, v in params.items() if v is not None}
+    def _paginate(self, first: ListResponse[ItemT]) -> Iterator[ItemT]:
+        page: ListResponse[ItemT] | None = first
+        while page is not None:
+            yield from page.items
+            page = self.next_page(page)
 
 
 class AsyncResource:
-    """Mixin holding an :class:`AsyncTransport` reference + helpers for AccountSid pathing."""
+    """Base class for async resources: holds the transport + path/pagination helpers."""
 
-    def __init__(self, transport: AsyncTransport) -> None:
+    _t: AsyncTransport | _ScopedTransport
+
+    def __init__(self, transport: AsyncTransport | _ScopedTransport) -> None:
         self._t = transport
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}>"
 
     @property
     def _acct(self) -> str:
         return self._t.account_sid
 
-    def _path(self, *parts: str) -> str:
-        return _join_with_json_suffix(self._acct, parts)
+    def _path(self, *parts: str | int) -> str:
+        return account_path(self._acct, *parts)
 
-    @staticmethod
-    def _filter(params: dict[str, Any]) -> dict[str, Any]:
-        return {k: v for k, v in params.items() if v is not None}
+    async def next_page(self, page: PageT) -> PageT | None:
+        """Fetch the page after ``page`` (``None`` when ``page`` is the last one)."""
+        url = next_page_url(page, self._t.base_url)
+        if url is None:
+            return None
+        return type(page).model_validate(await self._t.request("GET", url))
+
+    async def _paginate(self, first: ListResponse[ItemT]) -> AsyncIterator[ItemT]:
+        page: ListResponse[ItemT] | None = first
+        while page is not None:
+            for item in page.items:
+                yield item
+            page = await self.next_page(page)

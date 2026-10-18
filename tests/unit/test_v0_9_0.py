@@ -60,7 +60,7 @@ def test_v0_9_0_resources_wired_on_async_client():
 # ---------------------------------------------------------------------------
 
 
-def _phone_number_payload(phone: str = "+18005551234") -> dict:
+def _phone_number_payload(phone: str = "+14155550100") -> dict:
     return {
         "sid": "QQ" + "0" * 32,
         "phone_number": phone,
@@ -76,28 +76,26 @@ def _phone_number_payload(phone: str = "+18005551234") -> dict:
 def test_routes_v2_phone_numbers_fetch_url_encodes_plus(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v2/PhoneNumbers/%2B18005551234",
+        url=f"{BASE}/v2/PhoneNumbers/%2B14155550100",
         json=_phone_number_payload(),
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        rv = c.routes_v2.phone_numbers.fetch("+18005551234")
+        rv = c.routes_v2.phone_numbers.fetch("+14155550100")
     assert rv.sid.startswith("QQ")
-    assert rv.phone_number == "+18005551234"
+    assert rv.phone_number == "+14155550100"
 
 
 def test_routes_v2_phone_numbers_update(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="POST",
-        url=f"{BASE}/v2/PhoneNumbers/%2B18005551234",
+        url=f"{BASE}/v2/PhoneNumbers/%2B14155550100",
         json=_phone_number_payload(),
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         c.routes_v2.phone_numbers.update(
-            "+18005551234", voice_region="ie1", friendly_name="renamed"
+            "+14155550100", voice_region="ie1", friendly_name="renamed"
         )
-    body = parse_qs(
-        httpx_mock.get_request().content.decode(), keep_blank_values=True
-    )
+    body = parse_qs(httpx_mock.get_request().content.decode(), keep_blank_values=True)
     assert body == {"VoiceRegion": ["ie1"], "FriendlyName": ["renamed"]}
 
 
@@ -402,9 +400,7 @@ def test_voice_v1_connection_policy_targets_crud(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(BASE)}/v1/ConnectionPolicies/{policy_sid}/Targets(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(BASE)}/v1/ConnectionPolicies/{policy_sid}/Targets(\?.*)?$"),
         json={"targets": [_target_payload(target_sid, policy_sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -549,15 +545,13 @@ def test_conversations_v1_conversation_crud(httpx_mock: HTTPXMock):
 # ---------------------------------------------------------------------------
 
 
-def _message_payload(
-    sid: str = "IM" + "0" * 32, conv_sid: str = CH_SID
-) -> dict:
+def _message_payload(sid: str = "IM" + "0" * 32, conv_sid: str = CH_SID) -> dict:
     return {
         "account_sid": ACCOUNT_SID,
         "conversation_sid": conv_sid,
         "sid": sid,
         "index": 0,
-        "author": "+15551234567",
+        "author": "+14155550103",
         "body": "Hello",
         "attributes": "{}",
         "date_created": "2026-06-27T00:00:00Z",
@@ -576,9 +570,7 @@ def test_conversations_v1_messages_crud(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Messages(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Messages(\?.*)?$"),
         json={"messages": [_message_payload(msg_sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -598,7 +590,7 @@ def test_conversations_v1_messages_crud(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         messages = c.conversations_v1.conversations(CH_SID).messages
-        messages.create(author="+15551234567", body="Hello")
+        messages.create(author="+14155550103", body="Hello")
         messages.list()
         messages.fetch(msg_sid)
         messages.update(msg_sid, body="Hi there")
@@ -606,7 +598,7 @@ def test_conversations_v1_messages_crud(httpx_mock: HTTPXMock):
 
     requests = httpx_mock.get_requests()
     create_body = parse_qs(requests[0].content.decode(), keep_blank_values=True)
-    assert create_body == {"Author": ["+15551234567"], "Body": ["Hello"]}
+    assert create_body == {"Author": ["+14155550103"], "Body": ["Hello"]}
 
 
 def test_conversations_v1_message_receipts_list_and_fetch(httpx_mock: HTTPXMock):
@@ -671,9 +663,7 @@ def test_conversations_v1_participants_crud(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Participants(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Participants(\?.*)?$"),
         json={"participants": [_participant_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -695,7 +685,7 @@ def test_conversations_v1_participants_crud(httpx_mock: HTTPXMock):
         ps = c.conversations_v1.conversations(CH_SID).participants
         ps.create(
             identity="alice",
-            messaging_binding_address="+15551234567",
+            messaging_binding_address="+14155550103",
             messaging_binding_proxy_address="+15559876543",
         )
         ps.list()
@@ -706,7 +696,7 @@ def test_conversations_v1_participants_crud(httpx_mock: HTTPXMock):
     requests = httpx_mock.get_requests()
     create_body = parse_qs(requests[0].content.decode(), keep_blank_values=True)
     assert create_body["Identity"] == ["alice"]
-    assert create_body["MessagingBinding.Address"] == ["+15551234567"]
+    assert create_body["MessagingBinding.Address"] == ["+14155550103"]
     assert create_body["MessagingBinding.ProxyAddress"] == ["+15559876543"]
     update_body = parse_qs(requests[3].content.decode(), keep_blank_values=True)
     assert update_body == {"LastReadMessageIndex": ["5"]}
@@ -740,9 +730,7 @@ def test_conversations_v1_scoped_webhooks_crud(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Webhooks(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Conversations/{CH_SID}/Webhooks(\?.*)?$"),
         json={"webhooks": [_scoped_webhook_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -902,9 +890,7 @@ def test_conversations_v1_users_crud(httpx_mock: HTTPXMock):
         c.conversations_v1.users.update(sid, friendly_name="Alice X")
         c.conversations_v1.users.delete(sid)
 
-    create_body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
+    create_body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
     assert create_body == {"Identity": ["alice"], "FriendlyName": ["Alice"]}
 
 
@@ -921,9 +907,7 @@ def test_conversations_v1_user_conversations_crud(httpx_mock: HTTPXMock):
     }
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(CONV)}/v1/Users/{US_SID}/Conversations(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Users/{US_SID}/Conversations(\?.*)?$"),
         json={"conversations": [uc_payload], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -950,9 +934,7 @@ def test_conversations_v1_user_conversations_crud(httpx_mock: HTTPXMock):
     assert len(listed.conversations) == 1
     assert fetched.conversation_sid == CH_SID
 
-    update_body = parse_qs(
-        httpx_mock.get_requests()[2].content.decode(), keep_blank_values=True
-    )
+    update_body = parse_qs(httpx_mock.get_requests()[2].content.decode(), keep_blank_values=True)
     assert update_body == {
         "NotificationLevel": ["muted"],
         "LastReadMessageIndex": ["10"],
@@ -1016,9 +998,7 @@ def test_conversations_v1_credentials_crud(httpx_mock: HTTPXMock):
         c.conversations_v1.credentials.update(sid, friendly_name="apns-prod-v2")
         c.conversations_v1.credentials.delete(sid)
 
-    create_body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
+    create_body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
     assert create_body["Type"] == ["apn"]
     assert create_body["Sandbox"] == ["false"]
     assert create_body["Certificate"] == ["-----BEGIN CERT-----..."]
@@ -1048,9 +1028,7 @@ def test_conversations_v1_configuration_fetch_update(httpx_mock: HTTPXMock):
         )
     assert fetched.default_chat_service_sid == "IS" + "0" * 32
 
-    body = parse_qs(
-        httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True
-    )
+    body = parse_qs(httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True)
     assert body == {
         "DefaultChatServiceSid": ["IS" + "0" * 32],
         "DefaultInactiveTimer": ["PT5M"],
@@ -1067,12 +1045,8 @@ def test_conversations_v1_configuration_webhooks_fetch_update(httpx_mock: HTTPXM
         "target": "webhook",
         "url": f"{CONV}/v1/Configuration/Webhooks",
     }
-    httpx_mock.add_response(
-        method="GET", url=f"{CONV}/v1/Configuration/Webhooks", json=payload
-    )
-    httpx_mock.add_response(
-        method="POST", url=f"{CONV}/v1/Configuration/Webhooks", json=payload
-    )
+    httpx_mock.add_response(method="GET", url=f"{CONV}/v1/Configuration/Webhooks", json=payload)
+    httpx_mock.add_response(method="POST", url=f"{CONV}/v1/Configuration/Webhooks", json=payload)
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         c.conversations_v1.configuration.webhooks.fetch()
         c.conversations_v1.configuration.webhooks.update(
@@ -1080,9 +1054,7 @@ def test_conversations_v1_configuration_webhooks_fetch_update(httpx_mock: HTTPXM
             filters=["onMessageAdded", "onMessageUpdated"],
             pre_webhook_url="https://example.com/pre",
         )
-    body = parse_qs(
-        httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True
-    )
+    body = parse_qs(httpx_mock.get_requests()[1].content.decode(), keep_blank_values=True)
     assert body["Method"] == ["POST"]
     assert body["Filters"] == ["onMessageAdded", "onMessageUpdated"]
     assert body["PreWebhookUrl"] == ["https://example.com/pre"]
@@ -1093,7 +1065,7 @@ def _config_address_payload(sid: str = "IG" + "0" * 32) -> dict:
         "sid": sid,
         "account_sid": ACCOUNT_SID,
         "type": "sms",
-        "address": "+15551234567",
+        "address": "+14155550103",
         "friendly_name": "main-sms",
         "auto_creation": {"enabled": True, "type": "webhook"},
         "date_created": "2026-06-27T00:00:00Z",
@@ -1113,9 +1085,7 @@ def test_conversations_v1_config_addresses_crud(httpx_mock: HTTPXMock):
     )
     httpx_mock.add_response(
         method="GET",
-        url=re.compile(
-            rf"{re.escape(CONV)}/v1/Configuration/Addresses(\?.*)?$"
-        ),
+        url=re.compile(rf"{re.escape(CONV)}/v1/Configuration/Addresses(\?.*)?$"),
         json={"addresses": [_config_address_payload(sid)], "meta": _meta()},
     )
     httpx_mock.add_response(
@@ -1136,7 +1106,7 @@ def test_conversations_v1_config_addresses_crud(httpx_mock: HTTPXMock):
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         c.conversations_v1.configuration.addresses.create(
             type="sms",
-            address="+15551234567",
+            address="+14155550103",
             friendly_name="main-sms",
             auto_creation_enabled=True,
             auto_creation_type="webhook",
@@ -1145,15 +1115,13 @@ def test_conversations_v1_config_addresses_crud(httpx_mock: HTTPXMock):
         )
         c.conversations_v1.configuration.addresses.list()
         c.conversations_v1.configuration.addresses.fetch(sid)
-        c.conversations_v1.configuration.addresses.update(
-            sid, auto_creation_enabled=False
-        )
+        c.conversations_v1.configuration.addresses.update(sid, auto_creation_enabled=False)
         c.conversations_v1.configuration.addresses.delete(sid)
 
     requests = httpx_mock.get_requests()
     create_body = parse_qs(requests[0].content.decode(), keep_blank_values=True)
     assert create_body["Type"] == ["sms"]
-    assert create_body["Address"] == ["+15551234567"]
+    assert create_body["Address"] == ["+14155550103"]
     assert create_body["AutoCreation.Enabled"] == ["true"]
     assert create_body["AutoCreation.Type"] == ["webhook"]
     assert create_body["AutoCreation.WebhookUrl"] == ["https://example.com/auto"]
@@ -1183,12 +1151,12 @@ def test_conversations_v1_participant_conversations_list(httpx_mock: HTTPXMock):
     )
     with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
         listed = c.conversations_v1.participant_conversations.list(
-            identity="alice", address="+15551234567"
+            identity="alice", address="+14155550103"
         )
     assert len(listed.conversations) == 1
     q = httpx_mock.get_requests()[0].url.query.decode()
     assert "Identity=alice" in q
-    assert "Address=%2B15551234567" in q
+    assert "Address=%2B14155550103" in q
 
 
 def test_conversations_v1_conversation_with_participants_create(
@@ -1208,16 +1176,14 @@ def test_conversations_v1_conversation_with_participants_create(
             friendly_name="Support",
             participant=[
                 '{"identity":"alice"}',
-                '{"messaging_binding":{"address":"+15551234567"}}',
+                '{"messaging_binding":{"address":"+14155550103"}}',
             ],
         )
-    body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
+    body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
     assert body["FriendlyName"] == ["Support"]
     assert body["Participant"] == [
         '{"identity":"alice"}',
-        '{"messaging_binding":{"address":"+15551234567"}}',
+        '{"messaging_binding":{"address":"+14155550103"}}',
     ]
 
 
@@ -1263,9 +1229,7 @@ def test_conversations_v1_services_crud(httpx_mock: HTTPXMock):
         c.conversations_v1.services.fetch(sid)
         c.conversations_v1.services.delete(sid)
 
-    create_body = parse_qs(
-        httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True
-    )
+    create_body = parse_qs(httpx_mock.get_requests()[0].content.decode(), keep_blank_values=True)
     assert create_body == {"FriendlyName": ["support-service"]}
 
 
@@ -1283,9 +1247,7 @@ async def test_async_conversations_v1_conversation_create(httpx_mock: HTTPXMock)
         status_code=201,
     )
     async with AsyncClient(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        created = await c.conversations_v1.conversations.create(
-            friendly_name="Support"
-        )
+        created = await c.conversations_v1.conversations.create(friendly_name="Support")
     assert created.sid == CH_SID
 
 
@@ -1305,9 +1267,9 @@ async def test_async_voice_v1_settings_fetch(httpx_mock: HTTPXMock):
 async def test_async_routes_v2_phone_numbers_fetch(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="GET",
-        url=f"{BASE}/v2/PhoneNumbers/%2B18005551234",
+        url=f"{BASE}/v2/PhoneNumbers/%2B14155550100",
         json=_phone_number_payload(),
     )
     async with AsyncClient(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
-        fetched = await c.routes_v2.phone_numbers.fetch("+18005551234")
-    assert fetched.phone_number == "+18005551234"
+        fetched = await c.routes_v2.phone_numbers.fetch("+14155550100")
+    assert fetched.phone_number == "+14155550100"
