@@ -18,8 +18,8 @@ V1_PARAMS = {
     "Digits": "1234",
     "AccountSid": "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
 }
-V1_SIG = "pk/0TPPT+p98NEZykeWQLqRXyGU="
-V1_SIG_443 = "/Bw0s+u5vlGd6zLAOTz/eMg33pk="
+V1_SIG = "RweoLyWqNC7H8+MLXPb7EPz18OI="
+V1_SIG_443 = "xE0r2wPa6d1ktQeCFpPyINmTNYg="
 
 V3_URL = "https://example.com/hook"
 V3_PAIRS = [("To", "+14155550101"), ("Event", "answered"), ("Event", "initiated")]
