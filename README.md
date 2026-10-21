@@ -2,7 +2,7 @@
 
 The official Python client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.9/voiceml/) — VoiceTel's Twilio-compatible voice, messaging and answering-machine-detection API — with typed, async-ready Python.
 
-![Version](https://img.shields.io/badge/version-0.9.3-blue)
+![Version](https://img.shields.io/badge/version-0.9.4-blue)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
 ![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-green)
 [![CI](https://github.com/voicetel/voiceml-python-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/voicetel/voiceml-python-sdk/actions/workflows/ci.yml)

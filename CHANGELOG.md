@@ -3,6 +3,28 @@
 All notable changes to the VoiceML Python SDK are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.4] - 2026-10-21
+
+### Added
+
+- `incoming_phone_numbers.create` / `.update`
+  (`POST /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers.json`,
+  `POST /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/{Sid}.json`), sync and
+  async, accept three new optional request parameters:
+  - `voice_application_sid` (`VoiceApplicationSid`) — bind the number to a voice
+    application.
+  - `status_callback` (`StatusCallback`) — webhook URL for inbound-call status events.
+  - `status_callback_method` (`StatusCallbackMethod`) — HTTP method for that webhook.
+- `outgoing_caller_ids.create`
+  (`POST /2010-04-01/Accounts/{AccountSid}/OutgoingCallerIds.json`), sync and async,
+  accepts four new optional verification parameters:
+  - `call_delay` (`CallDelay`) — seconds to wait before placing the verification call.
+  - `extension` (`Extension`) — extension to dial after the call connects.
+  - `status_callback` (`StatusCallback`) — webhook URL for verification status events.
+  - `status_callback_method` (`StatusCallbackMethod`) — HTTP method for that webhook.
+- The vendored OpenAPI fixture (`tests/fixtures/voiceml-openapi.json`) is refreshed to
+  spec 0.9.3, and the contract harness carries `VALUE_OVERRIDES` for the new fields.
+
 ## [0.9.3] - 2026-10-18
 
 ### Breaking changes
