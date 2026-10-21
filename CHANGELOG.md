@@ -3,6 +3,61 @@
 All notable changes to the VoiceML Python SDK are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.5] - 2026-10-21
+
+### Added
+
+- `calls.create` (`POST /2010-04-01/Accounts/{AccountSid}/Calls.json`), sync and async,
+  accepts `time_limit` (`TimeLimit`) — max call duration in seconds. There is no
+  client-side validation: the server rejects an explicit `0` or a value above `14400`
+  with error 13216, a negative value disables the limit, and omitting it keeps the
+  4-hour default cap.
+- `conferences.create_participant`
+  (`POST /2010-04-01/Accounts/{AccountSid}/Conferences/{ConferenceSid}/Participants.json`),
+  sync and async, accepts three new optional parameters:
+  - `conference_status_callback` (`ConferenceStatusCallback`) — the participant's
+    conference lifecycle webhook URL.
+  - `conference_status_callback_method` (`ConferenceStatusCallbackMethod`) — `GET` or
+    `POST` (server default `POST`).
+  - `conference_status_callback_event` (`ConferenceStatusCallbackEvent`) — space- or
+    comma-separated conference event filter (server default `"start end"`).
+- `conferences.update_recording`
+  (`POST /2010-04-01/Accounts/{AccountSid}/Conferences/{ConferenceSid}/Recordings/{Sid}.json`),
+  sync and async, now forwards `pause_behavior` (`PauseBehavior`) — with
+  `status="paused"`, `"skip"` drops the paused span from the recording while
+  `"silence"` (the server default) keeps it. Mirrors the call-recording update.
+- `applications.create` / `.update`
+  (`POST /2010-04-01/Accounts/{AccountSid}/Applications.json`,
+  `POST /2010-04-01/Accounts/{AccountSid}/Applications/{Sid}.json`), sync and async,
+  accept five new optional parameters:
+  - `sms_url` (`SmsUrl`) — inbound-SMS webhook URL for the application.
+  - `sms_method` (`SmsMethod`) — `GET` or `POST`.
+  - `sms_fallback_url` (`SmsFallbackUrl`) — called when the `SmsUrl` TwiML fails.
+  - `sms_fallback_method` (`SmsFallbackMethod`) — `GET` or `POST`.
+  - `public_application_connect_enabled` (`PublicApplicationConnectEnabled`).
+- `messages.create` (`POST /2010-04-01/Accounts/{AccountSid}/Messages.json`), sync and
+  async, accepts scheduled-send parameters:
+  - `send_at` (`SendAt`) — schedule the message for a future UTC time (`datetime`,
+    rendered ISO-8601); the server requires `schedule_type` and
+    `messaging_service_sid` alongside it.
+  - `schedule_type` (`ScheduleType`) — `"fixed"` is the only accepted value.
+- `calls.start_transcription`
+  (`POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Transcriptions.json`), sync
+  and async, accepts three new optional parameters:
+  - `speech_model` (`SpeechModel`) — engine-specific model hint (e.g. Deepgram's
+    `nova-3`).
+  - `enable_automatic_punctuation` (`EnableAutomaticPunctuation`).
+  - `intelligence_service` (`IntelligenceService`).
+- The vendored OpenAPI fixture (`tests/fixtures/voiceml-openapi.json`) is refreshed to
+  spec 0.9.4.
+
+### Removed
+
+- `StartTranscriptionRequest.status_callback` (`StatusCallback`) is renamed to
+  `status_callback_url` (`StatusCallbackUrl`) on `calls.start_transcription`: the old
+  name was never applied server-side. `status_callback_method` /
+  `status_callback_events` are unchanged.
+
 ## [0.9.4] - 2026-10-21
 
 ### Added
