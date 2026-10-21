@@ -7,6 +7,7 @@ suite.
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 from urllib.parse import parse_qs
 
 import pytest
@@ -131,6 +132,27 @@ def test_messages_create_with_messaging_service_sid(httpx_mock: HTTPXMock):
     assert "MessagingServiceSid=MG" in body
     # When the caller omitted From, no From= key in the body.
     assert "From=" not in body
+
+
+def test_messages_create_scheduled_sends_send_at_and_schedule_type(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Messages.json",
+        json=_message_payload(status="scheduled", messaging_service_sid="MG" + "1" * 32),
+        status_code=201,
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.messages.create(
+            to="+14155550100",
+            body="later",
+            messaging_service_sid="MG" + "1" * 32,
+            send_at=datetime(2026, 7, 1, 12, 30, tzinfo=timezone.utc),
+            schedule_type="fixed",
+        )
+    body = httpx_mock.get_request().content.decode()
+    assert "SendAt=2026-07-01T12%3A30%3A00Z" in body
+    assert "ScheduleType=fixed" in body
+    assert "MessagingServiceSid=MG" in body
 
 
 def test_messages_fetch(httpx_mock: HTTPXMock):

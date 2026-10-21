@@ -118,6 +118,7 @@ class CreateCallRequest(_Request):
     recording_track: RecordingTrack | None = Field(default=None, alias="RecordingTrack")
     trim: TrimMode | None = Field(default=None, alias="Trim")
     timeout: int | None = Field(default=None, alias="Timeout")
+    time_limit: int | None = Field(default=None, alias="TimeLimit")
     send_digits: str | None = Field(default=None, alias="SendDigits")
     caller_id: str | None = Field(default=None, alias="CallerId")
     call_reason: str | None = Field(default=None, alias="CallReason")

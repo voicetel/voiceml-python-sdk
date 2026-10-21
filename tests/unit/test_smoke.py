@@ -26,6 +26,7 @@ from voiceml.models import (
     Call,
     CallList,
     Conference,
+    CreateApplicationRequest,
     CreateCallRequest,
     CreateParticipantRequest,
     CreateQueueRequest,
@@ -35,7 +36,10 @@ from voiceml.models import (
     Queue,
     Recording,
     StartStreamRequest,
+    StartTranscriptionRequest,
+    UpdateApplicationRequest,
     UpdateCallRequest,
+    UpdateConferenceRecordingRequest,
     UpdateParticipantRequest,
 )
 
@@ -853,3 +857,160 @@ def test_recordings_get_sends_include_soft_deleted(httpx_mock: HTTPXMock):
     sent = httpx_mock.get_request()
     assert sent is not None
     assert "IncludeSoftDeleted=true" in sent.url.query.decode()
+
+
+# --- spec 0.9.4 field coverage ---
+
+
+def test_calls_create_sends_time_limit(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Calls.json",
+        json=_call_payload(),
+        status_code=201,
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.calls.create(
+            CreateCallRequest(
+                to="+14155550100",
+                from_="+14155550101",
+                url="https://example.com/twiml",
+                time_limit=3600,
+            )
+        )
+    body = httpx_mock.get_request().content.decode()
+    assert "TimeLimit=3600" in body
+
+
+def test_conferences_create_participant_sends_conference_status_callback(
+    httpx_mock: HTTPXMock,
+):
+    cf_sid = "CF" + "f" * 32
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences/{cf_sid}/Participants.json",
+        json={
+            "call_sid": "CA" + "f" * 32,
+            "conference_sid": cf_sid,
+            "account_sid": ACCOUNT_SID,
+            "status": "queued",
+            "uri": "/x",
+        },
+        status_code=201,
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.conferences.create_participant(
+            cf_sid,
+            CreateParticipantRequest(
+                from_="+14155550101",
+                to="+14155550100",
+                conference_status_callback="https://example.com/conf-status",
+                conference_status_callback_method="GET",
+                conference_status_callback_event="start end",
+            ),
+        )
+    body = httpx_mock.get_request().content.decode()
+    assert "ConferenceStatusCallback=https%3A%2F%2Fexample.com%2Fconf-status" in body
+    assert "ConferenceStatusCallbackMethod=GET" in body
+    assert (
+        "ConferenceStatusCallbackEvent=start+end" in body
+        or "ConferenceStatusCallbackEvent=start%20end" in body
+    )
+
+
+def test_conferences_update_recording_sends_pause_behavior(httpx_mock: HTTPXMock):
+    cf_sid = "CF" + "f" * 32
+    re_sid = "RE" + "f" * 32
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Conferences/{cf_sid}/Recordings/{re_sid}.json",
+        json={
+            "sid": re_sid,
+            "account_sid": ACCOUNT_SID,
+            "conference_sid": cf_sid,
+            "status": "paused",
+        },
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.conferences.update_recording(
+            cf_sid,
+            re_sid,
+            UpdateConferenceRecordingRequest(status="paused", pause_behavior="skip"),
+        )
+    body = httpx_mock.get_request().content.decode()
+    assert "Status=paused" in body
+    assert "PauseBehavior=skip" in body
+
+
+def test_applications_create_sends_sms_fields(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Applications.json",
+        json={"sid": "AP" + "1" * 32, "account_sid": ACCOUNT_SID},
+        status_code=201,
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.applications.create(
+            CreateApplicationRequest(
+                friendly_name="Desk",
+                sms_url="https://example.com/sms",
+                sms_method="POST",
+                sms_fallback_url="https://example.com/sms-fallback",
+                sms_fallback_method="GET",
+                public_application_connect_enabled=True,
+            )
+        )
+    body = httpx_mock.get_request().content.decode()
+    assert "SmsUrl=https%3A%2F%2Fexample.com%2Fsms" in body
+    assert "SmsMethod=POST" in body
+    assert "SmsFallbackUrl=https%3A%2F%2Fexample.com%2Fsms-fallback" in body
+    assert "SmsFallbackMethod=GET" in body
+    assert "PublicApplicationConnectEnabled=true" in body
+
+
+def test_applications_update_sends_sms_fields(httpx_mock: HTTPXMock):
+    ap_sid = "AP" + "1" * 32
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Applications/{ap_sid}.json",
+        json={"sid": ap_sid, "account_sid": ACCOUNT_SID},
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.applications.update(
+            ap_sid,
+            UpdateApplicationRequest(
+                sms_url="https://example.com/sms2",
+                public_application_connect_enabled=False,
+            ),
+        )
+    body = httpx_mock.get_request().content.decode()
+    assert "SmsUrl=https%3A%2F%2Fexample.com%2Fsms2" in body
+    assert "PublicApplicationConnectEnabled=false" in body
+
+
+def test_calls_start_transcription_sends_callback_url_and_engine_fields(
+    httpx_mock: HTTPXMock,
+):
+    call_sid = "CA" + "f" * 32
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/Calls/{call_sid}/Transcriptions.json",
+        json={"sid": "GT" + "f" * 32, "status": "in-progress"},
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.calls.start_transcription(
+            call_sid,
+            StartTranscriptionRequest(
+                speech_model="nova-3",
+                enable_automatic_punctuation=True,
+                intelligence_service="IS" + "1" * 32,
+                status_callback_url="https://example.com/tr-status",
+            ),
+        )
+    body = httpx_mock.get_request().content.decode()
+    assert "StatusCallbackUrl=https%3A%2F%2Fexample.com%2Ftr-status" in body
+    assert "SpeechModel=nova-3" in body
+    assert "EnableAutomaticPunctuation=true" in body
+    assert "IntelligenceService=IS" + "1" * 32 in body
+    # The old (never-applied) StatusCallback name must not appear.
+    assert "StatusCallback=" not in body

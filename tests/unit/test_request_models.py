@@ -16,8 +16,12 @@ from voiceml.models import (
     CreateIncomingPhoneNumberRequest,
     CreateMessageRequest,
     CreateOutgoingCallerIdRequest,
+    CreateParticipantRequest,
     CreateTypedIncomingPhoneNumberRequest,
+    StartTranscriptionRequest,
     UpdateAccountRequest,
+    UpdateApplicationRequest,
+    UpdateConferenceRecordingRequest,
     UpdateConversationsV1ConversationRequest,
     UpdateIncomingPhoneNumberRequest,
 )
@@ -156,6 +160,102 @@ def test_outgoing_caller_id_create_request_full_form() -> None:
         CreateOutgoingCallerIdRequest(phone_number="+14155550100", call_delay=61)
     with pytest.raises(ValidationError):
         CreateOutgoingCallerIdRequest(phone_number="+14155550100", call_delay=-1)
+
+
+def test_call_time_limit_serialises() -> None:
+    form = CreateCallRequest(
+        to="+14155550100", from_="+14155550101", url="https://x", time_limit=3600
+    ).to_form()
+    assert form["TimeLimit"] == 3600
+    # No client-side range validation — the server rejects 0 / >14400 with 13216.
+    assert (
+        CreateCallRequest(to="+14155550100", from_="+14155550101", time_limit=-1).to_form()[
+            "TimeLimit"
+        ]
+        == -1
+    )
+
+
+def test_participant_conference_status_callback_serialises() -> None:
+    form = CreateParticipantRequest(
+        from_="+14155550101",
+        to="+14155550100",
+        conference_status_callback="https://example.com/conf-status",
+        conference_status_callback_method="GET",
+        conference_status_callback_event="start end",
+    ).to_form()
+    assert form == {
+        "From": "+14155550101",
+        "To": "+14155550100",
+        "ConferenceStatusCallback": "https://example.com/conf-status",
+        "ConferenceStatusCallbackMethod": "GET",
+        "ConferenceStatusCallbackEvent": "start end",
+    }
+
+
+def test_conference_recording_pause_behavior_serialises() -> None:
+    form = UpdateConferenceRecordingRequest(status="paused", pause_behavior="skip").to_form()
+    assert form == {"Status": "paused", "PauseBehavior": "skip"}
+
+
+def test_application_sms_fields_serialise() -> None:
+    form = CreateApplicationRequest(
+        friendly_name="Desk",
+        sms_url="https://example.com/sms",
+        sms_method="POST",
+        sms_fallback_url="https://example.com/sms-fallback",
+        sms_fallback_method="GET",
+        public_application_connect_enabled=True,
+    ).to_form()
+    assert form == {
+        "FriendlyName": "Desk",
+        "SmsUrl": "https://example.com/sms",
+        "SmsMethod": "POST",
+        "SmsFallbackUrl": "https://example.com/sms-fallback",
+        "SmsFallbackMethod": "GET",
+        "PublicApplicationConnectEnabled": "true",
+    }
+    update = UpdateApplicationRequest(sms_url="https://example.com/sms2").to_form()
+    assert update == {"SmsUrl": "https://example.com/sms2"}
+
+
+def test_message_schedule_fields_serialise() -> None:
+    form = CreateMessageRequest(
+        to="+14155550100",
+        body="later",
+        messaging_service_sid="MG" + "1" * 32,
+        send_at=datetime(2026, 7, 1, 12, 30, tzinfo=timezone.utc),
+        schedule_type="fixed",
+    ).to_form()
+    assert form["SendAt"] == "2026-07-01T12:30:00Z"
+    assert form["ScheduleType"] == "fixed"
+    with pytest.raises(ValidationError):
+        CreateMessageRequest(to="+14155550100", body="x", schedule_type="cron")
+
+
+def test_start_transcription_request_serialises() -> None:
+    form = StartTranscriptionRequest(
+        name="t1",
+        speech_model="nova-3",
+        enable_automatic_punctuation=True,
+        intelligence_service="IS" + "1" * 32,
+        status_callback_url="https://example.com/tr-status",
+        status_callback_method="POST",
+        status_callback_events="in-progress completed",
+    ).to_form()
+    assert form == {
+        "Name": "t1",
+        "SpeechModel": "nova-3",
+        "EnableAutomaticPunctuation": "true",
+        "IntelligenceService": "IS" + "1" * 32,
+        "StatusCallbackUrl": "https://example.com/tr-status",
+        "StatusCallbackMethod": "POST",
+        "StatusCallbackEvents": "in-progress completed",
+    }
+    # The pre-0.9.5 ``status_callback`` (``StatusCallback``) was never applied
+    # server-side and is gone — strict models reject it.
+    with pytest.raises(ValidationError):
+        StartTranscriptionRequest(status_callback="https://example.com/tr-status")
 
 
 def test_form_value_rendering() -> None:

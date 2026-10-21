@@ -79,7 +79,6 @@ class UpdateRecordingRequest(_Request):
 
     ``pause_behavior`` applies with ``status="paused"``: ``"skip"`` leaves the paused
     span out of the recording, ``"silence"`` (the server default) keeps it as silence.
-    Conference recordings accept ``status`` only.
     """
 
     status: RecordingUpdateStatus = Field(alias="Status")
@@ -87,9 +86,13 @@ class UpdateRecordingRequest(_Request):
 
 
 class UpdateConferenceRecordingRequest(_Request):
-    """Body for ``POST /Conferences/{sid}/Recordings/{rsid}`` — stop / pause / resume."""
+    """Body for ``POST /Conferences/{sid}/Recordings/{rsid}`` — stop / pause / resume.
+
+    ``pause_behavior`` applies with ``status="paused"``, same as on call recordings.
+    """
 
     status: RecordingUpdateStatus = Field(alias="Status")
+    pause_behavior: str | None = Field(default=None, alias="PauseBehavior")
 
 
 class StartConferenceRecordingRequest(_Request):

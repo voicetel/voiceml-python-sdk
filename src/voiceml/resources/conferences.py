@@ -271,8 +271,10 @@ class ConferencesResource(Resource):
         recording_sid: str,
         body: UpdateConferenceRecordingRequest | UpdateRecordingRequest,
     ) -> Recording:
-        """Stop / pause / resume a conference recording (only ``Status`` is sent)."""
-        form = UpdateConferenceRecordingRequest(status=body.status).to_form()
+        """Stop / pause / resume a conference recording (``Status`` + ``PauseBehavior``)."""
+        form = UpdateConferenceRecordingRequest(
+            status=body.status, pause_behavior=body.pause_behavior
+        ).to_form()
         return Recording.model_validate(
             self._t.request(
                 "POST",
@@ -479,8 +481,10 @@ class ConferencesAsyncResource(AsyncResource):
         recording_sid: str,
         body: UpdateConferenceRecordingRequest | UpdateRecordingRequest,
     ) -> Recording:
-        """Stop / pause / resume a conference recording (only ``Status`` is sent)."""
-        form = UpdateConferenceRecordingRequest(status=body.status).to_form()
+        """Stop / pause / resume a conference recording (``Status`` + ``PauseBehavior``)."""
+        form = UpdateConferenceRecordingRequest(
+            status=body.status, pause_behavior=body.pause_behavior
+        ).to_form()
         return Recording.model_validate(
             await self._t.request(
                 "POST",

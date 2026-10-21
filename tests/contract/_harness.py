@@ -21,6 +21,7 @@ import types
 import urllib.parse
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from functools import cache
 from pathlib import Path
 from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
@@ -391,6 +392,8 @@ def value_for(tp: Any, name: str, *, full: bool) -> Any:
         return {"k": "v"}
     if tp is Any or tp is object:
         return f"X{name}"
+    if tp is datetime:
+        return datetime(2026, 7, 1, tzinfo=timezone.utc)
     if tp is str:
         return f"X{name}"
     if tp is bool:

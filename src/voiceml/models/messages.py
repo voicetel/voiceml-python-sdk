@@ -11,6 +11,7 @@ Two wire shapes deserve a note:
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import Field, model_validator
@@ -41,6 +42,7 @@ MessageDirection = Literal[
 UpdateMessageStatus = Literal["canceled"]
 MessageFeedbackOutcome = Literal["confirmed", "unconfirmed"]
 HttpMethod = Literal["GET", "POST"]
+ScheduleType = Literal["fixed"]
 
 
 class Message(_Base):
@@ -78,6 +80,10 @@ class CreateMessageRequest(_Request):
     ``To`` is required, plus at least one of ``Body`` or ``MediaUrl`` (MMS). ``From``
     falls back to the tenant's configured default sender when omitted. ``MediaUrl``
     is sent as repeated ``MediaUrl=`` keys.
+
+    ``send_at`` schedules the message for a future UTC time; the server requires
+    ``schedule_type`` (``"fixed"`` is the only accepted value) and
+    ``messaging_service_sid`` alongside it.
     """
 
     to: str = Field(alias="To")
@@ -88,6 +94,8 @@ class CreateMessageRequest(_Request):
     validity_period: int | None = Field(default=None, alias="ValidityPeriod", ge=1, le=36000)
     status_callback: str | None = Field(default=None, alias="StatusCallback")
     status_callback_method: HttpMethod | None = Field(default=None, alias="StatusCallbackMethod")
+    send_at: datetime | None = Field(default=None, alias="SendAt")
+    schedule_type: ScheduleType | None = Field(default=None, alias="ScheduleType")
 
     @model_validator(mode="after")
     def _body_or_media(self) -> CreateMessageRequest:

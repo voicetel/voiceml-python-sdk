@@ -4,6 +4,7 @@ per-message ``/Media`` sub-resource."""
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator, Sequence
+from datetime import datetime
 
 from ..models import (
     CreateMessageFeedbackRequest,
@@ -16,7 +17,7 @@ from ..models import (
     UpdateMessageRequest,
     UpdateMessageStatus,
 )
-from ..models.messages import HttpMethod, MessageFeedbackOutcome
+from ..models.messages import HttpMethod, MessageFeedbackOutcome, ScheduleType
 from ._base import AsyncResource, Resource
 
 
@@ -72,6 +73,8 @@ def _build_create_form(
     validity_period: int | None,
     status_callback: str | None,
     status_callback_method: HttpMethod | None,
+    send_at: datetime | None,
+    schedule_type: ScheduleType | None,
 ) -> dict[str, object]:
     return CreateMessageRequest(
         to=to,
@@ -82,6 +85,8 @@ def _build_create_form(
         validity_period=validity_period,
         status_callback=status_callback,
         status_callback_method=status_callback_method,
+        send_at=send_at,
+        schedule_type=schedule_type,
     ).to_form()
 
 
@@ -107,12 +112,17 @@ class MessagesResource(Resource):
         validity_period: int | None = None,
         status_callback: str | None = None,
         status_callback_method: HttpMethod | None = None,
+        send_at: datetime | None = None,
+        schedule_type: ScheduleType | None = None,
     ) -> Message:
         """Send an SMS (``body``) or MMS (``media_url``, optionally with ``body``).
 
         At least one of ``body`` / ``media_url`` is required (checked before any
         request is made). ``from_`` falls back to the tenant's configured default
         sender when omitted. Never retried on 5xx or read timeouts.
+
+        ``send_at`` schedules the message for a future UTC time; the server requires
+        ``schedule_type`` (``"fixed"``) and ``messaging_service_sid`` alongside it.
         """
         return Message.model_validate(
             self._t.request(
@@ -127,6 +137,8 @@ class MessagesResource(Resource):
                     validity_period=validity_period,
                     status_callback=status_callback,
                     status_callback_method=status_callback_method,
+                    send_at=send_at,
+                    schedule_type=schedule_type,
                 ),
             )
         )
@@ -280,6 +292,8 @@ class MessagesAsyncResource(AsyncResource):
         validity_period: int | None = None,
         status_callback: str | None = None,
         status_callback_method: HttpMethod | None = None,
+        send_at: datetime | None = None,
+        schedule_type: ScheduleType | None = None,
     ) -> Message:
         return Message.model_validate(
             await self._t.request(
@@ -294,6 +308,8 @@ class MessagesAsyncResource(AsyncResource):
                     validity_period=validity_period,
                     status_callback=status_callback,
                     status_callback_method=status_callback_method,
+                    send_at=send_at,
+                    schedule_type=schedule_type,
                 ),
             )
         )

@@ -60,6 +60,13 @@ class _ApplicationBody(_Request):
     )
     message_status_callback: str | None = Field(default=None, alias="MessageStatusCallback")
     sms_status_callback: str | None = Field(default=None, alias="SmsStatusCallback")
+    sms_url: str | None = Field(default=None, alias="SmsUrl")
+    sms_method: HttpMethod | None = Field(default=None, alias="SmsMethod")
+    sms_fallback_url: str | None = Field(default=None, alias="SmsFallbackUrl")
+    sms_fallback_method: HttpMethod | None = Field(default=None, alias="SmsFallbackMethod")
+    public_application_connect_enabled: bool | None = Field(
+        default=None, alias="PublicApplicationConnectEnabled"
+    )
 
 
 class CreateApplicationRequest(_ApplicationBody):

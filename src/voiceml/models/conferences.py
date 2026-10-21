@@ -98,3 +98,10 @@ class CreateParticipantRequest(_Request):
     status_callback_event: list[CallStatusCallbackEvent] | None = Field(
         default=None, alias="StatusCallbackEvent"
     )
+    conference_status_callback: str | None = Field(default=None, alias="ConferenceStatusCallback")
+    conference_status_callback_method: Literal["GET", "POST"] | None = Field(
+        default=None, alias="ConferenceStatusCallbackMethod"
+    )
+    conference_status_callback_event: str | None = Field(
+        default=None, alias="ConferenceStatusCallbackEvent"
+    )

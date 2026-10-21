@@ -213,6 +213,7 @@ from .messages import (
     MessageFeedbackOutcome,
     MessageList,
     MessageStatus,
+    ScheduleType,
     UpdateMessageRequest,
     UpdateMessageStatus,
 )
@@ -597,6 +598,7 @@ __all__ = [
     "RecordingUpdateStatus",
     "RoutesV2PhoneNumber",
     "RoutesV2SipDomain",
+    "ScheduleType",
     "SendAssistantsV1MessageRequest",
     "SipAuthMappingList",
     "SipCredential",

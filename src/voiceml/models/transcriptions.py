@@ -61,7 +61,11 @@ class RecordingTranscriptionList(Page[RecordingTranscription]):
 
 
 class StartTranscriptionRequest(_Request):
-    """Body for ``POST /Calls/{sid}/Transcriptions``."""
+    """Body for ``POST /Calls/{sid}/Transcriptions``.
+
+    The webhook field is ``status_callback_url`` (``StatusCallbackUrl``) — the server
+    never honoured the old ``StatusCallback`` name.
+    """
 
     name: str | None = Field(default=None, alias="Name")
     track: TrackSelector | None = Field(default=None, alias="Track")
@@ -72,7 +76,12 @@ class StartTranscriptionRequest(_Request):
     profanity_filter: bool | None = Field(default=None, alias="ProfanityFilter")
     partial_results: bool | None = Field(default=None, alias="PartialResults")
     hints: str | None = Field(default=None, alias="Hints")
-    status_callback: str | None = Field(default=None, alias="StatusCallback")
+    speech_model: str | None = Field(default=None, alias="SpeechModel")
+    enable_automatic_punctuation: bool | None = Field(
+        default=None, alias="EnableAutomaticPunctuation"
+    )
+    intelligence_service: str | None = Field(default=None, alias="IntelligenceService")
+    status_callback_url: str | None = Field(default=None, alias="StatusCallbackUrl")
     status_callback_method: str | None = Field(default=None, alias="StatusCallbackMethod")
     status_callback_events: str | None = Field(default=None, alias="StatusCallbackEvents")
 
