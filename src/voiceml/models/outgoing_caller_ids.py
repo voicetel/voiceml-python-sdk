@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 
 from ._base import _Base, _Request
 from .common import Page
+
+HttpMethod = Literal["GET", "POST"]
 
 
 class OutgoingCallerId(_Base):
@@ -38,10 +42,20 @@ class ValidationRequest(_Base):
 
 
 class CreateOutgoingCallerIdRequest(_Request):
-    """Body for ``POST /OutgoingCallerIds`` (starts verification)."""
+    """Body for ``POST /OutgoingCallerIds`` (starts verification).
+
+    ``call_delay`` is the seconds to wait before the verification call
+    (0–60, server-enforced); ``extension`` is dialed as DTMF after connect.
+    ``status_callback`` fires at the end of the verification call with
+    ``VerificationStatus`` (``success``/``failed``).
+    """
 
     phone_number: str = Field(alias="PhoneNumber")
     friendly_name: str | None = Field(default=None, alias="FriendlyName")
+    call_delay: int | None = Field(default=None, alias="CallDelay", ge=0, le=60)
+    extension: str | None = Field(default=None, alias="Extension")
+    status_callback: str | None = Field(default=None, alias="StatusCallback")
+    status_callback_method: HttpMethod | None = Field(default=None, alias="StatusCallbackMethod")
 
 
 class UpdateOutgoingCallerIdRequest(_Request):

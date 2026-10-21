@@ -21,7 +21,7 @@ from .common import Page
 
 HttpMethod = Literal["GET", "POST"]
 IncomingPhoneNumberOrigin = Literal["twilio", "hosted"]
-SMS_APPLICATION_SID_PATTERN = r"^AP[0-9a-fA-F]{32}$"
+APPLICATION_SID_PATTERN = r"^AP[0-9a-fA-F]{32}$"
 
 
 class IncomingPhoneNumberCapabilities(_Base):
@@ -111,8 +111,13 @@ class CreateIncomingPhoneNumberRequest(_Request):
     sms_fallback_url: str | None = Field(default=None, alias="SmsFallbackUrl")
     sms_fallback_method: HttpMethod | None = Field(default=None, alias="SmsFallbackMethod")
     sms_application_sid: str | None = Field(
-        default=None, alias="SmsApplicationSid", pattern=SMS_APPLICATION_SID_PATTERN
+        default=None, alias="SmsApplicationSid", pattern=APPLICATION_SID_PATTERN
     )
+    voice_application_sid: str | None = Field(
+        default=None, alias="VoiceApplicationSid", pattern=APPLICATION_SID_PATTERN
+    )
+    status_callback: str | None = Field(default=None, alias="StatusCallback")
+    status_callback_method: HttpMethod | None = Field(default=None, alias="StatusCallbackMethod")
 
 
 class CreateTypedIncomingPhoneNumberRequest(_Request):
@@ -142,5 +147,10 @@ class UpdateIncomingPhoneNumberRequest(_Request):
     sms_fallback_url: str | None = Field(default=None, alias="SmsFallbackUrl")
     sms_fallback_method: HttpMethod | None = Field(default=None, alias="SmsFallbackMethod")
     sms_application_sid: str | None = Field(
-        default=None, alias="SmsApplicationSid", pattern=SMS_APPLICATION_SID_PATTERN
+        default=None, alias="SmsApplicationSid", pattern=APPLICATION_SID_PATTERN
     )
+    voice_application_sid: str | None = Field(
+        default=None, alias="VoiceApplicationSid", pattern=APPLICATION_SID_PATTERN
+    )
+    status_callback: str | None = Field(default=None, alias="StatusCallback")
+    status_callback_method: HttpMethod | None = Field(default=None, alias="StatusCallbackMethod")

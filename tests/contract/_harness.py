@@ -366,6 +366,7 @@ def _is_union(tp: Any) -> bool:
 # Arguments whose server-side format is validated client-side get a well-formed value.
 VALUE_OVERRIDES: dict[str, Any] = {
     "sms_application_sid": "AP" + "0" * 32,
+    "voice_application_sid": "AP" + "0" * 32,
 }
 
 

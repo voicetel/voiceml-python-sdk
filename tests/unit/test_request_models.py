@@ -15,9 +15,11 @@ from voiceml.models import (
     CreateCallRequest,
     CreateIncomingPhoneNumberRequest,
     CreateMessageRequest,
+    CreateOutgoingCallerIdRequest,
     CreateTypedIncomingPhoneNumberRequest,
     UpdateAccountRequest,
     UpdateConversationsV1ConversationRequest,
+    UpdateIncomingPhoneNumberRequest,
 )
 from voiceml.models._base import form_value
 
@@ -111,6 +113,49 @@ def test_sms_application_sid_is_validated() -> None:
     assert ok.to_form()["SmsApplicationSid"] == "AP" + "a" * 32
     with pytest.raises(ValidationError):
         CreateIncomingPhoneNumberRequest(phone_number="+14155550100", sms_application_sid="AP1")
+
+
+def test_voice_application_sid_is_validated() -> None:
+    ok = UpdateIncomingPhoneNumberRequest(voice_application_sid="AP" + "a" * 32)
+    assert ok.to_form()["VoiceApplicationSid"] == "AP" + "a" * 32
+    with pytest.raises(ValidationError):
+        UpdateIncomingPhoneNumberRequest(voice_application_sid="AP1")
+    with pytest.raises(ValidationError):
+        CreateIncomingPhoneNumberRequest(phone_number="+14155550100", voice_application_sid="AP1")
+
+
+def test_incoming_phone_number_status_callback_serialises() -> None:
+    form = UpdateIncomingPhoneNumberRequest(
+        status_callback="https://example.com/inbound-status",
+        status_callback_method="GET",
+    ).to_form()
+    assert form == {
+        "StatusCallback": "https://example.com/inbound-status",
+        "StatusCallbackMethod": "GET",
+    }
+
+
+def test_outgoing_caller_id_create_request_full_form() -> None:
+    form = CreateOutgoingCallerIdRequest(
+        phone_number="+14155550100",
+        friendly_name="Desk",
+        call_delay=30,
+        extension="89",
+        status_callback="https://example.com/verification",
+        status_callback_method="POST",
+    ).to_form()
+    assert form == {
+        "PhoneNumber": "+14155550100",
+        "FriendlyName": "Desk",
+        "CallDelay": 30,
+        "Extension": "89",
+        "StatusCallback": "https://example.com/verification",
+        "StatusCallbackMethod": "POST",
+    }
+    with pytest.raises(ValidationError):
+        CreateOutgoingCallerIdRequest(phone_number="+14155550100", call_delay=61)
+    with pytest.raises(ValidationError):
+        CreateOutgoingCallerIdRequest(phone_number="+14155550100", call_delay=-1)
 
 
 def test_form_value_rendering() -> None:

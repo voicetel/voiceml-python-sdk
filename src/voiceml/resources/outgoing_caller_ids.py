@@ -11,6 +11,7 @@ from ..models import (
     UpdateOutgoingCallerIdRequest,
     ValidationRequest,
 )
+from ..models.outgoing_caller_ids import HttpMethod
 from ._base import AsyncResource, Resource
 
 
@@ -69,10 +70,24 @@ class OutgoingCallerIdsResource(Resource):
             self.list(phone_number=phone_number, friendly_name=friendly_name, page_size=page_size)
         )
 
-    def create(self, *, phone_number: str, friendly_name: str | None = None) -> ValidationRequest:
+    def create(
+        self,
+        *,
+        phone_number: str,
+        friendly_name: str | None = None,
+        call_delay: int | None = None,
+        extension: str | None = None,
+        status_callback: str | None = None,
+        status_callback_method: HttpMethod | None = None,
+    ) -> ValidationRequest:
         """Start verifying ``phone_number``; returns the validation code to enter."""
         form = CreateOutgoingCallerIdRequest(
-            phone_number=phone_number, friendly_name=friendly_name
+            phone_number=phone_number,
+            friendly_name=friendly_name,
+            call_delay=call_delay,
+            extension=extension,
+            status_callback=status_callback,
+            status_callback_method=status_callback_method,
         ).to_form()
         return ValidationRequest.model_validate(
             self._t.request("POST", self._path("OutgoingCallerIds"), data=form)
@@ -134,10 +149,22 @@ class OutgoingCallerIdsAsyncResource(AsyncResource):
             yield item
 
     async def create(
-        self, *, phone_number: str, friendly_name: str | None = None
+        self,
+        *,
+        phone_number: str,
+        friendly_name: str | None = None,
+        call_delay: int | None = None,
+        extension: str | None = None,
+        status_callback: str | None = None,
+        status_callback_method: HttpMethod | None = None,
     ) -> ValidationRequest:
         form = CreateOutgoingCallerIdRequest(
-            phone_number=phone_number, friendly_name=friendly_name
+            phone_number=phone_number,
+            friendly_name=friendly_name,
+            call_delay=call_delay,
+            extension=extension,
+            status_callback=status_callback,
+            status_callback_method=status_callback_method,
         ).to_form()
         return ValidationRequest.model_validate(
             await self._t.request("POST", self._path("OutgoingCallerIds"), data=form)

@@ -538,6 +538,55 @@ def test_incoming_phone_numbers_update(httpx_mock: HTTPXMock):
     assert "FriendlyName" not in body
 
 
+def test_incoming_phone_numbers_update_status_callback_and_voice_app(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/IncomingPhoneNumbers/{PN_SID}.json",
+        json=_ipn_payload(),
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        c.incoming_phone_numbers.update(
+            PN_SID,
+            status_callback="https://example.com/inbound-status",
+            status_callback_method="GET",
+            voice_application_sid="AP" + "a" * 32,
+        )
+    body = httpx_mock.get_request().content.decode()
+    assert "StatusCallback=https%3A%2F%2Fexample.com%2Finbound-status" in body
+    assert "StatusCallbackMethod=GET" in body
+    assert "VoiceApplicationSid=AP" + "a" * 32 in body
+
+
+def test_outgoing_caller_ids_create_verification_params(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{BASE}/2010-04-01/Accounts/{ACCOUNT_SID}/OutgoingCallerIds.json",
+        json={
+            "account_sid": ACCOUNT_SID,
+            "phone_number": "+14155550100",
+            "friendly_name": "Desk",
+            "validation_code": "123456",
+            "call_sid": "CA" + "1" * 32,
+        },
+    )
+    with Client(account_sid=ACCOUNT_SID, api_key=API_KEY) as c:
+        vr = c.outgoing_caller_ids.create(
+            phone_number="+14155550100",
+            friendly_name="Desk",
+            call_delay=30,
+            extension="89",
+            status_callback="https://example.com/verification",
+            status_callback_method="POST",
+        )
+    assert vr.validation_code == "123456"
+    body = httpx_mock.get_request().content.decode()
+    assert "PhoneNumber=%2B14155550100" in body
+    assert "CallDelay=30" in body
+    assert "Extension=89" in body
+    assert "StatusCallback=https%3A%2F%2Fexample.com%2Fverification" in body
+    assert "StatusCallbackMethod=POST" in body
+
+
 def test_incoming_phone_numbers_delete(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         method="DELETE",

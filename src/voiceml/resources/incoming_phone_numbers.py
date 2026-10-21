@@ -55,6 +55,9 @@ def _create_form(
     sms_fallback_url: str | None,
     sms_fallback_method: HttpMethod | None,
     sms_application_sid: str | None,
+    voice_application_sid: str | None,
+    status_callback: str | None,
+    status_callback_method: HttpMethod | None,
 ) -> dict[str, object]:
     return CreateIncomingPhoneNumberRequest(
         phone_number=phone_number,
@@ -67,6 +70,9 @@ def _create_form(
         sms_fallback_url=sms_fallback_url,
         sms_fallback_method=sms_fallback_method,
         sms_application_sid=sms_application_sid,
+        voice_application_sid=voice_application_sid,
+        status_callback=status_callback,
+        status_callback_method=status_callback_method,
     ).to_form()
 
 
@@ -89,6 +95,9 @@ def _update_form(
     sms_fallback_url: str | None,
     sms_fallback_method: HttpMethod | None,
     sms_application_sid: str | None,
+    voice_application_sid: str | None,
+    status_callback: str | None,
+    status_callback_method: HttpMethod | None,
 ) -> dict[str, object]:
     return UpdateIncomingPhoneNumberRequest(
         voice_url=voice_url,
@@ -100,6 +109,9 @@ def _update_form(
         sms_fallback_url=sms_fallback_url,
         sms_fallback_method=sms_fallback_method,
         sms_application_sid=sms_application_sid,
+        voice_application_sid=voice_application_sid,
+        status_callback=status_callback,
+        status_callback_method=status_callback_method,
     ).to_form()
 
 
@@ -174,6 +186,9 @@ class IncomingPhoneNumbersResource(Resource):
         sms_fallback_url: str | None = None,
         sms_fallback_method: HttpMethod | None = None,
         sms_application_sid: str | None = None,
+        voice_application_sid: str | None = None,
+        status_callback: str | None = None,
+        status_callback_method: HttpMethod | None = None,
     ) -> IncomingPhoneNumber:
         return IncomingPhoneNumber.model_validate(
             self._t.request(
@@ -190,6 +205,9 @@ class IncomingPhoneNumbersResource(Resource):
                     sms_fallback_url=sms_fallback_url,
                     sms_fallback_method=sms_fallback_method,
                     sms_application_sid=sms_application_sid,
+                    voice_application_sid=voice_application_sid,
+                    status_callback=status_callback,
+                    status_callback_method=status_callback_method,
                 ),
             )
         )
@@ -212,6 +230,9 @@ class IncomingPhoneNumbersResource(Resource):
         sms_fallback_url: str | None = None,
         sms_fallback_method: HttpMethod | None = None,
         sms_application_sid: str | None = None,
+        voice_application_sid: str | None = None,
+        status_callback: str | None = None,
+        status_callback_method: HttpMethod | None = None,
     ) -> IncomingPhoneNumber:
         return IncomingPhoneNumber.model_validate(
             self._t.request(
@@ -227,6 +248,9 @@ class IncomingPhoneNumbersResource(Resource):
                     sms_fallback_url=sms_fallback_url,
                     sms_fallback_method=sms_fallback_method,
                     sms_application_sid=sms_application_sid,
+                    voice_application_sid=voice_application_sid,
+                    status_callback=status_callback,
+                    status_callback_method=status_callback_method,
                 ),
             )
         )
@@ -420,6 +444,9 @@ class IncomingPhoneNumbersAsyncResource(AsyncResource):
         sms_fallback_url: str | None = None,
         sms_fallback_method: HttpMethod | None = None,
         sms_application_sid: str | None = None,
+        voice_application_sid: str | None = None,
+        status_callback: str | None = None,
+        status_callback_method: HttpMethod | None = None,
     ) -> IncomingPhoneNumber:
         return IncomingPhoneNumber.model_validate(
             await self._t.request(
@@ -436,6 +463,9 @@ class IncomingPhoneNumbersAsyncResource(AsyncResource):
                     sms_fallback_url=sms_fallback_url,
                     sms_fallback_method=sms_fallback_method,
                     sms_application_sid=sms_application_sid,
+                    voice_application_sid=voice_application_sid,
+                    status_callback=status_callback,
+                    status_callback_method=status_callback_method,
                 ),
             )
         )
@@ -458,6 +488,9 @@ class IncomingPhoneNumbersAsyncResource(AsyncResource):
         sms_fallback_url: str | None = None,
         sms_fallback_method: HttpMethod | None = None,
         sms_application_sid: str | None = None,
+        voice_application_sid: str | None = None,
+        status_callback: str | None = None,
+        status_callback_method: HttpMethod | None = None,
     ) -> IncomingPhoneNumber:
         return IncomingPhoneNumber.model_validate(
             await self._t.request(
@@ -473,6 +506,9 @@ class IncomingPhoneNumbersAsyncResource(AsyncResource):
                     sms_fallback_url=sms_fallback_url,
                     sms_fallback_method=sms_fallback_method,
                     sms_application_sid=sms_application_sid,
+                    voice_application_sid=voice_application_sid,
+                    status_callback=status_callback,
+                    status_callback_method=status_callback_method,
                 ),
             )
         )
